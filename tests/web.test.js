@@ -72,3 +72,9 @@ test('rejected/quarantined places are never offered', async () => {
   assert.ok(!(await b.get('/games')).text.includes('Natural Disaster'));
 });
 test('game page states limits honestly', async () => { const t = (await new Browser(app.webUrl).get('/games/crossroads-2007-client')).text; assert.match(t, /no script runtime/); assert.match(t, /SHA-256/); assert.match(t, /INFERRED/); });
+
+test('CSP-compatible markup: no inline style attributes; every BrickColor has a CSS class', async t => {
+  const fs = require('fs'); const path = require('path'); const S = require('../src/lib/services');
+  const views = fs.readFileSync(path.join(__dirname, '..', 'src', 'web', 'views.js'), 'utf8'); assert.ok(!/\sstyle=/.test(views), 'inline style= would be blocked by CSP');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'static', 'css', 'brickcolors.css'), 'utf8'); for (const id of Object.keys(S.BRICK_COLORS)) assert.ok(css.includes(`.bc-${id} {`), 'missing .bc-' + id);
+});

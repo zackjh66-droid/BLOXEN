@@ -10,9 +10,9 @@ h1 { font-size: 32px; font-weight: bold; margin: 12px 0; letter-spacing: -1px; }
 .header-2014 { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #2D528F; color: #fff; z-index: 100; min-width: 960px; }
 .header-2014 a, .header-2014 a:visited { color: #fff; } .header-2014 .inner { width: 970px; margin: 0 auto; height: 40px; display: flex; align-items: center; }
 .header-2014 .logo { font-weight: bold; font-size: 22px; letter-spacing: 1px; margin-right: 14px; padding: 0 6px; }
-.header-2014 .links a { font-size: 16px; margin-right: 6px; padding: 3px 10px 3px; border-radius: 4px; display: inline-block; } .header-2014 .links a:hover { background: #27487E; text-decoration: none; }
+.header-2014 .links a { white-space: nowrap; font-size: 16px; margin-right: 6px; padding: 3px 10px 3px; border-radius: 4px; display: inline-block; } .header-2014 .links a:hover { background: #27487E; text-decoration: none; }
 .header-2014 form.search { margin: 0 10px 0 auto; } .header-2014 .search input { width: 220px; height: 24px; border: 0; border-radius: 5px; padding: 0 8px; font-size: 14px; box-sizing: border-box; }
-.header-2014 .acct { white-space: nowrap; font-size: 14px; } .header-2014 .acct span, .header-2014 .acct a, .header-2014 .acct button { margin-left: 10px; }
+.header-2014 .acct { white-space: nowrap; font-size: 13px; flex-shrink: 0; font-size: 14px; } .header-2014 .acct span, .header-2014 .acct a, .header-2014 .acct button { margin-left: 10px; }
 .linkbtn { background: none; border: 0; color: #fff; font: inherit; cursor: pointer; padding: 0; } .linkbtn:hover { text-decoration: underline; }
 .notice { margin: 40px 0 0; background: #fffbe0; border-bottom: 1px solid #e0d98a; color: #555; font-size: 12px; text-align: center; padding: 3px 10px; }
 #Container { width: 970px; margin: 0 auto; background: #fff; padding: 10px 0 30px; min-height: 420px; }
@@ -36,3 +36,11 @@ form.stack label { display: block; margin: 8px 0 2px; font-weight: bold; } form.
 footer.site { width: 970px; margin: 0 auto; padding: 14px 0 40px; font-size: 12px; color: #555; text-align: center; border-top: 1px solid #aaa; } footer.site a { color: #2D528F; }
 .prov td:first-child { width: 160px; font-weight: bold; } .mono { font-family: Consolas, monospace; font-size: 12px; word-break: break-all; } pre.ev { white-space: pre-wrap; }
 .msg.unread td { font-weight: bold; }
+
+/* CSP forbids inline styles: utility classes replace them. */
+.inl { display: inline; } .b { font-weight: bold; } .mt0 { margin-top: 0; } .tc { text-align: center; } .w230 { width: 230px; height: 70px; } .w340 { width: 340px; } .w440 { width: 440px; height: 80px; }
+.p40x40 { width: 40px; height: 40px; } .p20x80 { width: 20px; height: 80px; } .p40x80 { width: 40px; height: 80px; }
+.sw { width: 22px; height: 22px; border: 1px solid #777; cursor: pointer; margin: 1px; padding: 0; } .sw.cur { border: 3px solid #000; }
+.swrow form { display: inline; }
+/* fit 4 nav links + search + account area in 970px (found via screenshot: "Character" wrapped) */
+.header-2014 .links { display: flex; flex-shrink: 0; } .header-2014 .search input { width: 150px; } .header-2014 .links a { padding: 3px 8px; }
