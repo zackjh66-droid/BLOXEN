@@ -318,7 +318,7 @@ class Scheduler {
   resume(t) {
     this.interp.steps = 0;
     try { const r = t.gen.next(t.sent); if (r.done) { t.dead = true; return; } const y = r.value; if (y && y.wait !== undefined) { t.wake = this.now + Math.max(y.wait, 0.0167); t.sent = [this.now - (y.start || this.now) + Math.max(y.wait, 0.0167), this.now]; t.startedWait = this.now; } else { t.wake = this.now; } }
-    catch (e) { t.dead = true; if (e && (e.lua || e.budget)) this.onError(t, e); else throw e; }
+    catch (e) { t.dead = true; if (e && (e.lua || e.budget)) this.onError(t, e); else this.onError(t, { lua: true, value: 'internal sandbox error (' + (e && e.message) + '): script stopped' }); }
   }
   // advance virtual time by dt, running every thread that becomes due (each thread runs until its next wait).
   step(dt) { const target = this.now + dt; for (;;) { const due = this.threads.filter(t => !t.dead && t.wake <= target).sort((a, b) => a.wake - b.wake || a.id - b.id)[0]; if (!due) break; this.now = Math.max(this.now, due.wake); this.resume(due); } this.now = target; this.threads = this.threads.filter(t => !t.dead); }

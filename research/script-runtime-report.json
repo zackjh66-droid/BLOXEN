@@ -1,7 +1,7 @@
 {
-  "generated": "2026-09-29T21:52:43.474Z",
-  "virtualSeconds": 120,
-  "note": "Virtual time; no players; no physics (Touched never fires). Status counts are per script.",
+  "generated": "2026-09-29T21:59:14.036Z",
+  "virtualSeconds": 600,
+  "note": "Virtual time, no players and no physics in the main run (status counts are per script). contactProbe: a second run where one player is placed on each Touched-listening part in turn (box-overlap model only; Velocity/BodyMover effects and joints are not simulated).",
   "places": {
     "tabularasa": {
       "scripts": 0
@@ -9,53 +9,55 @@
     "crossroads-2007-client": {
       "scripts": 25,
       "statusCounts": {
-        "running": 6,
-        "finished": 15,
-        "error": 4
+        "running": 10,
+        "finished": 15
       },
       "unsupported": {
-        "event Touched: connected but never fires (no server-side physics)": 14
+        "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated": 42,
+        "method MakeJoints: no-op (joints are not simulated)": 462
       },
-      "touchedConnections": 14,
-      "worldEventsEmitted": 121,
+      "touchedConnections": 42,
+      "worldEventsEmitted": 3815,
       "printedLines": 1,
       "firstPrints": [
         "Leaderboard script version 3.00 loaded"
       ],
-      "errors": [
-        {
-          "thread": "Workspace.TeamBeacon Red.Script",
-          "message": "position is not a valid member of BodyPosition"
+      "errors": [],
+      "contactProbe": {
+        "listeners": 42,
+        "probed": 42,
+        "listenersContacted": 15,
+        "scriptErrorsDuringProbe": [],
+        "newPrints": [
+          "Leaderboard script version 3.00 loaded",
+          "DIED EVENT: \tProbe\t KILLED by \tno one"
+        ],
+        "worldEventsDuringProbe": 300,
+        "statusCounts": {
+          "running": 10,
+          "finished": 15
         },
-        {
-          "thread": "Workspace.TeamBeacon Blue.Script",
-          "message": "position is not a valid member of BodyPosition"
-        },
-        {
-          "thread": "Workspace.TeamBeacon Green.Script",
-          "message": "position is not a valid member of BodyPosition"
-        },
-        {
-          "thread": "Workspace.TeamBeacon Black.Script",
-          "message": "position is not a valid member of BodyPosition"
+        "unsupported": {
+          "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated": 42
         }
-      ]
+      }
     },
     "crossroads-uncopylocked-commit": {
       "scripts": 46,
       "statusCounts": {
-        "error": 5,
-        "running": 6,
+        "running": 10,
         "finished": 24,
+        "error": 1,
         "not-run:client-side script": 6,
         "not-run:disabled": 5
       },
       "unsupported": {
-        "event Touched: connected but never fires (no server-side physics)": 20,
-        "event Activated: connected but never fires (player input is not delivered to tools yet)": 1
+        "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated": 48,
+        "event Activated: connected but never fires (player input is not delivered to tools yet)": 1,
+        "method MakeJoints: no-op (joints are not simulated)": 462
       },
-      "touchedConnections": 20,
-      "worldEventsEmitted": 1203,
+      "touchedConnections": 48,
+      "worldEventsEmitted": 9216,
       "printedLines": 1,
       "firstPrints": [
         "Leaderboard script version 3.00 loaded"
@@ -64,24 +66,36 @@
         {
           "thread": "Workspace.Teleporter.sign.SignScript",
           "message": "TouchScript is not a valid member of Model"
-        },
-        {
-          "thread": "Workspace.TeamBeacon Red.Script",
-          "message": "position is not a valid member of BodyPosition"
-        },
-        {
-          "thread": "Workspace.TeamBeacon Blue.Script",
-          "message": "position is not a valid member of BodyPosition"
-        },
-        {
-          "thread": "Workspace.TeamBeacon Green.Script",
-          "message": "position is not a valid member of BodyPosition"
-        },
-        {
-          "thread": "Workspace.TeamBeacon Black.Script",
-          "message": "position is not a valid member of BodyPosition"
         }
-      ]
+      ],
+      "contactProbe": {
+        "listeners": 48,
+        "probed": 48,
+        "listenersContacted": 21,
+        "scriptErrorsDuringProbe": [
+          "event:Touched: TeleportScript is not a valid member of Script"
+        ],
+        "newPrints": [
+          "found hit",
+          "Found humanoid",
+          "Found character",
+          "Cloning Script",
+          "DIED EVENT: \tProbe\t KILLED by \tno one"
+        ],
+        "worldEventsDuringProbe": 761,
+        "statusCounts": {
+          "running": 10,
+          "finished": 24,
+          "error": 1,
+          "not-run:client-side script": 6,
+          "not-run:disabled": 5
+        },
+        "unsupported": {
+          "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated": 48,
+          "event Activated: connected but never fires (player input is not delivered to tools yet)": 1,
+          "method MakeJoints: no-op (joints are not simulated)": 24
+        }
+      }
     },
     "happyhomeinrobloxia": {
       "scripts": 0
@@ -96,7 +110,19 @@
       "worldEventsEmitted": 0,
       "printedLines": 0,
       "firstPrints": [],
-      "errors": []
+      "errors": [],
+      "contactProbe": {
+        "listeners": 0,
+        "probed": 0,
+        "listenersContacted": 0,
+        "scriptErrorsDuringProbe": [],
+        "newPrints": [],
+        "worldEventsDuringProbe": 0,
+        "statusCounts": {
+          "finished": 2
+        },
+        "unsupported": {}
+      }
     },
     "roblox-world-headquarters": {
       "scripts": 22,
@@ -115,7 +141,26 @@
       "firstPrints": [
         "Jet Boots loaded"
       ],
-      "errors": []
+      "errors": [],
+      "contactProbe": {
+        "listeners": 0,
+        "probed": 0,
+        "listenersContacted": 0,
+        "scriptErrorsDuringProbe": [],
+        "newPrints": [
+          "Jet Boots loaded"
+        ],
+        "worldEventsDuringProbe": 0,
+        "statusCounts": {
+          "finished": 10,
+          "not-run:client-side script": 6,
+          "not-run:disabled": 6
+        },
+        "unsupported": {
+          "method BreakJoints: no-op (joints are not simulated)": 1236,
+          "event Selected: connected but never fires (player input is not delivered to tools yet)": 1
+        }
+      }
     },
     "mission-to-the-moon": {
       "scripts": 2,
@@ -135,7 +180,23 @@
           "thread": "Workspace.Model.Cannon.Script",
           "message": "bad argument #3 to 'new' (number expected, got function)"
         }
-      ]
+      ],
+      "contactProbe": {
+        "listeners": 0,
+        "probed": 0,
+        "listenersContacted": 0,
+        "scriptErrorsDuringProbe": [],
+        "newPrints": [
+          "Moon Script Running",
+          "Low grav\tTorso"
+        ],
+        "worldEventsDuringProbe": 0,
+        "statusCounts": {
+          "running": 1,
+          "error": 1
+        },
+        "unsupported": {}
+      }
     }
   }
 }

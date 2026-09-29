@@ -102,9 +102,31 @@ test('Lighting time of day advances like the preserved AndYetItMoves script uses
   const { host, world } = boot(mk(script('AndYetItMoves', 'l = game:service("Lighting") while true do l:SetMinutesAfterMidnight(l:GetMinutesAfterMidnight()+1) wait(1) end')));
   const L = world.service('Lighting'); L.props.set('TimeOfDay', '12:00:00'); run(host, 3.1, 0.1); assert.equal(L.props.get('TimeOfDay'), '12:04:00'); assert.deepEqual(host.errors, []);
 });
-test('Touched connects but is reported as never firing (no physics): no false claim of working gameplay', () => {
-  const { host } = boot(mk(item('Model', 'M', '', part('Pad') + script('T', 'script.Parent.Pad.Touched:connect(function() print("touched") end)'))));
-  run(host, 1); const r = host.report(); assert.equal(r.touchedConnections, 1); assert.match(Object.keys(r.unsupported).join(), /Touched: connected but never fires/);
+test('Touched: a script with no player nearby never fires, and the report states the exact (limited) contact model', () => {
+  const { host, out } = boot(mk(item('Model', 'M', '', part('Pad', 500, 0, 500) + script('T', 'script.Parent.Pad.Touched:connect(function() print("touched") end)'))));
+  run(host, 1); const r = host.report(); assert.equal(r.touchedConnections, 1); assert.deepEqual(out, []); assert.match(Object.keys(r.unsupported).join(), /Touched: fires only when a player's character overlaps the part/);
+});
+test('Touched/TouchEnded fire once per contact for a player character overlapping a script-listened part (box test); not for distant parts or non-players', () => {
+  const pad = part('Pad', 0, 0, 0); const far = part('Far', 300, 0, 300);
+  const { host, out, world } = boot(mk(item('Model', 'M', '', pad + far + script('T', `
+    script.Parent.Pad.Touched:connect(function(hit) local h = hit.Parent:FindFirstChild("Humanoid") print("pad", hit.Name, h and "humanoid" or "none") end)
+    script.Parent.Pad.TouchEnded:connect(function(hit) print("end", hit.Name) end)
+    script.Parent.Far.Touched:connect(function() print("far") end)`))));
+  const rec = world.addPlayer({ userId: 21, username: 'Walker', avatar: {} }); run(host, 0.5);
+  const root = rec.parts.HumanoidRootPart; const cfAt = (x, y, z) => ({ pos: { x, y, z }, rot: [1, 0, 0, 0, 1, 0, 0, 0, 1] });
+  const at = (x, y, z) => world.applyMove(rec, cfAt(x, y, z), rec.lastMove + 1000);
+  at(0, 100, 0); run(host, 0.5); assert.deepEqual(out, [], 'high above: no contact');
+  at(0, 1, 0); run(host, 0.5); assert.ok(out.length >= 1 && out.every(l => /^pad\t[\w ]+\thumanoid$/.test(l)), out.join('|'));
+  const firstCount = out.length; run(host, 1); assert.equal(out.length, firstCount, 'no re-fire while staying in contact');
+  at(0, 100, 0); run(host, 0.5); assert.ok(out.some(l => /^end\t/.test(l)), 'TouchEnded fired on leaving'); assert.ok(!out.some(l => l === 'far'));
+  assert.ok(root, 'used the real character root part');
+});
+test('obbOverlap respects rotation: a long thin rotated plank touches where its axis-aligned box would not', () => {
+  const { obbOverlap } = require('../src/script/engine'); const I = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const box = (c, h, a = I) => ({ c, h, a }); const d = Math.SQRT1_2; const rotZ45 = [[d, d, 0], [-d, d, 0], [0, 0, 1]];
+  const small = box([3, 3, 0], [0.5, 0.5, 0.5]); const plank = box([0, 0, 0], [5, 0.25, 1], rotZ45);   // 45-degree plank reaches toward (3,3)
+  assert.equal(obbOverlap(plank, small), true); assert.equal(obbOverlap(box([0, 0, 0], [5, 0.25, 1]), small), false, 'unrotated plank misses it');
+  assert.equal(obbOverlap(box([0, 0, 0], [1, 1, 1]), box([1.5, 0, 0], [1, 1, 1], I)), true); assert.equal(obbOverlap(box([0, 0, 0], [1, 1, 1]), box([3, 0, 0], [1, 1, 1], I)), false);
 });
 const STORE = path.join(__dirname, '..', 'preservation', 'store'); const MAN = require('../preservation/manifests/places.json');
 const xr = MAN.items.find(p => p.id === 'crossroads-2007-client'); const XR_FILE = xr && path.join(STORE, xr.sha256 + '.rbx');
@@ -114,7 +136,7 @@ test('REAL PLACE (Crossroads 2007 file): the preserved Regenerate*/AndYetItMoves
   const r = host.report(); assert.equal(r.scripts.length, 25);
   const byName = n => r.scripts.filter(s => s.path.includes(n)); for (const n of ['Regenerate Castle', 'Regenerate Tower', 'Regenerate Hideout', 'Regenerate Lost Temple', 'Regenerate Ramp and Trees']) assert.equal(byName(n)[0].status, 'running', n);
   assert.ok(dels.length >= 5, 'at least some regeneration cycles removed models: ' + dels.join()); assert.ok(out.includes('Leaderboard script version 3.00 loaded'));
-  assert.equal(byName('TeamBeacon').filter(s => s.status === 'error').length, 4, 'TeamBeacon scripts need BodyMovers/physics and are reported as errors');
+  assert.equal(byName('TeamBeacon').filter(s => s.status === 'error').length, 0, 'TeamBeacon now loads (lowercase BodyPosition.position); its BodyMover motion is still not simulated'); assert.equal(byName('TeamBeacon').filter(s => s.status === 'running').length, 4);
   assert.ok(r.touchedConnections >= 10); assert.ok(world.service('Lighting').props.get('TimeOfDay') !== undefined);
 });
 
@@ -127,4 +149,20 @@ test('player-input events (HopperBin.Selected, Tool.Equipped) connect without er
 test("a script's own bug is reported as that script's error (Vector3.new given the function math.random)", () => {
   const { host } = boot(mk(script('Bad', 'local v = Vector3.new(math.random(), 1, math.random)')));
   run(host, 1); assert.equal(host.errors.length, 1); assert.match(host.errors[0].message, /bad argument #3 to 'new' \(number expected, got function\)/);
+});
+
+test('legacy members: Humanoid.Torso/LeftLeg resolve to the character parts; BasePart.Color maps through BrickColor; BodyPosition.position is a server-local Vector3', () => {
+  const { host, out, world } = boot(mk(item('Part', 'Beacon', '', item('BodyPosition', 'BP'))
+    + script('L', `
+      local p = game.Workspace.Beacon
+      p.BP.position = Vector3.new(1, 2, 3) print("bp", p.BP.position.y)
+      p.Color = Color3.new(0.77, 0.16, 0.11) print("brick", p.BrickColor.Name)
+      print("color", p.Color.r > 0.7)
+      game.Players.ChildAdded:connect(function(pl) wait(0.2) local h = pl.Character.Humanoid print("torso", h.Torso.Name, h.LeftLeg.Name) h.Torso.Color = Color3.new(0, 0, 0) print("tb", h.Torso.BrickColor.Name) end)`)));
+  run(host, 0.5); world.addPlayer({ userId: 31, username: 'Legacy', avatar: {} }); run(host, 1);
+  assert.deepEqual(host.errors, []); assert.deepEqual(out, ['bp\t2', 'brick\tBright red', 'color\ttrue', 'torso\tTorso\tLeft Leg', 'tb\tReally black']);
+});
+test('a host-internal JS error inside a script thread stops that script and is reported, it does not crash the server loop', () => {
+  const { host } = boot(mk(script('X', 'print("ok")')));
+  host.scheduler.spawn(function* () { throw new TypeError('boom'); }, 'internal-test'); assert.doesNotThrow(() => run(host, 0.5));
 });

@@ -6,7 +6,8 @@
 // recorded in host.unsupported so a place's compatibility report can say exactly what did not run. There is NO server-side physics: Touched, joints,
 // BodyMovers, Velocity, collisions and Explosion effects never happen. Scripts that depend on them are reported as PARTIAL/UNSUPPORTED, not hidden.
 const { Interp, Scheduler, LuaTable, LuaError, typeOf, toNumber, truthy } = require('./lua');
-const { classStatus } = require('../gameserver/world');
+const { classStatus } = require('../gameserver/world'); const { BRICK_COLORS: BRICKHEX } = require('../lib/services');
+const LEGACY_HUMANOID_PARTS = { Torso: 'Torso', LeftArm: 'Left Arm', RightArm: 'Right Arm', LeftLeg: 'Left Leg', RightLeg: 'Right Leg', Head: 'Head' };
 
 const BRICK_NAMES = { 1: 'White', 5: 'Brick yellow', 9: 'Light reddish violet', 18: 'Nougat', 21: 'Bright red', 23: 'Bright blue', 24: 'Bright yellow', 26: 'Black', 28: 'Dark green', 37: 'Bright green', 102: 'Medium blue', 105: 'Br. yellowish orange', 106: 'Bright orange', 119: 'Br. yellowish green', 194: 'Medium stone grey', 199: 'Dark stone grey', 217: 'Brown', 226: 'Cool yellow', 1001: 'Institutional white', 1003: 'Really black', 1004: 'Really red', 1010: 'Really blue' }; // partial (same 22 as src/lib/services.js)
 const ALIASES = { size: 'Size', formFactor: 'FormFactor', shape: 'Shape' };
@@ -58,6 +59,21 @@ class LuaInstance {
   luaEq(o) { return o === this; }
 }
 
+// ---- geometry for the contact test (oriented boxes; CFrame = {pos, rot:[r00,r01,r02,r10,r11,r12,r20,r21,r22]} row-major)
+function boxOf(inst) {
+  const cf = inst.props.get('CFrame'); const sz = inst.props.get('Size') || inst.props.get('size'); if (!cf || !cf.pos || !sz) return null;
+  const v = sz.value || sz; const x = v.x ?? v.X, y = v.y ?? v.Y, z = v.z ?? v.Z; const R = cf.rot || [1, 0, 0, 0, 1, 0, 0, 0, 1]; if (![x, y, z, cf.pos.x, cf.pos.y, cf.pos.z].every(Number.isFinite)) return null;
+  return { c: [cf.pos.x, cf.pos.y, cf.pos.z], h: [x / 2, y / 2, z / 2], a: [[R[0], R[3], R[6]], [R[1], R[4], R[7]], [R[2], R[5], R[8]]] };   // a[i] = i-th local axis in world space
+}
+const dot3 = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2], cross3 = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+function obbOverlap(A, B, eps = 0.05) {   // separating-axis test over the 15 candidate axes; eps = contact tolerance in studs
+  const t0 = [B.c[0] - A.c[0], B.c[1] - A.c[1], B.c[2] - A.c[2]]; const axes = [...A.a, ...B.a];
+  for (const i of A.a) for (const j of B.a) { const c = cross3(i, j); if (Math.hypot(...c) > 1e-6) axes.push(c); }
+  for (const ax of axes) { const n = Math.hypot(...ax); if (n < 1e-9) continue; const u = ax.map(q => q / n);
+    const ra = A.h.reduce((sum, h, k) => sum + h * Math.abs(dot3(A.a[k], u)), 0), rb = B.h.reduce((sum, h, k) => sum + h * Math.abs(dot3(B.a[k], u)), 0);
+    if (Math.abs(dot3(t0, u)) > ra + rb + eps) return false; }
+  return true;
+}
 class ScriptHost {
   constructor(world, { print = () => {}, budget = 2_000_000, enabled = true, logger = () => {} } = {}) {
     this.world = world; this.log = logger; this.output = []; this.unsupported = new Map(); this.scripts = []; this.errors = []; this.cache = new Map(); this.signals = new Map(); this.deadHum = new WeakSet(); this.touchedConnections = 0;
@@ -81,11 +97,28 @@ class ScriptHost {
     return this;
   }
   // advance virtual time, running everything that is due. The game server calls this from a timer.
-  step(dt) { this.scheduler.step(dt); for (const r of this.scripts) if (r.thread && r.thread.dead && r.status === 'running') r.status = 'finished'; }
+  step(dt) { this.scheduler.step(dt); this._touchPass(); for (const r of this.scripts) if (r.thread && r.thread.dead && r.status === 'running') r.status = 'finished'; }
   _path(src) { const parts = [src.name]; for (let p = src.parent; p; p = p.parent) parts.unshift(p.name); return parts.join('.'); }
   _unsupported(what) { this.unsupported.set(what, (this.unsupported.get(what) || 0) + 1); }
   _onConnect(sig) { if (INPUT_EVENTS.has(sig.name)) this._unsupported(`event ${sig.name}: connected but never fires (player input is not delivered to tools yet)`);
-    if (sig.name === 'Touched' || sig.name === 'TouchEnded') { this.touchedConnections++; this._unsupported(`event ${sig.name}: connected but never fires (no server-side physics)`); } }
+    if (sig.name === 'Touched' || sig.name === 'TouchEnded') { this.touchedConnections++; this._unsupported(`event ${sig.name}: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated`); } }
+  // ---- Touched/TouchEnded: there is still NO physics engine. The only contact we model is a player's character parts overlapping a listening part (oriented-box test,
+  // sampled once per step). Anything else that would touch in real Roblox (falling/thrown parts, vehicles, Velocity-driven motion) never fires. Not collision response.
+  _touchPass() {
+    if (!this.touchedConnections) return; const players = [...this.world.players.values()].filter(r => r.character && !r.dead && r.parts);
+    this.touching = this.touching || new Map();
+    for (const [w, m] of this.signals) {
+      const tc = m.get('Touched'), te = m.get('TouchEnded'); const live = x => x && x.conns.some(c => c.connected); if (!live(tc) && !live(te)) continue;
+      if (!w.parent && !this.world.byId?.has?.(w.id)) continue; if (!this.isA(w, 'BasePart') || players.some(r => this._within(w, r.character))) continue;
+      const box = boxOf(w); if (!box) continue; let set = this.touching.get(w); if (!set) { set = new Set(); this.touching.set(w, set); }
+      const now = new Set();
+      for (const r of players) for (const part of Object.values(r.parts)) { const b = boxOf(part); if (b && obbOverlap(box, b)) now.add(part); }
+      for (const part of now) if (!set.has(part)) { set.add(part); if (live(tc)) tc.fire([this.wrap(part)]); }
+      for (const part of [...set]) if (!now.has(part)) { set.delete(part); if (live(te)) te.fire([this.wrap(part)]); }
+    }
+  }
+  _touchBox(w) { return boxOf(w); }
+  _within(inst, root) { for (let c = inst; c; c = c.parent) if (c === root) return true; return false; }
   report() {
     const st = {}; for (const r of this.scripts) st[r.status] = (st[r.status] || 0) + 1;
     return { scripts: this.scripts.map(r => ({ path: r.path, class: r.className, bytes: r.bytes, status: r.thread && r.thread.dead && r.status === 'running' ? 'finished' : r.status, error: r.error })), statusCounts: st, unsupported: Object.fromEntries(this.unsupported), touchedConnections: this.touchedConnections, errors: this.errors.slice(-20), note: 'No server-side physics or joints exist; scripts that depend on them are PARTIAL at best.' };
@@ -137,17 +170,17 @@ class ScriptHost {
     }
   }
   propDef(w, key) { // exact, known serialization aliases (size/Size...), then legacy lowerCamel -> UpperCamel (e.g. `position` -> `Position`), then server-local (NotReplicated) members from the API dump
-    const cls = this.world.schema.classes.get(w.className); if (!cls) return null; const inv = Object.keys(ALIASES).find(a => ALIASES[a] === key);
+    const cls = this.world.schema.classes.get(w.className); if (!cls) return this._localProp(w.className, key) || this._localProp(w.className, key[0].toUpperCase() + key.slice(1)); const inv = Object.keys(ALIASES).find(a => ALIASES[a] === key);
     const tries = [key, ALIASES[key], inv, key[0].toUpperCase() + key.slice(1)]; for (const t of tries) if (t && cls.byName.has(t)) return cls.byName.get(t);
     return this._localProp(w.className, key) || this._localProp(w.className, key[0].toUpperCase() + key.slice(1));
   }
   // NotReplicated members (Humanoid.Health, Humanoid.Jump ...) live only on the server. They are stored in World props (never sent on the wire: the schema has no slot for them).
   _localProp(cls, name) {
     const d = this._dump || (this._dump = require('../../preservation/reference/api-0.205.0.61876.json').classes);
-    for (let c = cls; c && d[c]; c = d[c].super) { const p = d[c].props.find(x => x[0] === name && x[3].includes('NotReplicated') && !x[3].includes('ReadOnly')); if (p) { const kind = ['bool', 'int', 'float', 'double', 'string'].includes(p[1]) ? p[1] : null; if (kind) return { name: p[0], type: p[1], kind, local: true, tags: [] }; } }
+    for (let c = cls; c && d[c]; c = d[c].super) { const p = d[c].props.find(x => x[0] === name && x[3].includes('NotReplicated') && !x[3].includes('ReadOnly')); if (p) { const kind = ['bool', 'int', 'float', 'double', 'string', 'Vector3', 'Color3'].includes(p[1]) ? p[1] : null; if (kind) return { name: p[0], type: p[1], kind, local: true, tags: [] }; } }
     return null;
   }
-  defaultFor(kind) { return ({ bool: false, int: 0, float: 0, double: 0, string: '', Content: '', ProtectedString: '', BrickColor: 194, Object: 0, enum: 0 })[kind]; }
+  defaultFor(kind) { return ({ Vector3: { x: 0, y: 0, z: 0 }, Color3: { r: 0, g: 0, b: 0 }, bool: false, int: 0, float: 0, double: 0, string: '', Content: '', ProtectedString: '', BrickColor: 194, Object: 0, enum: 0 })[kind]; }
   // -------------------------------------------------------------- Instance members
   _get(o, key) {
     const w = o.w; const w0 = this.world;
@@ -161,6 +194,9 @@ class ScriptHost {
     if (ev[key] && (ev[key] === 1 || this.isA(w, ev[key]))) { if (key === 'CharacterAdded') return this.sig(w, 'CharacterAdded'); return this.sig(w, key); }
     const pd = this.propDef(w, key);
     if (w.className === 'Player' && key === 'Character') { return w.props.get('Character') ? this.wrap(w0.byId.get(w.props.get('Character'))) : undefined; }
+    // legacy members the 2015 API still lists (NotReplicated): Humanoid.Torso/LeftLeg/... point at the character's parts; BasePart.Color is the Color3 view of BrickColor (hex table INFERRED)
+    if (w.className === 'Humanoid' && LEGACY_HUMANOID_PARTS[key]) { const par = w.parent; return this.wrap(par && par.children.find(c => c.name === LEGACY_HUMANOID_PARTS[key])); }
+    if (this.isA(w, 'BasePart') && key === 'Color') { const n = w.props.get('BrickColor'); const hex = (BRICKHEX[n === undefined ? 194 : n] || BRICKHEX[194])[1]; return new LuaColor3(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255); }
     if (this.isA(w, 'BasePart') && (key === 'Position')) { const cf = w.props.get('CFrame'); if (cf) return new LuaVec3(cf.pos.x, cf.pos.y, cf.pos.z); }
     if (pd) { const v = w.props.has(pd.name) ? w.props.get(pd.name) : (w.className === 'Humanoid' && pd.name === 'Health' ? (w.props.get('MaxHealth') ?? 100) : this.defaultFor(pd.kind)); const out = this.toLua(pd.kind, pd.type, v); if (out === undefined && v !== undefined && v !== 0 && pd.kind !== 'Object') { this._unsupported(`property ${w.className}.${key} (${pd.kind}) has no Lua value type`); throw new LuaError(`property ${key} (${pd.kind}) is not readable in this sandbox`); } return out; }
     for (const c of w.children) if (c.name === key) return this.wrap(c);
@@ -170,6 +206,7 @@ class ScriptHost {
     const w = o.w; const w0 = this.world;
     if (key === 'Parent' || key === 'parent') { if (val !== undefined && !(val instanceof LuaInstance)) throw new LuaError('Parent must be an Instance or nil'); if (val && this._isDescendant(val.w, w)) throw new LuaError('Attempt to set ' + w.name + ' as its own descendant'); if (['Workspace', 'Players', 'Lighting'].includes(w.className) && !val) throw new LuaError('cannot set Parent of a service'); if (w.className === 'Player' || (w.className === 'Model' && this._isCharacter(w))) { if (val) throw new LuaError('cannot reparent a player or character from a script in this sandbox'); } w0.attach(w, val ? val.w : null); return; }
     if (key === 'Name' || key === 'name') { this._setProp(w, 'Name', String(this.interp.tostr(val))); return; }
+    if (this.isA(w, 'BasePart') && key === 'Color') { if (!(val instanceof LuaColor3)) throw new LuaError('Color must be a Color3'); let best = 194, bd = Infinity; for (const [n, [, hex]] of Object.entries(BRICKHEX)) { const d = (parseInt(hex.slice(1, 3), 16) / 255 - val.r) ** 2 + (parseInt(hex.slice(3, 5), 16) / 255 - val.g) ** 2 + (parseInt(hex.slice(5, 7), 16) / 255 - val.b) ** 2; if (d < bd) { bd = d; best = +n; } } this._setProp(w, 'BrickColor', best); return; }   // nearest BrickColor: Color3 is not replicated in this era
     if (this.isA(w, 'BasePart') && key === 'Position') { const cf = w.props.get('CFrame') || { pos: { x: 0, y: 0, z: 0 }, rot: [1, 0, 0, 0, 1, 0, 0, 0, 1] }; if (!(val instanceof LuaVec3)) throw new LuaError('Position must be a Vector3'); this._setProp(w, 'CFrame', { pos: { x: val.x, y: val.y, z: val.z }, rot: cf.rot.slice() }); return; }
     if (this._methods()[key[0].toUpperCase() + key.slice(1)] && !this.propDef(w, key)) throw new LuaError(`cannot assign to method ${key}`);
     const pd = this.propDef(w, key); if (!pd) throw new LuaError(`${key} is not a valid member of ${w.className}`);
@@ -231,4 +268,4 @@ class LuaScriptObject {
   luaSet(k) { throw new LuaError(`script.${k} cannot be set in this sandbox`); }
   luaToString() { return this.src.name; }
 }
-module.exports = { ScriptHost, LuaInstance, LuaVec3, LuaCFrame };
+module.exports = { ScriptHost, LuaInstance, LuaVec3, LuaCFrame, obbOverlap, boxOf };
