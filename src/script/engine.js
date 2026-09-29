@@ -33,6 +33,7 @@ class LuaCFrame {
 }
 const CF_META = new LuaTable();
 CF_META.set('__mul', a => { const [l, r] = a; const R = l.rot; if (r instanceof LuaCFrame) { const Q = r.rot; const m = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) m.push(R[i * 3] * Q[j] + R[i * 3 + 1] * Q[3 + j] + R[i * 3 + 2] * Q[6 + j]); const p = r.pos; return [new LuaCFrame({ x: l.pos.x + R[0] * p.x + R[1] * p.y + R[2] * p.z, y: l.pos.y + R[3] * p.x + R[4] * p.y + R[5] * p.z, z: l.pos.z + R[6] * p.x + R[7] * p.y + R[8] * p.z }, m)]; } if (r instanceof LuaVec3) return [new LuaVec3(l.pos.x + R[0] * r.x + R[1] * r.y + R[2] * r.z, l.pos.y + R[3] * r.x + R[4] * r.y + R[5] * r.z, l.pos.z + R[6] * r.x + R[7] * r.y + R[8] * r.z)]; throw new LuaError('attempt to multiply a CFrame by ' + typeOf(r)); });
+const INPUT_EVENTS = new Set(['Selected', 'Deselected', 'Equipped', 'Unequipped', 'Activated', 'Deactivated', 'MouseClick', 'MouseHoverEnter', 'MouseHoverLeave']);
 class LuaColor3 { constructor(r, g, b) { this.r = r; this.g = g; this.b = b; } luaGet(k) { const l = String(k).toLowerCase(); if (l === 'r' || l === 'g' || l === 'b') return this[l]; throw new LuaError(`${k} is not a valid member of Color3`); } }
 class LuaBrickColor { constructor(n) { this.n = n; } luaGet(k) { const l = String(k).toLowerCase(); if (l === 'number') return this.n; if (l === 'name') return BRICK_NAMES[this.n] || 'Unknown'; throw new LuaError(`${k} is not a valid member of BrickColor`); } luaEq(o) { return o instanceof LuaBrickColor && o.n === this.n; } luaToString() { return BRICK_NAMES[this.n] || String(this.n); } }
 class LuaEnumItem { constructor(en, name, value) { this.en = en; this.name = name; this.value = value; } luaGet(k) { if (k === 'Name') return this.name; if (k === 'Value') return this.value; throw new LuaError(`${k} is not a valid member of EnumItem`); } luaEq(o) { return o instanceof LuaEnumItem && o.en === this.en && o.value === this.value; } luaToString() { return `Enum.${this.en}.${this.name}`; } }
@@ -83,7 +84,8 @@ class ScriptHost {
   step(dt) { this.scheduler.step(dt); for (const r of this.scripts) if (r.thread && r.thread.dead && r.status === 'running') r.status = 'finished'; }
   _path(src) { const parts = [src.name]; for (let p = src.parent; p; p = p.parent) parts.unshift(p.name); return parts.join('.'); }
   _unsupported(what) { this.unsupported.set(what, (this.unsupported.get(what) || 0) + 1); }
-  _onConnect(sig) { if (sig.name === 'Touched' || sig.name === 'TouchEnded') { this.touchedConnections++; this._unsupported(`event ${sig.name}: connected but never fires (no server-side physics)`); } }
+  _onConnect(sig) { if (INPUT_EVENTS.has(sig.name)) this._unsupported(`event ${sig.name}: connected but never fires (player input is not delivered to tools yet)`);
+    if (sig.name === 'Touched' || sig.name === 'TouchEnded') { this.touchedConnections++; this._unsupported(`event ${sig.name}: connected but never fires (no server-side physics)`); } }
   report() {
     const st = {}; for (const r of this.scripts) st[r.status] = (st[r.status] || 0) + 1;
     return { scripts: this.scripts.map(r => ({ path: r.path, class: r.className, bytes: r.bytes, status: r.thread && r.thread.dead && r.status === 'running' ? 'finished' : r.status, error: r.error })), statusCounts: st, unsupported: Object.fromEntries(this.unsupported), touchedConnections: this.touchedConnections, errors: this.errors.slice(-20), note: 'No server-side physics or joints exist; scripts that depend on them are PARTIAL at best.' };
@@ -153,7 +155,9 @@ class ScriptHost {
     const canon = METHOD_ALIAS[key] || (key[0] >= 'a' && key[0] <= 'z' ? key[0].toUpperCase() + key.slice(1) : key);
     const m = this._methods()[canon]; if (m && !(key === 'Name' || key === 'Parent' || key === 'ClassName')) { if (m.classes && !m.classes.some(c => this.isA(w, c))) { /* fallthrough to props */ } else return (a) => m.fn.call(this, o, a.slice(1)); }
     if (key === 'Name' || key === 'name') return w.name; if (key === 'ClassName' || key === 'className') return w.className; if (key === 'Parent' || key === 'parent') return this.wrap(w.parent || undefined);
-    const ev = { Changed: 1, ChildAdded: 1, ChildRemoved: 1, Touched: 1, TouchEnded: 1, Died: 'Humanoid', HealthChanged: 'Humanoid', PlayerAdded: 'Players', PlayerRemoving: 'Players', CharacterAdded: 'Player', CharacterRemoving: 'Player', DescendantAdded: 1 };
+    const ev = { Changed: 1, ChildAdded: 1, ChildRemoved: 1, Touched: 1, TouchEnded: 1, Died: 'Humanoid', HealthChanged: 'Humanoid', PlayerAdded: 'Players', PlayerRemoving: 'Players', CharacterAdded: 'Player', CharacterRemoving: 'Player', DescendantAdded: 1,
+      // player-input events: the signal exists so scripts load, but nothing in the server path delivers input to a tool yet, so they never fire (reported as unsupported)
+      Selected: 'HopperBin', Deselected: 'HopperBin', Equipped: 'Tool', Unequipped: 'Tool', Activated: 'Tool', Deactivated: 'Tool', MouseClick: 'ClickDetector', MouseHoverEnter: 'ClickDetector', MouseHoverLeave: 'ClickDetector' };
     if (ev[key] && (ev[key] === 1 || this.isA(w, ev[key]))) { if (key === 'CharacterAdded') return this.sig(w, 'CharacterAdded'); return this.sig(w, key); }
     const pd = this.propDef(w, key);
     if (w.className === 'Player' && key === 'Character') { return w.props.get('Character') ? this.wrap(w0.byId.get(w.props.get('Character'))) : undefined; }

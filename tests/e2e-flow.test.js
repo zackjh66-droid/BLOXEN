@@ -52,7 +52,7 @@ async function flow(t, { real, pid = 'tabularasa', title = 'Tabula Rasa', import
   assert.match((await b.get('/home')).text, new RegExp(title), 'recently played'); c.close(); replay.close();
 }
 test('E2E (synthetic test place)', t => flow(t, { real: false }));
-const PLACES = [['tabularasa', 'Tabula Rasa', 10], ['crossroads-2007-client', 'Crossroads', null], ['happyhomeinrobloxia', 'Happy Home', null], ['robloxhq', 'Roblox HQ', null]];
+const PLACES = [['tabularasa', 'Tabula Rasa', 10], ['crossroads-2007-client', 'Crossroads', null], ['happyhomeinrobloxia', 'Happy Home', null], ['robloxhq', 'Roblox HQ', null], ['roblox-world-headquarters', 'World Headquarters', null], ['mission-to-the-moon', 'Mission', null]];
 for (const [pid, title, imported] of PLACES) {
   const have = (() => { try { const m = manifest().find(p => p.id === pid); return fs.existsSync(path.join(REAL_STORE, m.sha256 + '.rbx')); } catch { return false; } })();
   test(`E2E (real archived place ${pid} from preservation/store)`, { skip: !have && `run: node tools/fetch_places.js ${pid}`, timeout: 120000 }, t => flow(t, { real: true, pid, title, imported }));

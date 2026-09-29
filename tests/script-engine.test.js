@@ -118,3 +118,13 @@ test('REAL PLACE (Crossroads 2007 file): the preserved Regenerate*/AndYetItMoves
   assert.ok(r.touchedConnections >= 10); assert.ok(world.service('Lighting').props.get('TimeOfDay') !== undefined);
 });
 
+
+test('player-input events (HopperBin.Selected, Tool.Equipped) connect without error but are reported as never firing', () => {
+  const { host, out } = boot(mk(item('HopperBin', 'Jet', '', script('J', 'script.Parent.Selected:connect(function() print("sel") end) print("loaded")')) + item('Tool', 'T', '', script('K', 'script.Parent.Equipped:connect(function() end) script.Parent.Activated:connect(function() end)'))));
+  run(host, 1); const r = host.report(); assert.deepEqual(out, ['loaded']); assert.deepEqual(host.errors, []);
+  const keys = Object.keys(r.unsupported).join('|'); assert.match(keys, /event Selected: connected but never fires/); assert.match(keys, /event Equipped/); assert.match(keys, /event Activated/);
+});
+test("a script's own bug is reported as that script's error (Vector3.new given the function math.random)", () => {
+  const { host } = boot(mk(script('Bad', 'local v = Vector3.new(math.random(), 1, math.random)')));
+  run(host, 1); assert.equal(host.errors.length, 1); assert.match(host.errors[0].message, /bad argument #3 to 'new' \(number expected, got function\)/);
+});

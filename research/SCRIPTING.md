@@ -14,6 +14,8 @@ Nothing in this document is REAL-CLIENT-TESTED. Labels used: UNIT-TESTED, SIMULA
 | crossroads-uncopylocked-commit | 48 (40 Script + 8 LocalScript) | 5 flagged, all by `Teleport` mentions |
 | happyhomeinrobloxia | 0 | |
 | robloxhq | 2 Script | |
+| roblox-world-headquarters | 22 (16 Script + 6 LocalScript), 3.4 KB | Jet Boots HopperBin, 14 `BreakJoints` calls (no-op); 0 flagged |
+| mission-to-the-moon | 3 Script, 3 KB | Moon low-gravity (`BodyForce`), NoHelmet, Cannon; 0 flagged |
 
 API tokens across all stored scripts (how many scripts mention each): `wait()` 55, `script.Parent` 53, FindFirstChild family 45, `connect` 43, Humanoid 42, Touched 39, Vector3/CFrame.new 38, Instance.new 24, Clone 14, Remove/Destroy 13, Died/Health 13, `math.*` 12, `workspace` 11, GUI 10, coroutine 10, BodyMovers 10, Teams 8, Players 5, Teleport 5, CharacterAdded 4, Changed/ChildAdded 3, leaderstats 3, GetService 2, BrickColor 2, Tool 1, `table.*` 1.
 **None** use `loadstring`, `require`, Http, InsertService, DataStore, Marketplace, `os` or `io`. That is a property of these files, not a guarantee about other places, so the sandbox denies all of them regardless.
@@ -50,6 +52,8 @@ Place file ──(importer, inert)──► World.scriptSources  (source text he
 | PL3Trampoline bouncers | 14 | connect to `Touched` and end. **Never fire**: no server-side physics. |
 | TeamBeacon ×4 | 4 | **error** (`BodyPosition`, `BodyVelocity`, team colour by touch). UNSUPPORTED. |
 | BattleArmorScript | 1 | connects `Touched`; never fires. |
+
+World Headquarters (120 virtual s): 10 finished, 6 LocalScripts not run, 6 disabled, 0 errors. The Jet Boots script now loads (`Selected` is a player-input event that connects but never fires, recorded as unsupported). Mission to the Moon: the Moon script runs (low gravity is a `BodyForce`, not simulated); the Cannon script fails on its **own bug**: `Vector3.new(math.random(), math.random(), math.random)` passes the function `math.random` for the third argument, which real Roblox also rejects (`tests/script-engine.test.js` pins this). Both places stay GEOMETRY-ONLY.
 
 The uncopylocked-commit Crossroads file adds tools (`Activated`), teleporters (touch scripts) and GUI scripts: 6 error, 6 client-side LocalScripts not run, 5 disabled. Two more scripts sit inside subtrees the importer does not replicate, so the host never sees them (inventory 48 vs host 46).
 

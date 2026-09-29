@@ -1,6 +1,6 @@
 {
-  "generated": "2026-09-29T21:39:45.814Z",
-  "virtualSeconds": 600,
+  "generated": "2026-09-29T21:52:43.474Z",
+  "virtualSeconds": 120,
   "note": "Virtual time; no players; no physics (Touched never fires). Status counts are per script.",
   "places": {
     "tabularasa": {
@@ -14,11 +14,10 @@
         "error": 4
       },
       "unsupported": {
-        "event Touched: connected but never fires (no server-side physics)": 14,
-        "method MakeJoints: no-op (joints are not simulated)": 6
+        "event Touched: connected but never fires (no server-side physics)": 14
       },
       "touchedConnections": 14,
-      "worldEventsEmitted": 2415,
+      "worldEventsEmitted": 121,
       "printedLines": 1,
       "firstPrints": [
         "Leaderboard script version 3.00 loaded"
@@ -45,18 +44,18 @@
     "crossroads-uncopylocked-commit": {
       "scripts": 46,
       "statusCounts": {
-        "error": 6,
+        "error": 5,
         "running": 6,
-        "finished": 23,
+        "finished": 24,
         "not-run:client-side script": 6,
         "not-run:disabled": 5
       },
       "unsupported": {
         "event Touched: connected but never fires (no server-side physics)": 20,
-        "method MakeJoints: no-op (joints are not simulated)": 6
+        "event Activated: connected but never fires (player input is not delivered to tools yet)": 1
       },
       "touchedConnections": 20,
-      "worldEventsEmitted": 7816,
+      "worldEventsEmitted": 1203,
       "printedLines": 1,
       "firstPrints": [
         "Leaderboard script version 3.00 loaded"
@@ -65,10 +64,6 @@
         {
           "thread": "Workspace.Teleporter.sign.SignScript",
           "message": "TouchScript is not a valid member of Model"
-        },
-        {
-          "thread": "StarterPack.LinkedSuperball.CannonScript",
-          "message": "Activated is not a valid member of Tool"
         },
         {
           "thread": "Workspace.TeamBeacon Red.Script",
@@ -102,6 +97,45 @@
       "printedLines": 0,
       "firstPrints": [],
       "errors": []
+    },
+    "roblox-world-headquarters": {
+      "scripts": 22,
+      "statusCounts": {
+        "finished": 10,
+        "not-run:client-side script": 6,
+        "not-run:disabled": 6
+      },
+      "unsupported": {
+        "method BreakJoints: no-op (joints are not simulated)": 1236,
+        "event Selected: connected but never fires (player input is not delivered to tools yet)": 1
+      },
+      "touchedConnections": 0,
+      "worldEventsEmitted": 0,
+      "printedLines": 1,
+      "firstPrints": [
+        "Jet Boots loaded"
+      ],
+      "errors": []
+    },
+    "mission-to-the-moon": {
+      "scripts": 2,
+      "statusCounts": {
+        "running": 1,
+        "error": 1
+      },
+      "unsupported": {},
+      "touchedConnections": 0,
+      "worldEventsEmitted": 0,
+      "printedLines": 1,
+      "firstPrints": [
+        "Moon Script Running"
+      ],
+      "errors": [
+        {
+          "thread": "Workspace.Model.Cannon.Script",
+          "message": "bad argument #3 to 'new' (number expected, got function)"
+        }
+      ]
     }
   }
 }

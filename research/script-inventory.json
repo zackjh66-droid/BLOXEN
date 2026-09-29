@@ -1246,34 +1246,349 @@
      "apis": []
     }
    ]
+  },
+  "roblox-world-headquarters": {
+   "placeSha256": "692b8cdfefde27a4d44c4606d3638776c58521c8236a51827c7e99bde23e9b48",
+   "scripts": 22,
+   "byClass": {
+    "Script": 16,
+    "LocalScript": 6
+   },
+   "totalBytes": 3391,
+   "apiScriptCounts": {
+    "game.Workspace/workspace": 1,
+    "FindFirstChild": 2,
+    "script.Parent": 2,
+    "Instance.new": 2,
+    "wait()": 2,
+    "connect/Connect": 2,
+    "Changed/ChildAdded": 1,
+    "Vector3/CFrame": 2,
+    "BrickColor": 1,
+    "Remove/Destroy/remove": 1,
+    "table.*": 1,
+    "game.Players/Players": 1,
+    "CharacterAdded": 1,
+    "Sound/Play": 1,
+    "BodyMovers": 1
+   },
+   "flagged": [],
+   "list": [
+    {
+     "path": "Workspace.RemoveSnaps",
+     "class": "Script",
+     "bytes": 334,
+     "sha256": "7e64b65603776fa4f8fdc6d1b00beada4d2f92667dce8ea3b4667ec285c25ea9",
+     "disabled": false,
+     "apis": [
+      "game.Workspace/workspace",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.WallBuilder.Script",
+     "class": "Script",
+     "bytes": 1058,
+     "sha256": "9ab30f21fa972af0ada9676027d61ec55514eb8c5dbb8741c5ca15500c29e603",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "connect/Connect",
+      "Changed/ChildAdded",
+      "Vector3/CFrame",
+      "BrickColor",
+      "Remove/Destroy/remove",
+      "table.*"
+     ]
+    },
+    {
+     "path": "Workspace.LinkedLeaderboard",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.JetBoots.Jetboots",
+     "class": "Script",
+     "bytes": 1999,
+     "sha256": "4a9ea9a2382a25e15f1e56e8e302e962edfff3305d954efd1236af9ba1604eea",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Players/Players",
+      "wait()",
+      "connect/Connect",
+      "CharacterAdded",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Sound/Play",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "StarterPack.LinkedSword.SwordScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSword.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedRocketLauncher.Server Launcher",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedRocketLauncher.RocketScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedRocketLauncher.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTrowel.WallMaker",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTrowel.BrickCleanup",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTrowel.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSlingshot.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSlingshot.Slingshot",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSlingshot.PelletScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSuperball.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSuperball.CannonBall",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSuperball.CannonScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedPaintballGun.Paintball",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedPaintballGun.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedPaintballGun.PaintballShooter",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedPaintballGun.BrickCleanup",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    }
+   ]
+  },
+  "mission-to-the-moon": {
+   "placeSha256": "8b17c1aefa72429b301d65dd3034a54ca615a60dc837f39c6adfb45d780c3af5",
+   "scripts": 3,
+   "byClass": {
+    "Script": 3
+   },
+   "totalBytes": 2993,
+   "apiScriptCounts": {
+    "Instance.new": 3,
+    "game.Players/Players": 2,
+    "wait()": 3,
+    "connect/Connect": 1,
+    "Changed/ChildAdded": 1,
+    "CharacterAdded": 1,
+    "Vector3/CFrame": 3,
+    "Clone/clone": 1,
+    "FindFirstChild": 2,
+    "BodyMovers": 1,
+    "script.Parent": 2,
+    "game.Workspace/workspace": 2,
+    "BrickColor": 2,
+    "GUI": 1,
+    "math.*": 2,
+    "Debris": 1
+   },
+   "flagged": [],
+   "list": [
+    {
+     "path": "Workspace.Moon",
+     "class": "Script",
+     "bytes": 1362,
+     "sha256": "917982bb01a8069b972c67aba612057e1d6052d25fab37012390d3a306c15780",
+     "disabled": false,
+     "apis": [
+      "Instance.new",
+      "game.Players/Players",
+      "wait()",
+      "connect/Connect",
+      "Changed/ChildAdded",
+      "CharacterAdded",
+      "Vector3/CFrame",
+      "Clone/clone",
+      "FindFirstChild",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.Moon.NoHelmet",
+     "class": "Script",
+     "bytes": 908,
+     "sha256": "c6eac203ac531c70c6cc521140cc274d8c26f34878cfaef0296025b068a6b5d5",
+     "disabled": true,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "game.Players/Players",
+      "wait()",
+      "Vector3/CFrame",
+      "BrickColor",
+      "FindFirstChild",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Model.Cannon.Script",
+     "class": "Script",
+     "bytes": 723,
+     "sha256": "919781319ba6779a0ad5953e9518774de61d0171d95350c9670d3e7be1c762a5",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Debris",
+      "Vector3/CFrame",
+      "BrickColor",
+      "math.*"
+     ]
+    }
+   ]
   }
  },
  "aggregateApiScriptCounts": {
-  "wait()": 55,
-  "script.Parent": 53,
-  "FindFirstChild": 45,
-  "connect/Connect": 43,
+  "wait()": 60,
+  "script.Parent": 57,
+  "FindFirstChild": 49,
+  "connect/Connect": 46,
+  "Vector3/CFrame": 43,
   "Humanoid": 42,
   "Touched": 39,
-  "Vector3/CFrame": 38,
-  "Instance.new": 24,
-  "Clone/clone": 14,
-  "Remove/Destroy/remove": 13,
+  "Instance.new": 29,
+  "Clone/clone": 15,
+  "game.Workspace/workspace": 14,
+  "Remove/Destroy/remove": 14,
+  "math.*": 14,
   "Died/Health": 13,
-  "math.*": 12,
-  "game.Workspace/workspace": 11,
-  "GUI": 10,
+  "BodyMovers": 12,
+  "GUI": 11,
   "coroutine": 10,
-  "BodyMovers": 10,
+  "game.Players/Players": 8,
   "Teams": 8,
-  "game.Players/Players": 5,
+  "CharacterAdded": 6,
+  "Changed/ChildAdded": 5,
   "Teleport": 5,
-  "CharacterAdded": 4,
-  "Changed/ChildAdded": 3,
+  "BrickColor": 5,
   "leaderstats/values": 3,
   "game:GetService": 2,
-  "BrickColor": 2,
+  "table.*": 2,
   "Tool/Hopperbin": 1,
-  "table.*": 1
+  "Sound/Play": 1,
+  "Debris": 1
  }
 }
