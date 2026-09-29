@@ -62,13 +62,17 @@ function signupForm(c, tok) {
 <div class="lsu-row"><span class="lsu-l">Gender:</span><label><input type="radio" name="gender" value="m"> Boy</label> <label><input type="radio" name="gender" value="f"> Girl</label></div>
 <button class="lgreen lbig" type="submit">Sign Up</button></form><p class="lnotice">BLOXEN accounts are local. Use a NEW password &mdash; never your Roblox password.</p>`;
 }
+// Logged-in Home. REFERENCE: 185px-wide thumbnail "homepage from early 2015 to early 2016" (Roblox fandom wiki, quarantine copy) - grey page, blue header,
+// big light-weight "Hello, <name>!" with full-body avatar at left, white Friends card with avatar tiles + light-blue "See All", RECENTLY PLAYED row of square game tiles.
+// Too small to measure: proportions are estimates. Avatar/friend/game thumbnails are MISSING; the avatar is the labelled BLOXEN colour preview.
 function homeIn(c, d) {
-  const gameTile = g => `<div class="tile game"><a href="/games/${esc(g.id)}">${thumb('', g.title)}<div class="nm">${esc(g.title)}</div></a><div class="tip">by ${esc(g.creator || 'UNKNOWN')}</div></div>`;
-  return layout(c, 'Home', `<h1>Hello, ${esc(c.user.username)}!</h1><div class="two"><div class="side2">${figure(d.avatar.colors)}<p class="tc"><a href="/my/character">Customize Character</a></p></div><div class="main">
-<h2 class="light">Recently Played</h2>${d.recent.length ? `<div class="grid">${d.recent.map(gameTile).join('')}</div>` : '<p class="tip">You have not played anything yet.</p>'}
-<h2 class="light">Favorites</h2>${d.favs.length ? `<div class="grid">${d.favs.map(gameTile).join('')}</div>` : '<p class="tip">No favorite games yet.</p>'}
-<h2 class="light">Friends (${d.friends.length})</h2>${d.friends.map(f => `<a href="/users/${f.id}/profile">${esc(f.username)}</a>`).join(', ') || '<span class="tip">No friends yet. <a href="/my/friends">Find some</a>.</span>'}
-<p>${d.unread ? `<a href="/my/messages"><b>${d.unread} unread message${d.unread > 1 ? 's' : ''}</b></a>` : ''}</p></div></div>`);
+  const gameTile = g => `<div class="gtile"><a href="/games/${esc(g.id)}">${thumb('', g.title)}<div class="nm" title="${esc(g.title)}">${esc(g.title)}</div></a><div class="tip">by ${esc(g.creator || 'UNKNOWN')}</div></div>`;
+  const friendTile = f => `<a class="ftile" href="/users/${f.id}/profile"><div class="fthumb">(thumbnail MISSING)</div><div class="fnm">${esc(f.username)}</div></a>`;
+  return layout(c, 'Home', `<div class="hello"><div class="hello-fig">${figure(d.avatar.colors)}</div><h1 class="hello-h">Hello, ${esc(c.user.username)}!</h1></div>
+<div class="card"><div class="card-h"><span>Friends (${d.friends.length})</span><a class="btn-see" href="/my/friends">See All</a></div><div class="frow">${d.friends.map(friendTile).join('') || '<span class="tip">No friends yet. <a href="/my/friends">Find some</a>.</span>'}</div></div>
+<div class="sec-h"><span>RECENTLY PLAYED</span><a class="btn-see" href="/games">See All</a></div>${d.recent.length ? `<div class="grow">${d.recent.map(gameTile).join('')}</div>` : '<p class="tip">You have not played anything yet.</p>'}
+<div class="sec-h"><span>MY FAVORITES</span><a class="btn-see" href="/games">See All</a></div>${d.favs.length ? `<div class="grow">${d.favs.map(gameTile).join('')}</div>` : '<p class="tip">No favorite games yet.</p>'}
+<p>${d.unread ? `<a href="/my/messages"><b>${d.unread} unread message${d.unread > 1 ? 's' : ''}</b></a>` : ''}</p><p class="tip"><a href="/my/character">Customize Character</a></p>`);
 }
 const SORTS = ['Default', 'Popular', 'Top Earning', 'Top Rated', 'Recommended', 'Top Favorite', 'Top Paid', "Builders Club"];
 function games(c, list) {

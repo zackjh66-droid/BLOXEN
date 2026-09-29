@@ -3,19 +3,19 @@
    button colours #007001 / #0852b7 / #565656, link #095fb5, text #343434, h1 32px / h2 30px) were read from the 2014-era Roblox Navigation2014.css /
    StyleGuide.css as mirrored in RobloxLabs/web (MIT). No Roblox image or sprite is bundled. The original July-2015 CSS was NOT recoverable (Wayback
    returns only rendered text through our tooling), so spacing and page composition are INFERRED. See research/WEBSITE.md. */
-html { height: 100%; background: #fff; }
-body { margin: 0; font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif; color: #343434; font-size: 14px; line-height: 1.428; background: #fff; }
+html { height: 100%; background: #f2f2f2; }
+body { margin: 0; font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif; color: #343434; font-size: 14px; line-height: 1.428; background: #f2f2f2; }
 a, a:visited { color: #095fb5; text-decoration: none; } a:hover { text-decoration: underline; }
 h1 { font-size: 32px; font-weight: bold; margin: 12px 0; letter-spacing: -1px; } h2 { font-size: 30px; letter-spacing: -1px; margin: 16px 0 10px; } h3 { font-size: 20px; margin: 12px 0 6px; } h2.light { font-size: 16px; font-weight: normal; color: #000; }
-.header-2014 { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #2D528F; color: #fff; z-index: 100; min-width: 960px; }
+.header-2014 { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #0e6ba7; color: #fff; z-index: 100; min-width: 960px; }
 .header-2014 a, .header-2014 a:visited { color: #fff; } .header-2014 .inner { width: 970px; margin: 0 auto; height: 40px; display: flex; align-items: center; }
 .header-2014 .logo { font-weight: bold; font-size: 22px; letter-spacing: 1px; margin-right: 14px; padding: 0 6px; }
-.header-2014 .links a { white-space: nowrap; font-size: 16px; margin-right: 6px; padding: 3px 10px 3px; border-radius: 4px; display: inline-block; } .header-2014 .links a:hover { background: #27487E; text-decoration: none; }
+.header-2014 .links a { white-space: nowrap; font-size: 16px; margin-right: 6px; padding: 3px 10px 3px; border-radius: 4px; display: inline-block; } .header-2014 .links a:hover { background: #0a5a8e; text-decoration: none; }
 .header-2014 form.search { margin: 0 10px 0 auto; } .header-2014 .search input { width: 220px; height: 24px; border: 0; border-radius: 5px; padding: 0 8px; font-size: 14px; box-sizing: border-box; }
 .header-2014 .acct { white-space: nowrap; font-size: 13px; flex-shrink: 0; font-size: 14px; } .header-2014 .acct span, .header-2014 .acct a, .header-2014 .acct button { margin-left: 10px; }
 .linkbtn { background: none; border: 0; color: #fff; font: inherit; cursor: pointer; padding: 0; } .linkbtn:hover { text-decoration: underline; }
 .notice { margin: 40px 0 0; background: #fffbe0; border-bottom: 1px solid #e0d98a; color: #555; font-size: 12px; text-align: center; padding: 3px 10px; }
-#Container { width: 970px; margin: 0 auto; background: #fff; padding: 10px 0 30px; min-height: 420px; }
+#Container { width: 970px; margin: 0 auto; background: transparent; padding: 10px 0 30px; min-height: 420px; }
 .flash { padding: 8px 12px; margin: 10px 0; border: 1px solid; } .flash.ok { background: #e7f4e4; border-color: #8cc084; } .flash.err { background: #fbe4e4; border-color: #d99; }
 .btn-large, .btn-medium, .btn-small { display: inline-block; text-align: center; font-weight: bold; border: 1px solid; cursor: pointer; text-decoration: none !important; color: #fff !important; font-family: inherit; }
 .btn-large { padding: 9px 20px 0; height: 39px; min-width: 70px; font-size: 23px; line-height: 27px; box-sizing: border-box; } .btn-medium { padding: 1px 13px 3px; height: 28px; min-width: 62px; font-size: 20px; line-height: 24px; box-sizing: border-box; } .btn-small { padding: 1px 7px; height: 20px; min-width: 40px; font-size: 14px; line-height: 18px; box-sizing: border-box; }
@@ -44,3 +44,12 @@ footer.site { width: 970px; margin: 0 auto; padding: 14px 0 40px; font-size: 12p
 .swrow form { display: inline; }
 /* fit 4 nav links + search + account area in 970px (found via screenshot: "Character" wrapped) */
 .header-2014 .links { display: flex; flex-shrink: 0; } .header-2014 .search input { width: 150px; } .header-2014 .links a { padding: 3px 8px; }
+
+/* 2015 logged-in chrome: header blue SAMPLED (#0e6ba7) from a blurry 185px reference thumbnail (uncertain +-10%); page grey #f2f2f2 sampled the same way. */
+.hello { display: flex; align-items: flex-end; margin: 14px 0 6px; } .hello-fig { width: 160px; } .hello-h { font-size: 44px; font-weight: 300; color: #555; letter-spacing: -1px; margin: 0 0 10px 30px; }
+.card { background: #fff; border: 1px solid #e3e3e3; padding: 10px 14px 12px; margin: 10px 0 18px; } .card-h, .sec-h { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #666; font-size: 18px; font-weight: 300; }
+.sec-h { font-size: 15px; letter-spacing: .3px; margin-top: 18px; } .btn-see { background: #3fb0ee; color: #fff !important; font-size: 12px; padding: 4px 16px; border-radius: 2px; text-decoration: none !important; }
+.frow { display: flex; gap: 10px; flex-wrap: wrap; } .ftile { width: 84px; text-align: center; color: #555 !important; font-size: 12px; } .fthumb { width: 84px; height: 84px; background: #f2f2f2; border: 1px solid #ddd; font-size: 9px; color: #888; display: flex; align-items: center; justify-content: center; }
+.fnm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.grow { display: flex; gap: 10px; flex-wrap: wrap; } .gtile { width: 150px; background: #fff; border: 1px solid #e3e3e3; padding: 0 0 6px; } .gtile .thumb { width: 150px; height: 150px; box-sizing: border-box; background: #f2f2f2; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; color: #888; }
+.gtile .nm { padding: 4px 6px 0; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .gtile .tip { padding: 0 6px; }
