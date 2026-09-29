@@ -25,6 +25,7 @@ function acquire(db, userId, assetId) {
   const item = catalogItem(db, assetId); if (!item) return { ok: false, error: 'No such catalog item' };
   if (db.prepare('SELECT 1 FROM inventory WHERE user_id=? AND asset_id=?').get(userId, item.asset_id)) return { ok: false, error: 'You already own this item' };
   if (item.limited_unique) return { ok: false, error: 'Sold out: this Limited U item was only available from private sellers in the archive (resale is not implemented)' };
+  if (item.price_robux == null && item.price_tickets == null) return { ok: false, error: 'This item is off sale (no price in the archived catalog entry)' };
   db.exec('BEGIN IMMEDIATE');
   try {
     const u = userById(db, userId); const price = item.price_robux; const tix = item.price_tickets;

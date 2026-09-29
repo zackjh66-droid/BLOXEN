@@ -78,3 +78,9 @@ test('CSP-compatible markup: no inline style attributes; every BrickColor has a 
   const views = fs.readFileSync(path.join(__dirname, '..', 'src', 'web', 'views.js'), 'utf8'); assert.ok(!/\sstyle=/.test(views), 'inline style= would be blocked by CSP');
   const css = fs.readFileSync(path.join(__dirname, '..', 'static', 'css', 'brickcolors.css'), 'utf8'); for (const id of Object.keys(S.BRICK_COLORS)) assert.ok(css.includes(`.bc-${id} {`), 'missing .bc-' + id);
 });
+
+test('off-sale catalog items cannot be acquired for free', async t => {
+  const app = await start({ dbPath: ':memory:', webPort: 0, compatPort: 0, quiet: true }); t.after(() => app.close()); const b = new Browser(app.webUrl); await b.register('offsale1');
+  const page = await b.get('/catalog/item/33337041'); assert.match(page.text, /Off Sale/); await b.follow(await b.post('/catalog/item/33337041/buy', {}, { page: '/catalog/item/33337041' }));
+  assert.equal(app.db.prepare('SELECT COUNT(*) n FROM inventory WHERE asset_id=33337041').get().n, 0);
+});
