@@ -24,9 +24,8 @@ function superChain(cls) { const out = []; let c = cls; while (c && API.classes[
 function propsFor(cls) { const s = new Set(); for (const c of superChain(cls)) for (const p of API.classes[c].props) s.add(p[0]); return s; }
 const propCache = new Map(); function pf(cls) { let v = propCache.get(cls); if (!v) { v = propsFor(cls); propCache.set(cls, v); } return v; }
 
-// Classes the BLOXEN replicator currently knows how to place into a world (see src/gameserver/world.js)
-const REPLICATED_OK = new Set(['Workspace', 'Model', 'Part', 'WedgePart', 'CornerWedgePart', 'TrussPart', 'SpawnLocation', 'Seat', 'VehicleSeat', 'Camera', 'Folder',
-  'BlockMesh', 'SpecialMesh', 'CylinderMesh', 'Decal', 'Texture', 'Sound', 'SkateboardPlatform', 'Team', 'Lighting', 'Sky', 'Smoke', 'Fire', 'Sparkles', 'PointLight', 'SpotLight', 'SurfaceLight']);
+// Replication support comes from the game-server world (single source of truth): a class is replicable when it exists in the 0.205.0.61876 schema and is not server-only.
+const { classStatus } = require('../gameserver/world');
 
 function analyze(place, { fileName = '' } = {}) {
   const classCounts = {}; const scripts = []; const assets = new Map(); const postClasses = {}; const legacyClasses = {}; const anachronisticProps = {}; const legacyProps = {}; const servicesPresent = [];
@@ -60,7 +59,7 @@ function analyze(place, { fileName = '' } = {}) {
   };
   function addAsset(idOrPath, where, kind) { const k = kind === 'client-builtin' ? idOrPath : String(idOrPath); let e = assets.get(k); if (!e) { e = { id: k, kind: kind || 'asset-id', uses: 0, where: new Set() }; assets.set(k, e); } e.uses++; if (e.where.size < 5) e.where.add(where); }
   for (const r of place.roots) { walk(r, ''); if (SERVICE_NAMES.has(r.className)) servicesPresent.push(r.className); }
-  const unsupportedClasses = Object.keys(classCounts).filter(c => API.classes[c] && !REPLICATED_OK.has(c) && !SERVICE_NAMES.has(c) && !SCRIPT_CLASSES.has(c));
+  const unsupportedClasses = Object.keys(classCounts).filter(c => API.classes[c] && classStatus(c) !== 'replicable' && !SERVICE_NAMES.has(c) && !SCRIPT_CLASSES.has(c));
   const total = place.count();
   const sum = o => Object.values(o).reduce((x, y) => x + y, 0);
   const postCount = sum(postClasses) + sum(anachronisticProps), legacyCount = sum(legacyClasses) + sum(legacyProps);

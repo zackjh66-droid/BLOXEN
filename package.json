@@ -6,7 +6,7 @@
   "license": "UNLICENSED",
   "engines": { "node": ">=22.13" },
   "scripts": {
-    "test": "node --test --test-concurrency=1 tests/",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
     "start": "node src/web/server.js",
     "gameserver": "node src/gameserver/server.js",
     "intake": "node src/importer/intake.js",

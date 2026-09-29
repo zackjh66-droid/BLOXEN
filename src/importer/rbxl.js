@@ -138,4 +138,4 @@ function parseRbxl(buf) {
   }
   return place;
 }
-module.exports = { parseRbxl, SIG };
+module.exports = { parseRbxl, SIG, ROT };
