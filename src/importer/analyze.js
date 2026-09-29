@@ -70,7 +70,10 @@ function analyze(place, { fileName = '' } = {}) {
   // This is a heuristic, NOT proof of a date.
   const era = { targetBuild: '0.205.0.61876', post2015Classes: postClasses, post2015PropertyCounts: top(anachronisticProps), legacyClasses, legacyPropertyCounts: top(legacyProps),
     post2015Score: +(postCount / Math.max(total, 1)).toFixed(4), legacyScore: +(legacyCount / Math.max(total, 1)).toFixed(4),
-    verdict: postCount === 0 ? (legacyCount > 0 ? 'predates-or-matches-2015-API (legacy members present)' : 'consistent-with-2015-API') : 'post-2015-features-present' };
+    verdict: postCount === 0 ? (legacyCount > 0 ? 'predates-or-matches-2015-API (legacy members present)' : 'consistent-with-2015-API')
+      // A handful of later-API properties on an otherwise legacy file (e.g. the lone ServerScriptService.LoadStringEnabled seen in two places) is not
+      // evidence of a post-2015 file: Studio of several eras writes it. Only a later class or a meaningful share of later members is called post-2015.
+      : (sum(postClasses) === 0 && postCount <= 3 && legacyCount > postCount * 100) ? 'predates-or-matches-2015-API (legacy members present; minor unexplained later property)' : 'post-2015-features-present' };
   const scriptSummary = { total: scripts.length, byClass: scripts.reduce((a, s) => (a[s.class] = (a[s.class] || 0) + 1, a), {}), disabled: scripts.filter(s => s.disabled).length, bytes: scripts.reduce((a, s) => a + s.bytes, 0),
     markerCounts: scripts.reduce((a, s) => { s.markers.forEach(m => a[m] = (a[m] || 0) + 1); return a; }, {}), flagged: scripts.filter(s => s.markers.some(m => ['http', 'loadstring', 'require', 'insertservice', 'obfuscated', 'ban/kick', 'adminlike'].includes(m))).length };
   const compat = {

@@ -1,6 +1,15 @@
 # GAMES — candidate places, evidence and decisions
 
-Source archive: `github.com/beagleded/Roblox-Places-Archive` HEAD 51b379b (created 2023-09-21, one author, no licence, README says places are untested and may be duplicates/broken; no per-file provenance). **125/125 files parse** (`preservation/manifests/places-archive-beagleded-intake.json`): 121 pre-2015-API, 4 containing post-2015 features (Classic Basplate, Lumber-Tycoon, Marshall-Point-Lighthouse, giant rocket arena2 — not adopted).
+Source archive: `github.com/beagleded/Roblox-Places-Archive` HEAD 51b379b (created 2023-09-21, one author, no licence, README says places are untested and may be duplicates/broken; no per-file provenance). **125/125 files parse** (`preservation/manifests/places-archive-beagleded-intake.json`): 123 pre-2015-API, 2 post-2015 (the first intake flagged 4; see below). The 4 files are itemised in `preservation/manifests/places-post2015-itemised.json`:
+
+| File | Verdict | Evidence | Disposition |
+|---|---|---|---|
+| Classic Basplate.rbxl | post-2015 | 22 classes not in the 0.205 API (MeshPart x53, TextChatService, UICorner…); 17/30 asset ids > 280M, max ~11.3 billion | REJECTED-AS-HISTORICAL (a modern Studio template) |
+| Marshall-Point-Lighthouse.rbxl | post-2015 | 7 later classes (Bloom/SunRays/ColorCorrection, VRService…); 23/43 asset ids > 280M (max 570M); later Sky/ParticleEmitter members | REJECTED-AS-HISTORICAL (and no provenance) |
+| Lumber-Tycoon.rbxl | era-consistent (analyzer false positive) | 0 later classes; formFactorRaw x6119, ModelInPrimary; flagged only for the single ServerScriptService.LoadStringEnabled property | QUARANTINED: 742 scripts, no creator/place id/uncopylocked evidence |
+| giant rocket arena2.rbxl | era-consistent (false positive) | same lone property; max asset id ~1.0M | QUARANTINED: unidentified user's place from a personal pack |
+
+`analyze.js` was corrected: a file is no longer called post-2015 because of <=3 stray later properties on a legacy-dominant file. Asset-id magnitude (ids after July 2015 exceed ~276M, from a Wayback item page) is used as supporting evidence only. None of the four is served.
 Curated manifest: `preservation/manifests/places.json` (full per-item fields: name, creator, place ID, evidence, date, source repo/commit/path, method, public evidence, SHA-256, size, format, dependencies, grade). Files stay in git-ignored `preservation/store/<sha256>.rbx` (read-only), fetchable with `node tools/fetch_places.js <id…>` which verifies SHA-256.
 
 | id | Title / creator | Place ID | Status | Grade | Notes |

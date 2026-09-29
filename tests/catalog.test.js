@@ -25,3 +25,10 @@ test('purchase rules: normal item is bought once; Limited-U / Limited resale-onl
   assert.equal(services.userById(db, uid).robux, before - 80, 'refused purchases cost nothing');
 });
 test('ticket-priced item (Blackvalk) has no Robux price and cannot be bought with R$', () => { const x = services.acquire(db, uid, 124730194); assert.equal(x.ok, false); });
+
+test('post-2015 itemisation manifest agrees with the batch intake and adopts nothing', () => {
+  const root = path.join(__dirname, '..', 'preservation', 'manifests'); const it = JSON.parse(fs.readFileSync(path.join(root, 'places-post2015-itemised.json'), 'utf8')).items;
+  const intake = JSON.parse(fs.readFileSync(path.join(root, 'places-archive-beagleded-intake.json'), 'utf8')).items; const places = JSON.parse(fs.readFileSync(path.join(root, 'places.json'), 'utf8')).items;
+  assert.equal(it.length, 4);
+  for (const i of it) { const m = intake.find(x => x.file === i.file); assert.ok(m, i.file); assert.equal(m.sha256, i.sha256); assert.ok(['REJECTED-AS-HISTORICAL', 'QUARANTINED'].includes(i.disposition)); assert.ok(!places.some(p => p.sha256 === i.sha256 && /^ACCEPTED/.test(p.status)), 'not adopted: ' + i.file); }
+});

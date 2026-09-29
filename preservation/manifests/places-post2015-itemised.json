@@ -1,0 +1,99 @@
+{
+ "schema": "bloxen.places-post2015-itemised/1",
+ "purpose": "Itemises the 4 files the batch intake first flagged 'post-2015-features-present'. Two are genuinely post-2015; two were classifier false positives on era but fail on provenance.",
+ "sourceRepo": "https://github.com/beagleded/Roblox-Places-Archive",
+ "sourceCommit": "51b379ba8575414d552b536c2a1fa75dd1c35d57",
+ "assetIdEraReference": "Numeric asset ids assigned after ~2015-07 are > ~276,000,000 (Wayback item page id 276450676 captured 2015-07-29). Heuristic, not proof.",
+ "items": [
+  {
+   "file": "Classic Basplate.rbxl",
+   "sha256": "677d292738ed0cb14daa4d2c063a7bdc938271a657af425aa84bd7ab97f624f7",
+   "size": 211583,
+   "format": "rbxl-binary",
+   "instances": 841,
+   "scripts": 2,
+   "addedInCommit": "54ad7ad335",
+   "addedInDate": "2023-09-21",
+   "addedInMessage": "Additional Games Added",
+   "sourceRepo": "https://github.com/beagleded/Roblox-Places-Archive",
+   "sourceCommit": "51b379b",
+   "intakeEraVerdict": "post-2015-features-present",
+   "evidence": [
+    "22 classes absent from the 0.205.0.61876 API dump incl. MeshPart x53, TextChatService, UICorner, UIGradient, ProximityPromptService, MaterialService, PermissionsService (all far later than 2015)",
+    "17 of 30 numeric asset ids exceed 280,000,000; the highest are ~11.3 billion (2021+). Asset ids in late July 2015 were about 276,000,000 (Wayback item pages, e.g. id 276450676 captured 2015-07-29)"
+   ],
+   "identification": "Roblox Studio's 'Classic Baseplate' template saved by a modern Studio. A template, not a historical game.",
+   "disposition": "REJECTED-AS-HISTORICAL",
+   "reason": "File content post-dates the July 2015 client by years and cannot be loaded by it (MeshPart and dozens of later classes). The filename says 'Classic' but file names are not provenance.",
+   "usableAs": "Nothing for the 2015 flow. Kept only as an importer negative test (post-2015 detection)."
+  },
+  {
+   "file": "Marshall-Point-Lighthouse.rbxl",
+   "sha256": "b3f395bfb35b943eeda66227fd6c9c527870e8fb3dd4f4df149fca61af0e13e5",
+   "size": 232141,
+   "format": "rbxl-binary",
+   "instances": 494,
+   "scripts": 1,
+   "addedInCommit": "51b379ba85",
+   "addedInDate": "2023-09-22",
+   "addedInMessage": "Added Marshall Point Lighthouse",
+   "sourceRepo": "https://github.com/beagleded/Roblox-Places-Archive",
+   "sourceCommit": "51b379b",
+   "intakeEraVerdict": "post-2015-features-present",
+   "evidence": [
+    "7 classes absent from the 2015 API dump: VirtualInputManager, StarterCharacterScripts, LocalizationService, VRService, ColorCorrectionEffect, SunRaysEffect, BloomEffect",
+    "23 of 43 numeric asset ids exceed 280,000,000 (max 570,034,647, assigned well after July 2015)",
+    "Post-2015 members on existing classes: Sky.SunTextureId/MoonTextureId, ParticleEmitter.LightInfluence/Drag/SpreadAngle, Workspace.AllowThirdPartySales, Camera.HeadLocked"
+   ],
+   "identification": "Unknown author; added by the repo owner in commit 51b379b 'Added Marshall Point Lighthouse'. No place id, creator or public/uncopylocked evidence exists in the repo.",
+   "disposition": "REJECTED-AS-HISTORICAL",
+   "reason": "Post-dates the target build (asset ids and classes) AND has no provenance/public-access evidence.",
+   "usableAs": "Importer negative test only."
+  },
+  {
+   "file": "Lumber-Tycoon.rbxl",
+   "sha256": "595c200a37102b6dbf17f8030102e712977967df0091707f91007df7d5226917",
+   "size": 127405,
+   "format": "rbxl-binary",
+   "instances": 8896,
+   "scripts": 748,
+   "addedInCommit": "5d9a745f38",
+   "addedInDate": "2023-09-22",
+   "addedInMessage": "Added Lumber Tycoon 1",
+   "sourceRepo": "https://github.com/beagleded/Roblox-Places-Archive",
+   "sourceCommit": "51b379b",
+   "intakeEraVerdict": "predates-or-matches-2015-API (legacy members present; minor unexplained later property)",
+   "evidence": [
+    "Zero classes outside the 2015 API dump; legacy members present (Part.formFactorRaw x6119, Model.ModelInPrimary x862, Terrain.ClusterGridV3), so the file is era-consistent with 2012-2015 Studio",
+    "The original intake flagged it 'post-2015' only because of ONE property, ServerScriptService.LoadStringEnabled (also present in giant rocket arena2). analyze.js no longer calls a file post-2015 on <=3 stray properties over a legacy-dominant file",
+    "Highest asset id 12,224,218 (2008-era ids), nothing after 2015"
+   ],
+   "identification": "Commit 5d9a745 'Added Lumber Tycoon 1' (2023-09-22). Presumably the early Lumber Tycoon by a developer known as Defaultio, but the repo records no creator, place id or uncopylocked evidence: UNVERIFIED.",
+   "disposition": "QUARANTINED",
+   "reason": "Era is plausible but provenance is not: 742 Scripts (522 disabled, 2 admin-like markers), a tycoon game whose source is normally not public. No evidence it was uncopylocked, so it may be a copied/leaked place. Not used until public-access evidence is found.",
+   "usableAs": "Not served. Stays in the quarantine folder; intake report only."
+  },
+  {
+   "file": "giant rocket arena2.rbxl",
+   "sha256": "be1c54e81e50e9fab61d469756a0eb4671bd7dd86d19640b1e188a3c08400420",
+   "size": 4288150,
+   "format": "rbxlx-xml",
+   "instances": 2013,
+   "scripts": 15,
+   "addedInCommit": "d1c717e4ff",
+   "addedInDate": "2023-09-21",
+   "addedInMessage": "Added P4ris' Giant Ass Pack Places",
+   "sourceRepo": "https://github.com/beagleded/Roblox-Places-Archive",
+   "sourceCommit": "51b379b",
+   "intakeEraVerdict": "predates-or-matches-2015-API (legacy members present; minor unexplained later property)",
+   "evidence": [
+    "Zero classes outside the 2015 API dump; legacy members present (formFactorRaw x1783, ModelInPrimary x135, BlockMesh.Bevel/LODX)",
+    "Same lone LoadStringEnabled property as Lumber Tycoon; highest asset id 1,017,349 (2007-era)"
+   ],
+   "identification": "Commit message 'Added P4ris' Giant Ass Pack Places' (d1c717e, 2023-09-21): part of a pack of a user's places. Author, place id and public-access status are not recorded.",
+   "disposition": "QUARANTINED",
+   "reason": "Era-consistent, but it is an unidentified user's place with no public/uncopylocked evidence; the source commit describes a personal hard-drive pack. Not served.",
+   "usableAs": "Not served. Candidate only if the creator and public access can be evidenced."
+  }
+ ]
+}

@@ -10,7 +10,7 @@ Suite: `npm test` (all green at last run) · e2e: `npm run e2e`.
 | Client acquisition + verification | **DONE** / execution **BLOCKED** | Hash, PE, Authenticode, manifest done; never executed (needs Windows VM + approval). |
 | Place importer (.rbxl/.rbxlx) | **DONE, UNIT-TESTED** | quarantine→SHA-256→parse→tree→services/props/refs→inert scripts→asset ids→compat report. 125/125 archive files parse. `rbxlx.md` spec read and conformance-tested (`tests/rbxlx-spec.test.js`). |
 | Game candidates | **PARTIAL** | 9 curated; 5 fetched and SHA-256-verified into the git-ignored store (Tabula Rasa, both Crossroads files, Happy Home, Roblox HQ); each joins through the full e2e flow (SIMULATOR-TESTED, geometry only). All provenance INFERRED; no 2015-era place found. |
-| Script intake/classification | **PARTIAL** | Inventory + static classification (`analyze.js`); replication support is taken from `world.js` (single source of truth). The 4 post-2015-feature files are named in research/GAMES.md; their specific features are not itemised. |
+| Script intake/classification | **PARTIAL** | Inventory + static classification (`analyze.js`); replication support is taken from `world.js` (single source of truth). The 4 files first flagged post-2015 are itemised in `preservation/manifests/places-post2015-itemised.json` (2 truly post-2015, 2 era-consistent but provenance-quarantined). |
 | Script runtime | **PARTIAL, UNIT + SIMULATOR-TESTED (experimental, off by default)** | Sandboxed Lua 5.1 interpreter + ScriptHost (`src/script/`, `research/SCRIPTING.md`). Crossroads regeneration, day/night and leaderboard scripts run; Touched/BodyMover scripts do not (no server physics). Enable with `BLOXEN_SCRIPTS=1`. No place is claimed playable. |
 | Website pages (16 types) | **PARTIAL** | All render, INTEGRATION-TESTED. Logged-out Home/Login/Register rebuilt to match a real ~2015 screenshot (structure, colours sampled); the other pages are still from 2012–14 CSS values + period memory (no 2015 reference found) and NOT pixel-verified. Photos, logo, fonts, thumbnails MISSING. |
 | Accounts/sessions/security | **DONE, TESTED** | scrypt, hashed sessions, CSRF, XSS/SQLi/traversal/redirect tests, throttling. Email, settings beyond password/blurb, favourites UI minimal. |
@@ -26,8 +26,8 @@ Suite: `npm test` (all green at last run) · e2e: `npm run e2e`.
 
 ## Open items, in priority order
 1. Run the Windows gate (owner). Expect gates 4 (unsigned join script) and 9 (server ID_DATA) to be the hard ones.
-2. Find shirts/pants/heads/free items (other catalog captures, e.g. 20150928141841 or category-specific queries); verify hand-transcribed fields.
-3. Find the July-2015 DeployHistory entry; cross-check client files against a second archive.
-4. Independent cross-checks for place bytes; fetch Happy Home/ROBLOX HQ.
+2. Shirts/pants/heads/free items: the Wayback CDX shows only two distinct `catalog/json` queries in 2015 (both read). Individual July-2015 `*-item?id=` pages exist (for example user-made T-shirts) and give title/creator/created/description, but the text extraction drops the price, and the pages read so far were user-made. Needs another route (full-text HTML extraction or a per-item price source) before adding them. Verify hand-transcribed fields.
+3. Cross-check the other 769 client files against a second archive (DeployHistory line and ReflectionMetadata are already cross-checked).
+4. Independent cross-checks for place bytes (only repo-internal hashes exist today); fetch roblox-world-headquarters and mission-to-the-moon.
 5. Server-side overlap detection so `Touched` can fire (see `research/SCRIPTING.md` §4).
 6. Pixel reference for 2015 pages if any becomes available; fonts/logo/sprites.
