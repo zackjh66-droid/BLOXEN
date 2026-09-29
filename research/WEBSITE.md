@@ -5,7 +5,7 @@ Implementation: `src/web/{app,views,main}.js`, `static/css/bloxen.css`, `static/
 ## Pages (all implemented, all render 200; screenshots in `research/visual/`)
 | Required page | Route | Content evidence | Layout/CSS evidence |
 |---|---|---|---|
-| Home (logged out) | `/` | **ARCHIVED-EXACT text** (Wayback 20150723171630): "You Make the Game ™", "Sign up and start having fun!", signup form fields Username/Password/Birthday/Gender, "What is ROBLOX?" paragraph | RECONSTRUCTED-FROM-EVIDENCE |
+| Home (logged out) | `/` | **ARCHIVED-EXACT text** (Wayback 20150723171630) | layout from a real ~2015 screenshot (ARCHIVED-NEAR-DATE, reduced size); imagery MISSING |
 | Home (logged in) | `/home` | "Hello, <name>!", Recently Played, Favorites, Friends — structure INFERRED from memory of 2015 | RECONSTRUCTED |
 | Games | `/games` | Sort names, time filters and genre list from Wayback 20150726062742 (the list itself is JS-loaded in the capture and absent); BLOXEN lists only its evidence-backed places | RECONSTRUCTED |
 | Game Details | `/games/:id` | Adds an honest **provenance panel** (grade, SHA-256, evidence, playability badge) that did not exist in 2015 — deliberate deviation for preservation honesty | RECONSTRUCTED |
@@ -19,14 +19,25 @@ Implementation: `src/web/{app,views,main}.js`, `static/css/bloxen.css`, `static/
 | Account Settings | `/my/account` | INFERRED | RECONSTRUCTED |
 
 ## Visual comparison — honest statement
-**No 2015 pixel reference was obtainable.** Wayback HTML captures exist but the CSS/image sub-resources were not retrievable from this sandbox, and the only real-CSS source (RobloxLabs/web) is 2012–14. The method actually used:
-1. *Reference*: archived 2015 text/structure for logged-out Home and Games; 2012–14 CSS numeric values (header #2D528F, hover #27487E, 40 px fixed header, 16 px header links, buttons #007001 / #0852b7 / #565656, link #095fb5, text #343434, h1 32 px, 970 px page width).
-2. *Render*: `node tools/screenshot_pages.js` → `research/visual/*.png` (Chromium, 1100 px viewport).
-3. *Compare* against those values/structures, *correct*, re-render.
+**Pixel-level 2015 references are scarce.** What exists and was used:
+| Reference | What it shows | Grade | Held where |
+|---|---|---|---|
+| Web Design Museum "Roblox in 2015" (`webdesignmuseum.org/uploaded/timeline/roblox/roblox-2015.jpg`; only a 500×1060 reduction could be obtained) | Complete logged-out Home: copy matches Wayback 20150723171630 exactly (ROBLOX Point / StarMarine614), so it is a mid-2015 capture | ARCHIVED-NEAR-DATE (date of the screenshot itself not stated) | `/home/user/quarantine/visual-ref/` (third-party image, **not committed**) |
+| Fandom "Roblox Home" gallery "homepage from early 2015 to early 2016" | 185 px thumbnail of logged-in Home ("Hello, <name>!", avatar box, Recently Played thumbnails, blue header) | ARCHIVED-NEAR-DATE, too small to measure | quarantine |
+| Wayback text of Home (20150723171630, 20150724155302), Games (20150726062742), /Login→/NewLogin redirect | Copy and control inventory, not layout | ARCHIVED-EXACT for text | URLs in HISTORICAL-SOURCE-MAP |
+| RobloxLabs/web 2012–14 CSS | numeric values for logged-in chrome (header #2D528F, 40px, 970px, buttons) | ARCHIVED-NEAR-DATE (1–3 years earlier) for values only | quarantine |
+Wayback CSS/image sub-resources could not be retrieved (sandbox cannot reach Wayback directly; the fetch tool returns markdown, not raw HTML/CSS).
 
-Findings corrected this way: (a) inline `style=` attributes silently blocked by CSP left the avatar figure and colour swatches blank → replaced with CSS classes and a generated `brickcolors.css`, test added; (b) logged-in header wrapped the "Character" link onto a second line at 970 px → search/links sized to fit.
+**Correction made after finding the screenshot:** the first logged-out Home was built from the 2012–14 CSS and the archived text only, i.e. a two-column 970px page on white. The real 2015 page is a full-width landing: translucent teal top bar (Play / About / Platforms + inline Username/Password/Log In + "Forgot Username/Password?"), full-bleed hero photo with the logo, "You Make the Game ™", "Game: ROBLOX Point / Developer: StarMarine614" bottom-left and a translucent sign-up panel on the right (Username, Password, Confirm Password, Birthday, Gender, green Sign Up #00b35a), a dark "What is ROBLOX?" band, a three-screenshot strip, a light-grey (#f2f2f2) "ROBLOX on your device." band with App Store/Google Play badges, and a large footer link row (About Us, Jobs, Blog, Privacy, Parents, Help) on #fafafa. `/`, `/login` and `/register` now use this layout (`landing()` in views.js, `static/css/landing.css`). Login and Register pages reuse the landing chrome because the 2015 `/NewLogin` page was observed to be part of the same landing design family (structure INFERRED; no screenshot of it was found).
 
-Known residual deviations (NOT corrected, recorded honestly): font is a web-safe sans stack, not the Source Sans Pro used in 2015 (no font file retrieved); no sprite sheets/logo (the meatball logo SVG path is known from the capture but the file was not retrieved, so a text "BLOXEN" wordmark is used); Games/Catalog tiles use a flat grid rather than the 2015 gradient cards; no thumbnails at all. The site is therefore **structurally faithful and unmodernised but not pixel-verified**. Status: PARTIAL.
+Method: reference → render (`node tools/screenshot_pages.js`, `research/visual/*.png`) → compare → correct.
+Measured/compared: band order, nav items and their placement, panel position (right, ~50–84% of width) and translucency, control order in the form, button colour (sampled #00b35a), band colours (#f2f2f2/#fafafa sampled), footer link row. **Not measured:** absolute pixel dimensions (the reference is a 500px reduction of unknown original width), fonts (Source Sans Pro not retrievable), and every photographic asset — hero, character, three strip screenshots, device artwork, the logo — which are MISSING and rendered as labelled flat blocks, never substituted.
+
+Deliberate deviations (honesty/safety, recorded): BLOXEN text wordmark instead of the logo; the preservation notice banner; password rule is BLOXEN's (8+ characters, not the 2015 "4 letters and 2 numbers"); gender shown as labelled radios instead of icons; footer links point at BLOXEN pages.
+
+Still NOT reference-checked (structure INFERRED from period memory and 2012–14 CSS): Games, Game Details, Catalog, Catalog Item, Profile, Character, Inventory, Friends, Groups, Messages, Develop, Search, Account Settings, and the logged-in Home beyond the 185 px thumbnail. These use the older-style 970px chrome and are the next targets if more 2015 screenshots can be found. Status: PARTIAL.
+
+Defects found and fixed by screenshot inspection along the way: (a) CSP silently blocked inline `style=` so the avatar figure/swatches were blank → CSS classes + test; (b) logged-in header wrapped "Character" → resized; (c) logged-out Home structurally wrong (above).
 
 ## Accounts & security (UNIT/INTEGRATION-TESTED, `tests/web.test.js`)
 scrypt password hashing; sessions stored only as SHA-256 of the cookie token (`HttpOnly; SameSite=Lax`); CSRF token on every POST (double-submit cookie before login); login throttling (429); output escaping (XSS test); parameterised SQL only (SQLi test); open-redirect guard on `next`; static-file traversal blocked; security headers. Registration never asks for a Roblox password and BLOXEN never reads or stores Roblox cookies. The start allowance of 100,000 R$ is a BLOXEN choice and is labelled NOT historical.

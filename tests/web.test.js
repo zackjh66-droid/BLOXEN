@@ -84,3 +84,12 @@ test('off-sale catalog items cannot be acquired for free', async t => {
   const page = await b.get('/catalog/item/33337041'); assert.match(page.text, /Off Sale/); await b.follow(await b.post('/catalog/item/33337041/buy', {}, { page: '/catalog/item/33337041' }));
   assert.equal(app.db.prepare('SELECT COUNT(*) n FROM inventory WHERE asset_id=33337041').get().n, 0);
 });
+
+test('logged-out landing follows the 2015 reference structure and stays safe', async t => {
+  const app = await start({ dbPath: ':memory:', webPort: 0, compatPort: 0, quiet: true }); t.after(() => app.close()); const b = new Browser(app.webUrl); const h = (await b.get('/')).text;
+  const order = ['class="lbar"', 'Forgot Username/Password?', 'class="lhero', 'Game: ROBLOX Point', 'Sign up and start having fun!', 'class="ldark"', 'What is ROBLOX?', 'class="lstrip"', 'ROBLOX on your device.', 'class="lfoot"'].map(x => h.indexOf(x));
+  assert.ok(order.every(i => i >= 0) && order.every((v, i) => !i || v > order[i - 1]), 'section order ' + order);
+  for (const a of ['Play', 'About', 'Platforms', 'Confirm Password', 'Birthday', 'About Us', 'Jobs', 'Blog', 'Privacy', 'Parents', 'Help']) assert.ok(h.includes(a), a);
+  assert.match(h, /image MISSING/); assert.ok(!/<img /.test(h), 'no substituted imagery'); assert.ok(!/\sstyle=/.test(h));
+  const reg = await b.post('/register', { username: 'mism' + Date.now() % 100000, password: 'correct-horse-9', confirm: 'different-pw-9' }, { page: '/register' }); assert.equal(reg.status, 400);
+});

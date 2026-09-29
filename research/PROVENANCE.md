@@ -13,7 +13,8 @@ A grade describes **the artifact BLOXEN holds**, not the historical existence of
 | Client API dump | `preservation/reference/api-0.205.0.61876.json` from RobloxAPI/build-archive | ARCHIVED-EXACT (version-keyed) | 332 classes / 851 properties / 266 events / 124 enums. The client's own tables are larger (968/320): the gap is presumed hidden members, UNVERIFIED. |
 | Logged-out Home page text | Wayback 20150723171630 | ARCHIVED-EXACT (text) | Layout/CSS not retained → layout is RECONSTRUCTED-FROM-EVIDENCE. |
 | Games page structure (sorts, filters, genres, launch-overlay text) | Wayback 20150726062742 | ARCHIVED-NEAR-DATE | Game list is JS-loaded and absent from the capture. |
-| Site CSS values | RobloxLabs/web (MIT fan remake carrying real 2012-14 CSS), reference only, not redistributed | ARCHIVED-NEAR-DATE for values; RECONSTRUCTED for the stylesheet | No 2015 pixel reference was obtainable. |
+| Logged-out Home/Login/Register layout | Web Design Museum 2015 screenshot (500px reduction, quarantine only) | ARCHIVED-NEAR-DATE (structure); RECONSTRUCTED stylesheet; all imagery MISSING | sizes are proportional estimates |
+| Other pages' CSS values | RobloxLabs/web (MIT fan remake carrying real 2012-14 CSS), reference only, not redistributed | ARCHIVED-NEAR-DATE for values; RECONSTRUCTED for the stylesheet | No 2015 pixel reference found for these pages. |
 | Catalog seed 20150309034826 | 24 items, `preservation/catalog/` | ARCHIVED-NEAR-DATE | Capture is 4.5 months before target. 2 of 4 chunks read. |
 | Catalog seed 20150616223239 | 20 items (Collectibles query) | ARCHIVED-NEAR-DATE | 5.5 weeks before target. 3 of 7 chunks read; hand-transcribed. |
 | Catalog thumbnails / asset content | none | **MISSING** | Not retrieved; never substituted. |

@@ -41,7 +41,7 @@ function createWebApp({ db, gameservers, log = () => {}, secureCookies = false }
   add('POST', '/register', { pre: true }, async c => {
     const f = c.form; const name = String(f.username || ''); const pw = String(f.password || '');
     const fail = m => { const t = preToken(c); c.flash = { text: m, err: true }; return out(c, 400, V.register(c, t)); };
-    if (!auth.validUsername(name)) return fail('Usernames are 3-20 characters: letters, numbers and single underscores, not starting or ending with _.'); if (!auth.validPassword(pw)) return fail('Password must be 8-200 characters.'); if (pw.toLowerCase() === name.toLowerCase()) return fail('Password cannot be your username.');
+    if (!auth.validUsername(name)) return fail('Usernames are 3-20 characters: letters, numbers and single underscores, not starting or ending with _.'); if (!auth.validPassword(pw)) return fail('Password must be 8-200 characters.'); if (pw.toLowerCase() === name.toLowerCase()) return fail('Password cannot be your username.'); if (f.confirm !== undefined && f.confirm !== '' && f.confirm !== pw) return fail('Passwords do not match.'); if (f.confirm === '') return fail('Please confirm your password.');
     const by = +f.by, bm = +f.bm, bd = +f.bd; const birthday = by >= 1915 && by <= 2015 && bm >= 1 && bm <= 12 && bd >= 1 && bd <= 31 ? `${by}-${String(bm).padStart(2, '0')}-${String(bd).padStart(2, '0')}` : null;
     if (S.userByName(db, name)) return fail('That username is already taken.');
     const hash = await auth.hashPassword(pw); let id; try { id = S.createUser(db, { username: name, hash, birthday, gender: ['m', 'f'].includes(f.gender) ? f.gender : null }); } catch (e) { return fail('That username is already taken.'); }
