@@ -29,5 +29,5 @@ Suite: `npm test` (all green at last run) · e2e: `npm run e2e`.
 2. Shirts/pants/heads/free items: the Wayback CDX shows only two distinct `catalog/json` queries in 2015 (both read). Individual July-2015 `*-item?id=` pages exist (for example user-made T-shirts) and give title/creator/created/description, but the text extraction drops the price, and the pages read so far were user-made. Needs another route (full-text HTML extraction or a per-item price source) before adding them. Verify hand-transcribed fields.
 3. Cross-check the other 769 client files against a second archive (DeployHistory line and ReflectionMetadata are already cross-checked).
 4. Independent cross-checks for place bytes (only repo-internal hashes exist today).
-5. Scripts as non-replicated tree members (sibling script lookup/clone); part-vs-part contact needs physics (see `research/SCRIPTING.md` §4).
+5. Part-vs-part contact needs physics; scripts-as-tree-members is low priority (only the cross-place Crossroads teleporters need it). See `research/SCRIPTING.md` §4.
 6. Pixel reference for 2015 pages if any becomes available; fonts/logo/sprites.
