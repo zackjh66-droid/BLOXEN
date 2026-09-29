@@ -1,0 +1,1279 @@
+{
+ "schema": "bloxen.script-inventory/1",
+ "generated": "2026-09-29",
+ "note": "Lexical scan only. Nothing executed. Probes are regexes: counts are scripts that mention the token, not proof of behaviour.",
+ "places": {
+  "tabularasa": {
+   "placeSha256": "29c05bda4a847143afcb50960f3824e0192e002bcc6c9b80263347e722d8d02e",
+   "scripts": 0,
+   "byClass": {},
+   "totalBytes": 0,
+   "apiScriptCounts": {},
+   "flagged": [],
+   "list": []
+  },
+  "crossroads-2007-client": {
+   "placeSha256": "6bf95856c724644c792d7065bcc14e0c5be10cc326bab57f71b7e84bbfa3af7b",
+   "scripts": 25,
+   "byClass": {
+    "Script": 25
+   },
+   "totalBytes": 21080,
+   "apiScriptCounts": {
+    "script.Parent": 23,
+    "Instance.new": 10,
+    "game.Workspace/workspace": 5,
+    "wait()": 25,
+    "Remove/Destroy/remove": 5,
+    "Clone/clone": 5,
+    "GUI": 5,
+    "math.*": 5,
+    "FindFirstChild": 20,
+    "game.Players/Players": 2,
+    "connect/Connect": 19,
+    "Changed/ChildAdded": 1,
+    "Humanoid": 19,
+    "Died/Health": 6,
+    "CharacterAdded": 2,
+    "leaderstats/values": 1,
+    "Touched": 18,
+    "Vector3/CFrame": 17,
+    "coroutine": 4,
+    "Teams": 4,
+    "BodyMovers": 4
+   },
+   "flagged": [],
+   "list": [
+    {
+     "path": "Workspace.Regeneration.Regenerate Lost Temple",
+     "class": "Script",
+     "bytes": 466,
+     "sha256": "8b7e277ec7cb5c286291f429addaba9b92a87dd8740eb8d3f200f32c9bfb6b94",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Castle",
+     "class": "Script",
+     "bytes": 474,
+     "sha256": "e33fecfe2f61525bd507c695eb4cf026ff4f78df703feeaf80f8b8fd8a4b0e6c",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Ramp and Trees",
+     "class": "Script",
+     "bytes": 510,
+     "sha256": "7ae757f0bc15e603265862c6cf48c929a14a19b2be80a39bdc1928dd5fc4a544",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "FindFirstChild",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Tower",
+     "class": "Script",
+     "bytes": 455,
+     "sha256": "c3d32f3e54f7a297dba7750707313b49e843f7f718267e168427bc98f07d5e51",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Hideout",
+     "class": "Script",
+     "bytes": 461,
+     "sha256": "61b47875b5a88ef063a638a879d6f5143db2f09463168a80ca7256dd3fa6d780",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.LeaderboardV3",
+     "class": "Script",
+     "bytes": 3160,
+     "sha256": "11124b5a970437a17012e613e6ef9f717ff6949bfdbf7f3b97dfb4c576e6c72e",
+     "disabled": false,
+     "apis": [
+      "Instance.new",
+      "game.Players/Players",
+      "wait()",
+      "connect/Connect",
+      "Changed/ChildAdded",
+      "Humanoid",
+      "Died/Health",
+      "CharacterAdded",
+      "leaderstats/values",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 257,
+     "sha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 262,
+     "sha256": "cc7bdb2b11809864b6162102db89d753f101b8b2c2ea3bc06d035381a86ffa44",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 255,
+     "sha256": "9c59f8177ccb29e490a2a20b750bca3d88cc89dbf9263c4213c309dd96975c4a",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 257,
+     "sha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 257,
+     "sha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 257,
+     "sha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 269,
+     "sha256": "04f3bbb8504dd50bd9026e8e7dca36f57f572a10f1e5247095372a1044ee875f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 275,
+     "sha256": "f84807244047b6d4bc7c7efd01eb0d04f3a8f1aaa96ba2ecbaca3af93eae6ceb",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 269,
+     "sha256": "04f3bbb8504dd50bd9026e8e7dca36f57f572a10f1e5247095372a1044ee875f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 262,
+     "sha256": "cc7bdb2b11809864b6162102db89d753f101b8b2c2ea3bc06d035381a86ffa44",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 268,
+     "sha256": "32c27817f0c6b33deef0072fd6b3362e79d54389643a9dc0a6b517ca1c548dee",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 257,
+     "sha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 257,
+     "sha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Red.Script",
+     "class": "Script",
+     "bytes": 2694,
+     "sha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Blue.Script",
+     "class": "Script",
+     "bytes": 2694,
+     "sha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Green.Script",
+     "class": "Script",
+     "bytes": 2694,
+     "sha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Black.Script",
+     "class": "Script",
+     "bytes": 2694,
+     "sha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.AndYetItMoves",
+     "class": "Script",
+     "bytes": 177,
+     "sha256": "f9346cf0b26e061fbac6dbc8d50dbfa9026e7be59fb630648eea512f4f1cf752",
+     "disabled": false,
+     "apis": [
+      "wait()"
+     ]
+    },
+    {
+     "path": "Workspace.BattleArmorStand.BattleArmor.BattleArmorScript",
+     "class": "Script",
+     "bytes": 1199,
+     "sha256": "269e723da8412f7efb9ba06c6413bf2ea5be605b8ec68e436e8b4a5452ff0c65",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Players/Players",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "CharacterAdded",
+      "FindFirstChild",
+      "GUI"
+     ]
+    }
+   ]
+  },
+  "crossroads-uncopylocked-commit": {
+   "placeSha256": "acec28f504e6dc130a2409b95a01d72882d3503f0abc91d81368a0ac839e0edf",
+   "scripts": 48,
+   "byClass": {
+    "Script": 40,
+    "LocalScript": 8
+   },
+   "totalBytes": 28369,
+   "apiScriptCounts": {
+    "script.Parent": 29,
+    "Instance.new": 13,
+    "wait()": 29,
+    "coroutine": 6,
+    "Touched": 21,
+    "connect/Connect": 23,
+    "Humanoid": 23,
+    "Died/Health": 7,
+    "Vector3/CFrame": 20,
+    "FindFirstChild": 25,
+    "Teams": 4,
+    "BodyMovers": 6,
+    "game.Players/Players": 3,
+    "CharacterAdded": 2,
+    "GUI": 5,
+    "Remove/Destroy/remove": 7,
+    "Clone/clone": 9,
+    "math.*": 7,
+    "Teleport": 5,
+    "game:GetService": 2,
+    "game.Workspace/workspace": 6,
+    "Changed/ChildAdded": 1,
+    "leaderstats/values": 2,
+    "BrickColor": 1,
+    "Tool/Hopperbin": 1
+   },
+   "flagged": [
+    "Workspace.Teleporter.TouchScript",
+    "Workspace.Teleporter.TouchScript.TeleportScript",
+    "Workspace.Teleporter.sign.SignScript",
+    "Workspace.Teleporter.TouchScript",
+    "Workspace.Teleporter.TouchScript.TeleportScript"
+   ],
+   "list": [
+    {
+     "path": "Workspace.TeamBeacon Red.Script",
+     "class": "Script",
+     "bytes": 2575,
+     "sha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Blue.Script",
+     "class": "Script",
+     "bytes": 2575,
+     "sha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Green.Script",
+     "class": "Script",
+     "bytes": 2575,
+     "sha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.TeamBeacon Black.Script",
+     "class": "Script",
+     "bytes": 2575,
+     "sha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Vector3/CFrame",
+      "FindFirstChild",
+      "Teams",
+      "BodyMovers"
+     ]
+    },
+    {
+     "path": "Workspace.AndYetItMoves",
+     "class": "Script",
+     "bytes": 173,
+     "sha256": "c3c9ed6e09fa83f0bcbcf33d696c20d4768054c5247861b913142571ec4a4565",
+     "disabled": false,
+     "apis": [
+      "wait()"
+     ]
+    },
+    {
+     "path": "Workspace.BattleArmorStand.BattleArmor.BattleArmorScript",
+     "class": "Script",
+     "bytes": 1145,
+     "sha256": "67f774ca039d99a8e0f02f16091b486d0a8b31ba77547712e3c7d9a2ad4591a0",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Players/Players",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "CharacterAdded",
+      "FindFirstChild",
+      "GUI"
+     ]
+    },
+    {
+     "path": "Workspace.Teleporter.sign.SignScript",
+     "class": "Script",
+     "bytes": 318,
+     "sha256": "86b5a70c84c6f5b63e0de78ba37a8cced85bd89d17f95c61b282f33cfe496ef5",
+     "disabled": false,
+     "apis": [
+      "script.Parent"
+     ]
+    },
+    {
+     "path": "Workspace.Teleporter.TouchScript",
+     "class": "Script",
+     "bytes": 2145,
+     "sha256": "23068ff04961832c98778b20edf6b87de26fbcd713d08664f95545659ec52600",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "FindFirstChild",
+      "BodyMovers",
+      "math.*",
+      "Teleport"
+     ]
+    },
+    {
+     "path": "Workspace.Teleporter.TouchScript.TeleportScript",
+     "class": "LocalScript",
+     "bytes": 381,
+     "sha256": "0b039015aea53480c27c039def2ba69ed75935d01861ca6f44016ce23e32d431",
+     "disabled": true,
+     "apis": [
+      "game:GetService",
+      "FindFirstChild",
+      "Teleport"
+     ]
+    },
+    {
+     "path": "Workspace.Teleporter.sign.SignScript",
+     "class": "Script",
+     "bytes": 345,
+     "sha256": "f44f3c22e12c7b05daa62b1f92672ad2cd27f66b5d384f7ac5a3199d63e7198e",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Teleport"
+     ]
+    },
+    {
+     "path": "Workspace.Teleporter.TouchScript",
+     "class": "Script",
+     "bytes": 2005,
+     "sha256": "04549e096d4cf709e39a13c0f149ea01d93f60b52e00fe99c69c2f6ec4d22c92",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "coroutine",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "FindFirstChild",
+      "BodyMovers",
+      "math.*",
+      "Teleport"
+     ]
+    },
+    {
+     "path": "Workspace.Teleporter.TouchScript.TeleportScript",
+     "class": "LocalScript",
+     "bytes": 376,
+     "sha256": "bb289bb16f77cd4e1a559c671d44beeecf099899e6b703e25d87691f09c557b7",
+     "disabled": true,
+     "apis": [
+      "game:GetService",
+      "FindFirstChild",
+      "Teleport"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Lost Temple",
+     "class": "Script",
+     "bytes": 442,
+     "sha256": "72c6d29b175897b0accd4c48d4c13360aff4123489e8297b5f9cdf9b4e4dd01c",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Castle",
+     "class": "Script",
+     "bytes": 452,
+     "sha256": "9ca38373beae06540c9f7b645f412da195fd9f52ebf2ffadeb0bf8fe9f7e95c3",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Ramp and Trees",
+     "class": "Script",
+     "bytes": 486,
+     "sha256": "39cad538a3736787f32c32b2ab1da142cacf6acd0829a0dc446b5dcbc36cd87f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "FindFirstChild",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Tower",
+     "class": "Script",
+     "bytes": 431,
+     "sha256": "3731cf71d5c3770773e1b57d7f3d5b802a5c1fa0fcd061eb237416627d81390e",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.Regeneration.Regenerate Hideout",
+     "class": "Script",
+     "bytes": 439,
+     "sha256": "513aae6afea854d6397102db0767870e7ddce102d66a8892c1c37c5397d32d02",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "wait()",
+      "Remove/Destroy/remove",
+      "Clone/clone",
+      "GUI",
+      "math.*"
+     ]
+    },
+    {
+     "path": "Workspace.LeaderboardV3",
+     "class": "Script",
+     "bytes": 3034,
+     "sha256": "2a7c8ab4c47a79d008e77a8f4c37228d7b24620e85f23f09d2e560c1c47ad109",
+     "disabled": false,
+     "apis": [
+      "Instance.new",
+      "game.Players/Players",
+      "wait()",
+      "connect/Connect",
+      "Changed/ChildAdded",
+      "Humanoid",
+      "Died/Health",
+      "CharacterAdded",
+      "leaderstats/values",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 244,
+     "sha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 248,
+     "sha256": "204c334ed982303a5f904a05d23dd282554c02c8a3a8140169b5b6b602e16797",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 242,
+     "sha256": "9ab8f6571f386767a85e87c29ed14d68d2fcad126cb678377275df6a3b13a95f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 244,
+     "sha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 244,
+     "sha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 244,
+     "sha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 255,
+     "sha256": "bd68f64d333ed5722ee18fa44ceddb1fc518936ec787b0c2395c86502acd7c26",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 259,
+     "sha256": "f8262787b96b3dde6901ce9f1e8fd8446894b222913c6f7dda15c5cd23d3c7c6",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 255,
+     "sha256": "bd68f64d333ed5722ee18fa44ceddb1fc518936ec787b0c2395c86502acd7c26",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 248,
+     "sha256": "204c334ed982303a5f904a05d23dd282554c02c8a3a8140169b5b6b602e16797",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 254,
+     "sha256": "35282ecb2074d4dd9feb62f25e34ab69b9352633ffd2222cdee0758ff7fe6435",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 244,
+     "sha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "class": "Script",
+     "bytes": 244,
+     "sha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Vector3/CFrame",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "StarterPack.LinkedSword.SwordScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSword.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSlingshot.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSlingshot.Slingshot",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSlingshot.PelletScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedRocketLauncher.Server Launcher",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedRocketLauncher.RocketScript",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedRocketLauncher.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTrowel.WallMaker",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTrowel.BrickCleanup",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTrowel.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTimebomb.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTimebomb.PlantBomb",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedTimebomb.Bomb",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSuperball.Local Gui",
+     "class": "LocalScript",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    },
+    {
+     "path": "StarterPack.LinkedSuperball.CannonBall",
+     "class": "Script",
+     "bytes": 1255,
+     "sha256": "0e651ae93269a36acb5e7efdb9880624cab39d959f0fe7f445a52f60cabf3ad4",
+     "disabled": true,
+     "apis": [
+      "script.Parent",
+      "wait()",
+      "Touched",
+      "connect/Connect",
+      "Humanoid",
+      "Died/Health",
+      "Clone/clone",
+      "FindFirstChild"
+     ]
+    },
+    {
+     "path": "StarterPack.LinkedSuperball.CannonScript",
+     "class": "Script",
+     "bytes": 1417,
+     "sha256": "5e68b1159158944af01932c213fcb2cdaa15770d657a4a33a384850223952562",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "game.Workspace/workspace",
+      "game.Players/Players",
+      "wait()",
+      "connect/Connect",
+      "Humanoid",
+      "leaderstats/values",
+      "Vector3/CFrame",
+      "BrickColor",
+      "Clone/clone",
+      "Tool/Hopperbin"
+     ]
+    }
+   ]
+  },
+  "happyhomeinrobloxia": {
+   "placeSha256": "91ffda80a0a2550bfbee06f8ebd08cd1c95bf38694eb94d68cc022f0877fc306",
+   "scripts": 0,
+   "byClass": {},
+   "totalBytes": 0,
+   "apiScriptCounts": {},
+   "flagged": [],
+   "list": []
+  },
+  "robloxhq": {
+   "placeSha256": "aaec98c3ff916191afe00f9021d641a20bf0278290c0180c9061e2fa25a914db",
+   "scripts": 2,
+   "byClass": {
+    "Script": 2
+   },
+   "totalBytes": 1058,
+   "apiScriptCounts": {
+    "script.Parent": 1,
+    "Instance.new": 1,
+    "wait()": 1,
+    "connect/Connect": 1,
+    "Changed/ChildAdded": 1,
+    "Vector3/CFrame": 1,
+    "BrickColor": 1,
+    "Remove/Destroy/remove": 1,
+    "table.*": 1
+   },
+   "flagged": [],
+   "list": [
+    {
+     "path": "Workspace.WallBuilder.Script",
+     "class": "Script",
+     "bytes": 1058,
+     "sha256": "9ab30f21fa972af0ada9676027d61ec55514eb8c5dbb8741c5ca15500c29e603",
+     "disabled": false,
+     "apis": [
+      "script.Parent",
+      "Instance.new",
+      "wait()",
+      "connect/Connect",
+      "Changed/ChildAdded",
+      "Vector3/CFrame",
+      "BrickColor",
+      "Remove/Destroy/remove",
+      "table.*"
+     ]
+    },
+    {
+     "path": "Workspace.LinkedLeaderboard",
+     "class": "Script",
+     "bytes": 0,
+     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "apis": []
+    }
+   ]
+  }
+ },
+ "aggregateApiScriptCounts": {
+  "wait()": 55,
+  "script.Parent": 53,
+  "FindFirstChild": 45,
+  "connect/Connect": 43,
+  "Humanoid": 42,
+  "Touched": 39,
+  "Vector3/CFrame": 38,
+  "Instance.new": 24,
+  "Clone/clone": 14,
+  "Remove/Destroy/remove": 13,
+  "Died/Health": 13,
+  "math.*": 12,
+  "game.Workspace/workspace": 11,
+  "GUI": 10,
+  "coroutine": 10,
+  "BodyMovers": 10,
+  "Teams": 8,
+  "game.Players/Players": 5,
+  "Teleport": 5,
+  "CharacterAdded": 4,
+  "Changed/ChildAdded": 3,
+  "leaderstats/values": 3,
+  "game:GetService": 2,
+  "BrickColor": 2,
+  "Tool/Hopperbin": 1,
+  "table.*": 1
+ }
+}
