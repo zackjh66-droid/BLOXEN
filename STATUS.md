@@ -8,13 +8,13 @@ Suite: `npm test` (all green at last run) · e2e: `npm run e2e`.
 |---|---|---|
 | Research docs (`research/*.md`) | **DONE (first pass)** | Source map, provenance, client, protocol, website, catalog, games, assets. Gaps listed inside each. |
 | Client acquisition + verification | **DONE** / execution **BLOCKED** | Hash, PE, Authenticode, manifest done; never executed (needs Windows VM + approval). |
-| Place importer (.rbxl/.rbxlx) | **DONE, UNIT-TESTED** | quarantine→SHA-256→parse→tree→services/props/refs→inert scripts→asset ids→compat report. 125/125 archive files parse. `rbxlx.md` spec unread. |
+| Place importer (.rbxl/.rbxlx) | **DONE, UNIT-TESTED** | quarantine→SHA-256→parse→tree→services/props/refs→inert scripts→asset ids→compat report. 125/125 archive files parse. `rbxlx.md` spec read and conformance-tested (`tests/rbxlx-spec.test.js`). |
 | Game candidates | **PARTIAL** | 9 curated; 5 fetched and SHA-256-verified into the git-ignored store (Tabula Rasa, both Crossroads files, Happy Home, Roblox HQ); each joins through the full e2e flow (SIMULATOR-TESTED, geometry only). All provenance INFERRED; no 2015-era place found. |
 | Script intake/classification | **PARTIAL** | Inventory + static classification (`analyze.js`); replication support is taken from `world.js` (single source of truth). The 4 post-2015-feature files are named in research/GAMES.md; their specific features are not itemised. |
 | Script runtime | **PARTIAL, UNIT + SIMULATOR-TESTED (experimental, off by default)** | Sandboxed Lua 5.1 interpreter + ScriptHost (`src/script/`, `research/SCRIPTING.md`). Crossroads regeneration, day/night and leaderboard scripts run; Touched/BodyMover scripts do not (no server physics). Enable with `BLOXEN_SCRIPTS=1`. No place is claimed playable. |
 | Website pages (16 types) | **PARTIAL** | All render, INTEGRATION-TESTED. Logged-out Home/Login/Register rebuilt to match a real ~2015 screenshot (structure, colours sampled); the other pages are still from 2012–14 CSS values + period memory (no 2015 reference found) and NOT pixel-verified. Photos, logo, fonts, thumbnails MISSING. |
 | Accounts/sessions/security | **DONE, TESTED** | scrypt, hashed sessions, CSRF, XSS/SQLi/traversal/redirect tests, throttling. Email, settings beyond password/blurb, favourites UI minimal. |
-| Catalog | **PARTIAL** | 44 real archived items from two captures; no shirts/pants/heads; 7+ chunks unread; thumbnails/content MISSING. |
+| Catalog | **PARTIAL** | 83 distinct real archived items from two fully-read captures (first pages only); no shirts/pants/heads; thumbnails/content MISSING; resale and Builders Club not implemented. |
 | Inventory/ownership/avatar/equip | **DONE, TESTED** | Wearable hats/faces/T-shirts equip; body colours reach spawned character (SIMULATOR-TESTED). Shirts/pants/packages not exercised for lack of items. Thumbnails: **NOT STARTED** (no renderer; labelled colour preview only). |
 | Asset service | **PARTIAL** | Tracking table + 404/MISSING logging done; no real asset files stored. |
 | Compat backend | **PARTIAL, SIMULATOR-TESTED** | PlaceLauncher/Join/Negotiate/CharacterFetch/BodyColors/asset/settings stubs/analytics sinks; loopback-only, host-allow-list, no proxying. Formats INFERRED; never hit by the real client. Join script unsigned (acceptance UNKNOWN). |
@@ -26,7 +26,7 @@ Suite: `npm test` (all green at last run) · e2e: `npm run e2e`.
 
 ## Open items, in priority order
 1. Run the Windows gate (owner). Expect gates 4 (unsigned join script) and 9 (server ID_DATA) to be the hard ones.
-2. Read remaining catalog chunks; find shirts/pants/heads/free items; verify hand-transcribed fields.
+2. Find shirts/pants/heads/free items (other catalog captures, e.g. 20150928141841 or category-specific queries); verify hand-transcribed fields.
 3. Find the July-2015 DeployHistory entry; cross-check client files against a second archive.
 4. Independent cross-checks for place bytes; fetch Happy Home/ROBLOX HQ.
 5. Server-side overlap detection so `Touched` can fire (see `research/SCRIPTING.md` §4).

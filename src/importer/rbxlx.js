@@ -47,7 +47,7 @@ function convert(tag, node) {
     case 'int': case 'token': case 'BrickColor': return { type: tag === 'int' ? 'int' : tag, value: Math.trunc(num(t)) };
     case 'int64': return { type: 'int64', value: t.trim() };
     case 'float': case 'double': return { type: tag, value: num(t) };
-    case 'Content': return { type: 'Content', value: (k.url !== undefined ? k.url : (k.null !== undefined ? '' : t)).trim() };
+    case 'Content': return { type: 'Content', value: (k.url !== undefined ? k.url : ((k.null !== undefined || k.binary !== undefined || k.hash !== undefined) ? '' : t)).trim() }; // spec: binary/hash are legacy and mean empty
     case 'Vector3': return { type: 'Vector3', value: { x: num(k.X), y: num(k.Y), z: num(k.Z) } };
     case 'Vector2': return { type: 'Vector2', value: { x: num(k.X), y: num(k.Y) } };
     case 'CoordinateFrame': case 'CFrame': return { type: 'CFrame', value: { pos: { x: num(k.X), y: num(k.Y), z: num(k.Z) },

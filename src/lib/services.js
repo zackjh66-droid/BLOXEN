@@ -24,6 +24,8 @@ const catalogItem = (db, id) => db.prepare('SELECT * FROM catalog_items WHERE as
 function acquire(db, userId, assetId) {
   const item = catalogItem(db, assetId); if (!item) return { ok: false, error: 'No such catalog item' };
   if (db.prepare('SELECT 1 FROM inventory WHERE user_id=? AND asset_id=?').get(userId, item.asset_id)) return { ok: false, error: 'You already own this item' };
+  if (item.min_membership > 0) return { ok: false, error: 'Builders Club membership is required for this item in the archive; BLOXEN has no membership system' };
+  if (item.resale_only) return { ok: false, error: 'Limited item: in the archive it was only available from private sellers (resale is not implemented)' };
   if (item.limited_unique) return { ok: false, error: 'Sold out: this Limited U item was only available from private sellers in the archive (resale is not implemented)' };
   if (item.price_robux == null && item.price_tickets == null) return { ok: false, error: 'This item is off sale (no price in the archived catalog entry)' };
   db.exec('BEGIN IMMEDIATE');

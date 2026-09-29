@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS friend_requests(from_id INTEGER NOT NULL REFERENCES u
 CREATE TABLE IF NOT EXISTS friends(a INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, b INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, since INTEGER NOT NULL, PRIMARY KEY(a,b), CHECK(a<b));
 CREATE TABLE IF NOT EXISTS assets(id INTEGER PRIMARY KEY, type_id INTEGER, type TEXT, name TEXT, source TEXT, source_date TEXT, sha256 TEXT, local_path TEXT, provenance TEXT NOT NULL DEFAULT 'UNKNOWN', availability TEXT NOT NULL DEFAULT 'MISSING', note TEXT);
 CREATE TABLE IF NOT EXISTS asset_uses(asset_id INTEGER NOT NULL, place_id TEXT NOT NULL, PRIMARY KEY(asset_id,place_id));
-CREATE TABLE IF NOT EXISTS catalog_items(asset_id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT, creator TEXT, creator_id INTEGER, type_id INTEGER NOT NULL, type TEXT NOT NULL, price_robux INTEGER, price_tickets INTEGER, created_ms INTEGER, updated_ms INTEGER, sales TEXT, favorited TEXT, limited_unique INTEGER NOT NULL DEFAULT 0, item_url TEXT, source_capture TEXT, provenance TEXT, thumbnail TEXT NOT NULL DEFAULT 'MISSING');
+CREATE TABLE IF NOT EXISTS catalog_items(asset_id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT, creator TEXT, creator_id INTEGER, type_id INTEGER NOT NULL, type TEXT NOT NULL, price_robux INTEGER, price_tickets INTEGER, created_ms INTEGER, updated_ms INTEGER, sales TEXT, favorited TEXT, limited_unique INTEGER NOT NULL DEFAULT 0, item_url TEXT, source_capture TEXT, provenance TEXT, thumbnail TEXT NOT NULL DEFAULT 'MISSING', min_membership INTEGER NOT NULL DEFAULT 0, resale_only INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS inventory(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, asset_id INTEGER NOT NULL, acquired_at INTEGER NOT NULL, PRIMARY KEY(user_id,asset_id));
 CREATE TABLE IF NOT EXISTS avatars(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, head_color INTEGER NOT NULL DEFAULT 194, torso_color INTEGER NOT NULL DEFAULT 194, left_arm_color INTEGER NOT NULL DEFAULT 194, right_arm_color INTEGER NOT NULL DEFAULT 194, left_leg_color INTEGER NOT NULL DEFAULT 194, right_leg_color INTEGER NOT NULL DEFAULT 194, updated_at INTEGER);
 CREATE TABLE IF NOT EXISTS avatar_items(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, asset_id INTEGER NOT NULL, PRIMARY KEY(user_id,asset_id));
@@ -26,20 +26,22 @@ CREATE TABLE IF NOT EXISTS compat_log(at INTEGER NOT NULL, path TEXT, note TEXT)
 `;
 function open(file = cfg.dbPath) {
   if (file !== ':memory:') fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new DatabaseSync(file); db.exec(SCHEMA); return db;
+  const db = new DatabaseSync(file); db.exec(SCHEMA);
+  for (const col of ['min_membership INTEGER NOT NULL DEFAULT 0', 'resale_only INTEGER NOT NULL DEFAULT 0']) { try { db.exec('ALTER TABLE catalog_items ADD COLUMN ' + col); } catch { /* already present */ } } // migrate databases created before these columns existed
+  return db;
 }
 const TYPE_NAMES = { 2: 'T-Shirt', 8: 'Hat', 11: 'Shirt', 12: 'Pants', 17: 'Head', 18: 'Face', 19: 'Gear', 32: 'Package' };
 
 function seed(db) {
   // ---- catalog (real archived items only)
-  const ins = db.prepare(`INSERT OR REPLACE INTO catalog_items(asset_id,name,description,creator,creator_id,type_id,type,price_robux,price_tickets,created_ms,updated_ms,sales,favorited,limited_unique,item_url,source_capture,provenance) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const ins = db.prepare(`INSERT OR REPLACE INTO catalog_items(asset_id,name,description,creator,creator_id,type_id,type,price_robux,price_tickets,created_ms,updated_ms,sales,favorited,limited_unique,item_url,source_capture,provenance,min_membership,resale_only) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   const insA = db.prepare(`INSERT OR IGNORE INTO assets(id,type_id,type,name,source,source_date,provenance,availability,note) VALUES(?,?,?,?,?,?,?,'MISSING',?)`);
   let items = 0;
   if (fs.existsSync(cfg.catalogDir)) for (const f of fs.readdirSync(cfg.catalogDir).filter(x => x.endsWith('.json')).sort()) {
     const j = JSON.parse(fs.readFileSync(path.join(cfg.catalogDir, f), 'utf8'));
     for (const i of j.items) {
       const name = i.name.replace(/&amp;/g, '&');
-      ins.run(i.assetId, name, i.description, i.creator, i.creatorId, i.assetTypeId, i.assetType, i.priceRobux, i.priceTickets, i.createdMs, i.updatedMs, i.sales, i.favorited, i.isLimitedUnique ? 1 : 0, i.itemUrl, j.source.capture, j.source.grade); items++;
+      ins.run(i.assetId, name, i.description, i.creator, i.creatorId, i.assetTypeId, i.assetType, i.priceRobux, i.priceTickets, i.createdMs, i.updatedMs, i.sales, i.favorited, i.isLimitedUnique ? 1 : 0, i.itemUrl, j.source.capture, j.source.grade, i.minimumMembershipLevel || 0, (i.priceView === 1 || i.isLimited) ? 1 : 0); items++;
       insA.run(i.assetId, i.assetTypeId, i.assetType, name, j.source.archiveUrl, j.source.capture, j.source.grade, 'Asset content (mesh/texture/model) was not retrieved; only catalog metadata is archived.');
     }
   }
