@@ -1,0 +1,38 @@
+/* BLOXEN site stylesheet.
+   Provenance: RECONSTRUCTED-FROM-EVIDENCE. Colour/size values (header #2D528F / hover #27487E / 40px fixed header, 16px header links, 970px page,
+   button colours #007001 / #0852b7 / #565656, link #095fb5, text #343434, h1 32px / h2 30px) were read from the 2014-era Roblox Navigation2014.css /
+   StyleGuide.css as mirrored in RobloxLabs/web (MIT). No Roblox image or sprite is bundled. The original July-2015 CSS was NOT recoverable (Wayback
+   returns only rendered text through our tooling), so spacing and page composition are INFERRED. See research/WEBSITE.md. */
+html { height: 100%; background: #fff; }
+body { margin: 0; font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif; color: #343434; font-size: 14px; line-height: 1.428; background: #fff; }
+a, a:visited { color: #095fb5; text-decoration: none; } a:hover { text-decoration: underline; }
+h1 { font-size: 32px; font-weight: bold; margin: 12px 0; letter-spacing: -1px; } h2 { font-size: 30px; letter-spacing: -1px; margin: 16px 0 10px; } h3 { font-size: 20px; margin: 12px 0 6px; } h2.light { font-size: 16px; font-weight: normal; color: #000; }
+.header-2014 { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #2D528F; color: #fff; z-index: 100; min-width: 960px; }
+.header-2014 a, .header-2014 a:visited { color: #fff; } .header-2014 .inner { width: 970px; margin: 0 auto; height: 40px; display: flex; align-items: center; }
+.header-2014 .logo { font-weight: bold; font-size: 22px; letter-spacing: 1px; margin-right: 14px; padding: 0 6px; }
+.header-2014 .links a { font-size: 16px; margin-right: 6px; padding: 3px 10px 3px; border-radius: 4px; display: inline-block; } .header-2014 .links a:hover { background: #27487E; text-decoration: none; }
+.header-2014 form.search { margin: 0 10px 0 auto; } .header-2014 .search input { width: 220px; height: 24px; border: 0; border-radius: 5px; padding: 0 8px; font-size: 14px; box-sizing: border-box; }
+.header-2014 .acct { white-space: nowrap; font-size: 14px; } .header-2014 .acct span, .header-2014 .acct a, .header-2014 .acct button { margin-left: 10px; }
+.linkbtn { background: none; border: 0; color: #fff; font: inherit; cursor: pointer; padding: 0; } .linkbtn:hover { text-decoration: underline; }
+.notice { margin: 40px 0 0; background: #fffbe0; border-bottom: 1px solid #e0d98a; color: #555; font-size: 12px; text-align: center; padding: 3px 10px; }
+#Container { width: 970px; margin: 0 auto; background: #fff; padding: 10px 0 30px; min-height: 420px; }
+.flash { padding: 8px 12px; margin: 10px 0; border: 1px solid; } .flash.ok { background: #e7f4e4; border-color: #8cc084; } .flash.err { background: #fbe4e4; border-color: #d99; }
+.btn-large, .btn-medium, .btn-small { display: inline-block; text-align: center; font-weight: bold; border: 1px solid; cursor: pointer; text-decoration: none !important; color: #fff !important; font-family: inherit; }
+.btn-large { padding: 9px 20px 0; height: 39px; min-width: 70px; font-size: 23px; line-height: 27px; box-sizing: border-box; } .btn-medium { padding: 1px 13px 3px; height: 28px; min-width: 62px; font-size: 20px; line-height: 24px; box-sizing: border-box; } .btn-small { padding: 1px 7px; height: 20px; min-width: 40px; font-size: 14px; line-height: 18px; box-sizing: border-box; }
+.btn-primary { border-color: #007001; background: linear-gradient(#2a9d2a, #007001); text-shadow: 0 -1px #013401; }
+.btn-neutral { border-color: #0852b7; background: linear-gradient(#3d7fd8, #0852b7); text-shadow: 0 -1px #013401; }
+.btn-negative { border-color: #565656; background: linear-gradient(#8a8a8a, #565656); text-shadow: 0 -1px #013401; }
+.btn-disabled { opacity: .5; cursor: default; }
+.tip { color: #666; font-size: 11px; } .badge { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 8px; background: #989898; color: #fff; margin-left: 4px; } .badge.g { background: #007001; } .badge.b { background: #0852b7; } .badge.r { background: #a33; } .badge.y { background: #b58a00; }
+.box { border: 1px solid #ccc; background: #fff; padding: 10px; margin: 10px 0; } .box h3 { margin-top: 0; }
+table.t { border-collapse: collapse; width: 100%; } table.t th, table.t td { border-bottom: 1px solid #ddd; padding: 4px 8px; text-align: left; vertical-align: top; } table.t th { background: #eee; }
+.two { display: flex; gap: 20px; } .two > .main { flex: 1; } .two > .side { width: 250px; } .two > .side2 { width: 300px; }
+.tabs { border-bottom: 1px solid #ccc; margin: 8px 0; } .tabs a { display: inline-block; padding: 4px 12px; border: 1px solid transparent; } .tabs a.sel { border-color: #ccc #ccc #fff; margin-bottom: -1px; background: #fff; font-weight: bold; color: #343434; } .tabs .off { display: inline-block; padding: 4px 12px; color: #aaa; }
+.grid { display: flex; flex-wrap: wrap; gap: 14px; } .tile { width: 150px; } .tile .thumb { width: 150px; height: 150px; border: 1px solid #ccc; background: #f2f2f2; display: flex; align-items: center; justify-content: center; color: #999; font-size: 11px; text-align: center; box-sizing: border-box; } .tile .nm { font-weight: bold; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .tile.game { width: 190px; } .tile.game .thumb { width: 190px; height: 110px; }
+.price { color: #02b757; font-weight: bold; } .price.t { color: #b58a00; }
+form.stack label { display: block; margin: 8px 0 2px; font-weight: bold; } form.stack input[type=text], form.stack input[type=password], form.stack textarea, form.stack select { width: 280px; padding: 4px; font: inherit; box-sizing: border-box; border: 1px solid #aaa; } form.stack textarea { width: 440px; height: 120px; }
+.hero { display: flex; gap: 30px; margin-top: 10px; } .hero .signup { width: 330px; background: #f2f2f2; border: 1px solid #ccc; padding: 10px 16px 16px; }
+.figure { width: 120px; margin: 0 auto; text-align: center; } .figure div { margin: 0 auto; border: 1px solid rgba(0,0,0,.35); box-sizing: border-box; } .figure .row { display: flex; justify-content: center; border: 0; } .figure .row div { margin: 0; }
+footer.site { width: 970px; margin: 0 auto; padding: 14px 0 40px; font-size: 12px; color: #555; text-align: center; border-top: 1px solid #aaa; } footer.site a { color: #2D528F; }
+.prov td:first-child { width: 160px; font-weight: bold; } .mono { font-family: Consolas, monospace; font-size: 12px; word-break: break-all; } pre.ev { white-space: pre-wrap; }
+.msg.unread td { font-weight: bold; }

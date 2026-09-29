@@ -4,12 +4,15 @@
   "private": true,
   "description": "BLOXEN - unofficial preservation-focused reconstruction of the July 2015 Roblox experience. Not affiliated with Roblox Corporation.",
   "license": "UNLICENSED",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
-    "test": "node --test --test-concurrency=1 tests/*.test.js",
-    "start": "node src/web/server.js",
-    "gameserver": "node src/gameserver/server.js",
+    "test": "node --test --test-concurrency=1 --test-timeout=90000 tests/*.test.js",
+    "start": "node --disable-warning=ExperimentalWarning src/web/main.js",
+    "e2e": "node --disable-warning=ExperimentalWarning --test tests/e2e-flow.test.js",
     "intake": "node src/importer/intake.js",
-    "e2e": "node tests/e2e/noclient-flow.js"
+    "fetch-places": "node tools/fetch_places.js",
+    "launcher": "node src/launcher/launcher.js"
   }
 }
