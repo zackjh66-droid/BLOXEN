@@ -207,7 +207,7 @@ class Interp {
   *callLua(fn, args) {
     const node = fn.node; const scope = new Scope(fn.scope); const chunk = node.chunk || fn.chunk;
     for (let i = 0; i < node.params.length; i++) scope.vars.set(node.params[i], { v: args[i] });
-    const va = node.vararg ? args.slice(node.params.length) : null; const ctx = { va, chunk: fn.chunk, fname: node.name };
+    const va = node.vararg ? args.slice(node.params.length) : null; const ctx = { va, chunk: fn.chunk, fname: node.name, env: fn.env };
     const r = yield* this.block(node.body, scope, ctx); if (r && r.ret) return r.ret; return [];
   }
   *block(stmts, scope, ctx) { for (const s of stmts) { const r = yield* this.stmt(s, scope, ctx); if (r) return r; } return undefined; }
@@ -215,12 +215,12 @@ class Interp {
     this.tick(); this.curLine = s.line; this.curChunk = ctx.chunk;
     switch (s.k) {
       case 'local': { const vals = yield* this.evalList(s.vals, scope, ctx); for (let i = 0; i < s.names.length; i++) scope.vars.set(s.names[i], { v: vals[i] }); return; }
-      case 'localfunc': { const cell = { v: undefined }; scope.vars.set(s.name, cell); cell.v = new LuaFunction(s.f, scope, this); cell.v.chunk = ctx.chunk; return; }
+      case 'localfunc': { const cell = { v: undefined }; scope.vars.set(s.name, cell); cell.v = new LuaFunction(s.f, scope, this); cell.v.chunk = ctx.chunk; cell.v.env = ctx.env; return; }
       case 'assign': {
         // evaluate all RHS first (Lua evaluates expressions before assignment)
         const vals = yield* this.evalList(s.vals, scope, ctx);
         const refs = []; for (const t of s.targets) { if (t.k === 'index') refs.push([yield* this.eval(t.obj, scope, ctx), yield* this.eval(t.key, scope, ctx), t]); else refs.push([null, null, t]); }
-        for (let i = 0; i < s.targets.length; i++) { const [o, k, t] = refs[i]; const v = vals[i]; if (t.k === 'name') this.assignName(t.v, v, scope); else yield* this.setindex(o, k, v, t.line, ctx.chunk, describe(t.obj)); }
+        for (let i = 0; i < s.targets.length; i++) { const [o, k, t] = refs[i]; const v = vals[i]; if (t.k === 'name') this.assignName(t.v, v, scope, ctx.env); else yield* this.setindex(o, k, v, t.line, ctx.chunk, describe(t.obj)); }
         return;
       }
       case 'exprstat': yield* this.eval(s.e, scope, ctx, true); return;
@@ -245,7 +245,7 @@ class Interp {
       default: throw new Error('unknown stmt ' + s.k);
     }
   }
-  assignName(name, v, scope) { const sc = scope.find(name); if (sc) sc.vars.get(name).v = v; else this.globals.set(name, v); }
+  assignName(name, v, scope, env) { const sc = scope.find(name); if (sc) sc.vars.get(name).v = v; else (env || this.globals).set(name, v); }
   *evalList(exprs, scope, ctx) {
     const out = []; for (let i = 0; i < exprs.length; i++) { const e = exprs[i]; if (i === exprs.length - 1 && (e.k === 'call' || e.k === 'mcall' || e.k === 'vararg')) { const r = yield* this.evalMulti(e, scope, ctx); for (const x of r) out.push(x); } else out.push(yield* this.eval(e, scope, ctx)); }
     return out;
@@ -260,11 +260,11 @@ class Interp {
     switch (e.k) {
       case 'nil': return undefined; case 'true': return true; case 'false': return false; case 'number': case 'string': return e.v;
       case 'vararg': return ctx.va ? ctx.va[0] : undefined;
-      case 'name': { const sc = scope.find(e.v); if (sc) return sc.vars.get(e.v).v; return this.globals.get(e.v); }
+      case 'name': { const sc = scope.find(e.v); if (sc) return sc.vars.get(e.v).v; const env = ctx.env; const gv = env.get(e.v); return gv === undefined && env.base ? env.base.get(e.v) : gv; }
       case 'paren': return yield* this.eval(e.e, scope, ctx);
       case 'index': { const o = yield* this.eval(e.obj, scope, ctx); const k = yield* this.eval(e.key, scope, ctx); return yield* this.index(o, k, e.line, ctx.chunk, describe(e.obj)); }
       case 'call': case 'mcall': { const r = yield* this.evalMulti(e, scope, ctx); return r[0]; }
-      case 'function': { const f = new LuaFunction(e, scope, this); f.chunk = ctx.chunk; return f; }
+      case 'function': { const f = new LuaFunction(e, scope, this); f.chunk = ctx.chunk; f.env = ctx.env; return f; }
       case 'table': { const t = new LuaTable(); let n = 1; const total = e.arr.length;
         for (let i = 0; i < e.arr.length; i++) { const x = e.arr[i]; if (i === total - 1 && (x.k === 'call' || x.k === 'mcall' || x.k === 'vararg')) { for (const v of yield* this.evalMulti(x, scope, ctx)) t.set(n++, v); } else t.set(n++, yield* this.eval(x, scope, ctx)); }
         for (const [kx, vx] of e.hash) { const k = yield* this.eval(kx, scope, ctx); if (k === undefined) throw this.err('table index is nil', e.line, ctx.chunk); t.set(k, yield* this.eval(vx, scope, ctx)); }
@@ -303,7 +303,9 @@ class Interp {
     }
   }
   // -- public API
-  load(src, chunk = 'script') { const ast = parse(src, chunk); const fnNode = { k: 'function', params: [], vararg: true, body: ast.body, name: chunk, chunk }; const f = new LuaFunction(fnNode, new Scope(null), this); f.chunk = chunk; return f; }
+  // A per-script environment: writes land in the script's own table, reads fall back to the shared sandbox globals (like Roblox's per-script environments).
+  makeEnv() { const t = new LuaTable(); t.base = this.globals; return t; }
+  load(src, chunk = 'script', env = this.globals) { const ast = parse(src, chunk); const fnNode = { k: 'function', params: [], vararg: true, body: ast.body, name: chunk, chunk }; const f = new LuaFunction(fnNode, new Scope(null), this); f.chunk = chunk; f.env = env; return f; }
 }
 function describe(e) { if (!e) return ''; if (e.k === 'name') return `${e.local ? 'local' : 'global'} '${e.v}'`; if (e.k === 'index' && e.key.k === 'string') return `field '${e.key.v}'`; if (e.k === 'mcall') return `method '${e.name}'`; return ''; }
 
@@ -331,7 +333,7 @@ function installStdlib(I) {
   const chkNum = (v, i, fname) => { const n = toNumber(v); if (n === undefined) throw argErr(i, fname, `number expected, got ${v === undefined ? 'no value' : typeOf(v)}`); return n; };
   const chkStr = (v, i, fname) => { if (typeof v === 'string') return v; if (typeof v === 'number') return fmtNum(v); throw argErr(i, fname, `string expected, got ${v === undefined ? 'no value' : typeOf(v)}`); };
   const chkTab = (v, i, fname) => { if (!(v instanceof LuaTable)) throw argErr(i, fname, `table expected, got ${v === undefined ? 'no value' : typeOf(v)}`); return v; };
-  G.set('_G', G); G.set('_VERSION', 'Lua 5.1 (BLOXEN sandbox)');
+  G.set('_G', T()); G.set('shared', T()); G.set('_VERSION', 'Lua 5.1 (BLOXEN sandbox)');
   def(G, 'print', a => { I.print(a.map(x => I.tostr(x)).join('\t')); return []; });
   def(G, 'type', a => { if (a.length === 0) throw argErr(1, 'type', 'value expected'); return [typeOf(a[0])]; });
   def(G, 'tostring', a => [I.tostr(a[0])]);

@@ -24,6 +24,7 @@ class World {
   constructor({ schema = schemaMod.load(), place = null, placeInfo = {}, respawnSeconds = 5, fallenPartsDestroyHeight = -500, loadAsset = null } = {}) {
     this.schema = schema; this.nextId = 1; this.byId = new Map(); this.roots = []; this.listeners = new Set(); this.players = new Map();
     this.respawnSeconds = respawnSeconds; this.fallenY = fallenPartsDestroyHeight; this.loadAsset = loadAsset; this.placeInfo = placeInfo;
+    this.scriptSources = []; // inert: {className,name,source,disabled,parent(WInst|null),path}. Never executed here; src/script/engine.js decides whether to run them.
     this.stats = { imported: 0, serverOnlyDropped: 0, unknownClassDropped: 0, propsDropped: 0, propsReplicable: 0, scriptsInert: 0, droppedClasses: {}, droppedProps: {} };
     if (place) this._importPlace(place);
     this._ensureServices();
@@ -35,7 +36,7 @@ class World {
     const map = new Map(); const pending = [];
     const visit = (src, parent) => {
       const st = classStatus(src.className, this.schema);
-      if (SCRIPT_CLASSES.has(src.className)) this.stats.scriptsInert++;
+      if (SCRIPT_CLASSES.has(src.className)) { this.stats.scriptsInert++; const so = src.props.get('Source'); this.scriptSources.push({ className: src.className, name: String(src.props.get('Name')?.value ?? src.className), source: typeof so?.value === 'string' ? so.value : '', disabled: src.props.get('Disabled')?.value === true, parent, referent: src.referent }); }
       if (st !== 'replicable') { if (st === 'server-only') this.stats.serverOnlyDropped++; else { this.stats.unknownClassDropped++; } this.stats.droppedClasses[src.className] = (this.stats.droppedClasses[src.className] || 0) + 1; return; }
       const w = this.create(src.className, parent); w.referent = src.referent; map.set(src.referent, w); this.stats.imported++;
       const cls = this.schema.classes.get(src.className);
@@ -53,7 +54,29 @@ class World {
   onChange(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   emit(ev) { for (const l of this.listeners) l(ev); }
   add(inst) { this.emit({ op: 'new', inst }); }
-  remove(inst) { for (const d of [...inst.descendants()].reverse()) this.byId.delete(d.id); this.byId.delete(inst.id); this.emit({ op: 'del', id: inst.id }); inst.setParent(null); const i = this.roots.indexOf(inst); if (i >= 0) this.roots.splice(i, 1); }
+  remove(inst) { const parentBefore = inst.parent; for (const d of [...inst.descendants()].reverse()) this.byId.delete(d.id); this.byId.delete(inst.id); this.emit({ op: 'del', id: inst.id, inst, parent: parentBefore }); inst.setParent(null); const i = this.roots.indexOf(inst); if (i >= 0) this.roots.splice(i, 1); }
+  // ---- tree operations used by the script host. Detached instances are NOT in byId and are never sent to clients.
+  inWorld(inst) { return this.byId.get(inst.id) === inst; }
+  createDetached(cls) { return new WInst(this.nextId++, cls); }
+  // Deep copy (detached, fresh ids). Object-reference props that point inside the copied tree are remapped; others are cleared to nil (0).
+  cloneTree(inst) {
+    const map = new Map(); const copy = src => { const w = new WInst(this.nextId++, src.className); map.set(src.id, w); for (const [k, v] of src.props) w.props.set(k, v && typeof v === 'object' ? structuredClone(v) : v); for (const c of src.children) { const cc = copy(c); cc.parent = w; w.children.push(cc); } return w; };
+    const root = copy(inst); root.parent = null;
+    const cls = n => this.schema.classes.get(n);
+    for (const w of [root, ...root.descendants()]) for (const [k, v] of w.props) if (cls(w.className)?.byName.get(k)?.kind === 'Object') w.props.set(k, map.get(v)?.id ?? 0);
+    return root;
+  }
+  // Re-parent. Attaching into the live tree assigns fresh ids (ids of removed instances are never reused) and announces every replicable instance.
+  attach(inst, parent) {
+    const wasIn = this.inWorld(inst);
+    if (wasIn) this.remove(inst); else if (inst.parent) inst.setParent(null);
+    if (!parent) return;
+    inst.setParent(parent);
+    if (!this.inWorld(parent)) return;
+    const all = [...this.subtree(inst)]; const remap = new Map(); for (const w of all) { remap.set(w.id, this.nextId); w.id = this.nextId++; }
+    for (const w of all) { for (const [k, v] of w.props) if (this.schema.classes.get(w.className)?.byName.get(k)?.kind === 'Object' && remap.has(v)) w.props.set(k, remap.get(v)); this.byId.set(w.id, w); }
+    for (const w of all) this.add(w);
+  }
   setProp(inst, name, value) { inst.props.set(name, value); this.emit({ op: 'prop', inst, name }); }
   topContainers() { const svc = this.roots.filter(r => this.schema.classes.get(r.className)?.tags.includes('Service') && classReplicable(r.className)); const first = SERVICE_TOP_ORDER.map(n => svc.find(s => s.className === n)).filter(Boolean); return [...first, ...svc.filter(s => !first.includes(s))]; }
   *subtree(inst) { yield inst; for (const c of inst.children) yield* this.subtree(c); }
@@ -109,7 +132,7 @@ function buildCharacter(world, ws, rec, sp) {
     const key = Object.keys(COLOR_KEY).find(k => COLOR_KEY[k] === name); part.props.set('BrickColor', key ? (bc[key] ?? 194) : (name === 'Torso' ? (bc.TorsoColor ?? 194) : 194));
     parts[name] = part;
   }
-  const hum = world.create('Humanoid', model); hum.props.set('Name', 'Humanoid'); hum.props.set('MaxHealth', 100); hum.props.set('WalkSpeed', 16);
+  const hum = world.create('Humanoid', model); hum.props.set('Name', 'Humanoid'); hum.props.set('MaxHealth', 100); hum.props.set('Health', 100); hum.props.set('WalkSpeed', 16);
   const colors = world.create('BodyColors', model); colors.props.set('Name', 'Body Colors');
   for (const k of Object.keys(COLOR_KEY)) colors.props.set(k, bc[k] ?? 194);
   const addClothing = (cls, prop, id, label) => { if (!id) return; const c = world.create(cls, model); c.props.set('Name', label); c.props.set(prop, assetUrl(id)); };

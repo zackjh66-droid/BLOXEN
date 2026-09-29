@@ -11,6 +11,8 @@ module.exports = {
   assetDir: process.env.BLOXEN_ASSETS || path.join(root, 'data', 'assets'),
   manifests: path.join(root, 'preservation', 'manifests'),
   catalogDir: path.join(root, 'preservation', 'catalog'),
+  // EXPERIMENTAL, off by default: run preserved server Scripts in the sandboxed Lua runtime (src/script). See research/SCRIPTING.md for what is and is not supported.
+  runScripts: process.env.BLOXEN_SCRIPTS === '1',
   startingRobux: 100000, // BLOXEN local play allowance. NOT historical behaviour; documented in STATUS.md.
   clientVersion: 'version-0d46087630eb46cd', clientBuild: '0.205.0.61876',
   clientExeSha256: '384a4cb38de6977899e09e59c2136619fef521dc7b4adeb34d404945120c8a44',

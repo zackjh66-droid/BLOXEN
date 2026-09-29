@@ -1,0 +1,107 @@
+{
+  "generated": "2026-09-29T21:39:45.814Z",
+  "virtualSeconds": 600,
+  "note": "Virtual time; no players; no physics (Touched never fires). Status counts are per script.",
+  "places": {
+    "tabularasa": {
+      "scripts": 0
+    },
+    "crossroads-2007-client": {
+      "scripts": 25,
+      "statusCounts": {
+        "running": 6,
+        "finished": 15,
+        "error": 4
+      },
+      "unsupported": {
+        "event Touched: connected but never fires (no server-side physics)": 14,
+        "method MakeJoints: no-op (joints are not simulated)": 6
+      },
+      "touchedConnections": 14,
+      "worldEventsEmitted": 2415,
+      "printedLines": 1,
+      "firstPrints": [
+        "Leaderboard script version 3.00 loaded"
+      ],
+      "errors": [
+        {
+          "thread": "Workspace.TeamBeacon Red.Script",
+          "message": "position is not a valid member of BodyPosition"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Blue.Script",
+          "message": "position is not a valid member of BodyPosition"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Green.Script",
+          "message": "position is not a valid member of BodyPosition"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Black.Script",
+          "message": "position is not a valid member of BodyPosition"
+        }
+      ]
+    },
+    "crossroads-uncopylocked-commit": {
+      "scripts": 46,
+      "statusCounts": {
+        "error": 6,
+        "running": 6,
+        "finished": 23,
+        "not-run:client-side script": 6,
+        "not-run:disabled": 5
+      },
+      "unsupported": {
+        "event Touched: connected but never fires (no server-side physics)": 20,
+        "method MakeJoints: no-op (joints are not simulated)": 6
+      },
+      "touchedConnections": 20,
+      "worldEventsEmitted": 7816,
+      "printedLines": 1,
+      "firstPrints": [
+        "Leaderboard script version 3.00 loaded"
+      ],
+      "errors": [
+        {
+          "thread": "Workspace.Teleporter.sign.SignScript",
+          "message": "TouchScript is not a valid member of Model"
+        },
+        {
+          "thread": "StarterPack.LinkedSuperball.CannonScript",
+          "message": "Activated is not a valid member of Tool"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Red.Script",
+          "message": "position is not a valid member of BodyPosition"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Blue.Script",
+          "message": "position is not a valid member of BodyPosition"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Green.Script",
+          "message": "position is not a valid member of BodyPosition"
+        },
+        {
+          "thread": "Workspace.TeamBeacon Black.Script",
+          "message": "position is not a valid member of BodyPosition"
+        }
+      ]
+    },
+    "happyhomeinrobloxia": {
+      "scripts": 0
+    },
+    "robloxhq": {
+      "scripts": 2,
+      "statusCounts": {
+        "finished": 2
+      },
+      "unsupported": {},
+      "touchedConnections": 0,
+      "worldEventsEmitted": 0,
+      "printedLines": 0,
+      "firstPrints": [],
+      "errors": []
+    }
+  }
+}
