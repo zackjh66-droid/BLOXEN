@@ -1,0 +1,205 @@
+{
+  "schema": "bloxen.places-curation/1",
+  "note": "Hand-curated provenance records. Facts are separated from judgements: `evidence` lists what was actually observed and where; `grade` is the BLOXEN provenance grade of the ARTIFACT (this exact file), not of the game's historical existence. File names are never treated as provenance. No place may be marked playable until its scripts have a safe runtime; importing/replicating geometry is not playability.",
+  "source": {
+    "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+    "license": "none stated (no LICENSE file)",
+    "readme": "games are untested and may be duplicates or broken; no per-place provenance"
+  },
+  "grades": [
+    "PRESERVED",
+    "ARCHIVED-EXACT",
+    "ARCHIVED-NEAR-DATE",
+    "RECONSTRUCTED-FROM-EVIDENCE",
+    "INFERRED",
+    "UNKNOWN"
+  ],
+  "items": [
+    {
+      "file": "TabulaRasa.rbxl",
+      "tier": "P1",
+      "title": "Tabula Rasa",
+      "creator": "Roblox (default starter place; creator UNKNOWN for this file)",
+      "placeId": null,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Added in beagleded commit 91f90e9 whose message says it is from the March 2007 client /extra/ folder (curator statement only).",
+        "Content: 10 instances, 1 part, no scripts - consistent with a blank starter template."
+      ],
+      "date": "UNKNOWN for this file (curator says March 2007 client); content is 2007-era, NOT 2015-era",
+      "method": "git clone of beagleded repo at pinned commit; SHA-256 recorded; static parse only",
+      "publicEvidence": "Blank template; no private content possible. No independent archive of the March 2007 client /extra/ was examined.",
+      "grade": "INFERRED",
+      "useFor": "FIRST server test place (smallest, script-free)"
+    },
+    {
+      "id": "crossroads-2007-client",
+      "file": "Crossroads.rbxl",
+      "tier": "P1",
+      "sourceCommit": "91f90e9622",
+      "title": "Classic: Crossroads (March 2007 client /extra/ version)",
+      "creator": "Roblox",
+      "placeId": 1818,
+      "status": "ACCEPTED",
+      "evidence": [
+        "beagleded commit 91f90e9 'Added /extra/ games from March 2007 client' (curator statement only). Overwritten later at HEAD by a different file (see crossroads-uncopylocked-commit).",
+        "Same Archive Team/fandom evidence for place 1818 as the other version.",
+        "Content: 1835 instances, 1679 parts, 25 scripts (inert)."
+      ],
+      "date": "UNKNOWN (curator says March 2007); 2007-era content, NOT 2015-era",
+      "method": "git show of the pinned commit; SHA-256; static parse",
+      "publicEvidence": "Place ID 1818 public per Archive Team; byte identity with any public release unverified.",
+      "grade": "INFERRED",
+      "useFor": "P1 test place; preferred over the HEAD version because its claimed origin (client-shipped sample) is narrower",
+      "intakeExtra": {
+        "sha256": "6bf95856c724644c792d7065bcc14e0c5be10cc326bab57f71b7e84bbfa3af7b",
+        "size": 5736658,
+        "format": "rbxlx-xml",
+        "instances": 1835,
+        "parts": 1679,
+        "scripts": 25,
+        "assetRefs": 1,
+        "terrain": false,
+        "guis": 0,
+        "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+        "compat": "PARTIAL"
+      }
+    },
+    {
+      "file": "Crossroads.rbxl",
+      "tier": "P1",
+      "title": "Classic: Crossroads (beagleded a8f666f \"Added uncopylocked games\" version)",
+      "creator": "Roblox",
+      "placeId": 1818,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Current HEAD version. Overwrote the March-2007-client version in beagleded commit a8f666f 'Added uncopylocked games' (curator assertion that this is the uncopylocked release). The two versions DIFFER (this: 2155 instances/48 scripts; 2007-client: 1835/25).",
+        "Independent: Archive Team list https://wiki.archiveteam.org/index.php/Roblox/uncopylocked lists 1818 'Classic: Crossroads' (Roblox) as publicly uncopylocked.",
+        "Independent: Roblox fandom wiki says Crossroads was uncopylocked (as of Nov 2012) and updated July 2011 (secondary source).",
+        "Content: 2155 instances, 1766 parts, 48 scripts (inert)."
+      ],
+      "date": "Place history 2006-2012 per secondary sources; THIS file's version/date UNKNOWN",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Place ID 1818 public per Archive Team. The file is NOT proven to be byte-identical to the public copy or to that version.",
+      "grade": "INFERRED",
+      "useFor": "second server test place; scripts inert until runtime exists",
+      "sourceCommit": "a8f666f",
+      "id": "crossroads-uncopylocked-commit"
+    },
+    {
+      "file": "HappyHomeInRobloxia.rbxl",
+      "tier": "P1",
+      "title": "Happy Home in Robloxia",
+      "creator": "UNKNOWN",
+      "placeId": null,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Added in beagleded commit 91f90e9 (March 2007 client /extra/, curator statement only).",
+        "Content: 2010 instances, 1964 parts, no scripts."
+      ],
+      "date": "UNKNOWN (curator says March 2007)",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Shipped as client sample content per curator; not independently verified.",
+      "grade": "INFERRED",
+      "notes": "Distinct from 'Welcome to the Town of Robloxia' (1dev2, id 20723719) which is NOT in the archive."
+    },
+    {
+      "file": "RobloxHQ.rbxl",
+      "tier": "P1",
+      "title": "Roblox HQ",
+      "creator": "UNKNOWN",
+      "placeId": null,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Added in beagleded commit 91f90e9 (March 2007 client /extra/, curator statement only).",
+        "Content: 8577 instances, 8077 parts, 2 scripts."
+      ],
+      "date": "UNKNOWN (curator says March 2007)",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Shipped as client sample content per curator; not independently verified.",
+      "grade": "INFERRED"
+    },
+    {
+      "file": "ROBLOX World Headquarters.rbxl",
+      "tier": "P2",
+      "title": "ROBLOX World Headquarters",
+      "creator": "builderman",
+      "placeId": 1501,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Archive Team uncopylocked list entry 1501 'ROBLOX World Headquarters' (builderman) - independent evidence the place was public.",
+        "Added in beagleded commit a8f666f 'Added uncopylocked games' (curator assertion).",
+        "Content: 8640 instances, 22 scripts (inert), binary rbxl."
+      ],
+      "date": "UNKNOWN for this file",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Place ID public per Archive Team; file identity vs that ID not byte-verified.",
+      "grade": "INFERRED"
+    },
+    {
+      "file": "mission to the moon.rbxl",
+      "tier": "P2",
+      "title": "Mission to the Moon",
+      "creator": "Shedletsky (per Archive Team listing)",
+      "placeId": 1784,
+      "status": "ACCEPTED-WITH-CAVEAT",
+      "evidence": [
+        "Archive Team uncopylocked list entry 1784 'Mission to the Moon' - independent evidence the ID was public.",
+        "The archive copy arrived in beagleded commit d1c717e 'P4ris' Giant Ass Pack' - an unattributed bulk pack of mixed provenance (also contains a file named 'ROBLOX evil game idk - stolen', rejected).",
+        "Content: 785 instances, 3 scripts."
+      ],
+      "date": "UNKNOWN",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "ID public; this copy comes from an unattributed pack, so the file is unverified.",
+      "grade": "UNKNOWN"
+    },
+    {
+      "file": "Natural Disaster Survival.rbxl",
+      "tier": "Q",
+      "title": "Natural Disaster Survival",
+      "creator": "Stickmasterluke (Roblox employee) per fandom/rolimons",
+      "placeId": 189707,
+      "status": "QUARANTINED",
+      "evidence": [
+        "Came from the unattributed d1c717e pack.",
+        "No evidence found that Roblox or the author ever released this file as uncopylocked; the commonly circulating copies are ripped/leaked copies.",
+        "Content: 9595 instances, 23 scripts."
+      ],
+      "date": "UNKNOWN",
+      "method": "static parse only",
+      "publicEvidence": "NONE FOUND",
+      "grade": "UNKNOWN",
+      "reason": "No legitimate public-release evidence. Quarantined; never offered in the game list."
+    },
+    {
+      "file": "ROBLOX evil game idk - stolen.rbxl",
+      "tier": "Q",
+      "title": "(file name says: stolen)",
+      "creator": "UNKNOWN",
+      "placeId": null,
+      "status": "REJECTED",
+      "evidence": [
+        "File name itself asserts the content was stolen.",
+        "From the unattributed d1c717e pack."
+      ],
+      "date": "UNKNOWN",
+      "method": "not used beyond intake hash",
+      "publicEvidence": "NONE",
+      "grade": "UNKNOWN",
+      "reason": "Leak/theft indicator in the file name. REJECTED; must not be imported or served."
+    }
+  ],
+  "notFound": [
+    {
+      "title": "Welcome to the Town of Robloxia",
+      "creator": "1dev2",
+      "placeId": 20723719,
+      "reason": "No trustworthy file located. The place was uncopylocked after the author's account termination (~June 2012, fandom, secondary) and copied many times; the archive has none under this title. A fan copy is not a preserved artifact."
+    },
+    {
+      "title": "Work at a Pizza Place",
+      "creator": "Dued1",
+      "reason": "Never officially open-sourced; only fan copies exist. No legitimate file found. Do not substitute."
+    }
+  ]
+}

@@ -1,0 +1,399 @@
+{
+  "schema": "bloxen.places/1",
+  "generatedAt": "2026-09-29T20:55:59.436Z",
+  "note": "Hand-curated provenance records. Facts are separated from judgements: `evidence` lists what was actually observed and where; `grade` is the BLOXEN provenance grade of the ARTIFACT (this exact file), not of the game's historical existence. File names are never treated as provenance. No place may be marked playable until its scripts have a safe runtime; importing/replicating geometry is not playability.",
+  "grades": [
+    "PRESERVED",
+    "ARCHIVED-EXACT",
+    "ARCHIVED-NEAR-DATE",
+    "RECONSTRUCTED-FROM-EVIDENCE",
+    "INFERRED",
+    "UNKNOWN"
+  ],
+  "source": {
+    "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+    "license": "none stated (no LICENSE file)",
+    "readme": "games are untested and may be duplicates or broken; no per-place provenance",
+    "commit": "51b379ba8575414d552b536c2a1fa75dd1c35d57"
+  },
+  "items": [
+    {
+      "file": "TabulaRasa.rbxl",
+      "tier": "P1",
+      "title": "Tabula Rasa",
+      "creator": "Roblox (default starter place; creator UNKNOWN for this file)",
+      "placeId": null,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Added in beagleded commit 91f90e9 whose message says it is from the March 2007 client /extra/ folder (curator statement only).",
+        "Content: 10 instances, 1 part, no scripts - consistent with a blank starter template."
+      ],
+      "date": "UNKNOWN for this file (curator says March 2007 client); content is 2007-era, NOT 2015-era",
+      "method": "git clone of beagleded repo at pinned commit; SHA-256 recorded; static parse only",
+      "publicEvidence": "Blank template; no private content possible. No independent archive of the March 2007 client /extra/ was examined.",
+      "grade": "INFERRED",
+      "useFor": "FIRST server test place (smallest, script-free)",
+      "id": "tabularasa",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "91f90e9622",
+        "path": "Games/TabulaRasa.rbxl",
+        "addedInMessage": "Added /extra/ games from March 2007 client"
+      },
+      "sha256": "29c05bda4a847143afcb50960f3824e0192e002bcc6c9b80263347e722d8d02e",
+      "size": 6251,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 10,
+        "parts": 1,
+        "scripts": 0,
+        "assetRefs": 0,
+        "terrain": false,
+        "guis": 0
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "SUPPORTED",
+      "dependencies": {
+        "externalAssetIds": 0
+      }
+    },
+    {
+      "id": "crossroads-2007-client",
+      "file": "Crossroads.rbxl",
+      "tier": "P1",
+      "sourceCommit": "91f90e9622",
+      "title": "Classic: Crossroads (March 2007 client /extra/ version)",
+      "creator": "Roblox",
+      "placeId": 1818,
+      "status": "ACCEPTED",
+      "evidence": [
+        "beagleded commit 91f90e9 'Added /extra/ games from March 2007 client' (curator statement only). Overwritten later at HEAD by a different file (see crossroads-uncopylocked-commit).",
+        "Same Archive Team/fandom evidence for place 1818 as the other version.",
+        "Content: 1835 instances, 1679 parts, 25 scripts (inert)."
+      ],
+      "date": "UNKNOWN (curator says March 2007); 2007-era content, NOT 2015-era",
+      "method": "git show of the pinned commit; SHA-256; static parse",
+      "publicEvidence": "Place ID 1818 public per Archive Team; byte identity with any public release unverified.",
+      "grade": "INFERRED",
+      "useFor": "P1 test place; preferred over the HEAD version because its claimed origin (client-shipped sample) is narrower",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "91f90e9622",
+        "path": "Games/Crossroads.rbxl",
+        "addedInMessage": "see curation evidence"
+      },
+      "sha256": "6bf95856c724644c792d7065bcc14e0c5be10cc326bab57f71b7e84bbfa3af7b",
+      "size": 5736658,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 1835,
+        "parts": 1679,
+        "scripts": 25,
+        "assetRefs": 1,
+        "terrain": false,
+        "guis": 0
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 1
+      }
+    },
+    {
+      "file": "Crossroads.rbxl",
+      "tier": "P1",
+      "title": "Classic: Crossroads (beagleded a8f666f \"Added uncopylocked games\" version)",
+      "creator": "Roblox",
+      "placeId": 1818,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Current HEAD version. Overwrote the March-2007-client version in beagleded commit a8f666f 'Added uncopylocked games' (curator assertion that this is the uncopylocked release). The two versions DIFFER (this: 2155 instances/48 scripts; 2007-client: 1835/25).",
+        "Independent: Archive Team list https://wiki.archiveteam.org/index.php/Roblox/uncopylocked lists 1818 'Classic: Crossroads' (Roblox) as publicly uncopylocked.",
+        "Independent: Roblox fandom wiki says Crossroads was uncopylocked (as of Nov 2012) and updated July 2011 (secondary source).",
+        "Content: 2155 instances, 1766 parts, 48 scripts (inert)."
+      ],
+      "date": "Place history 2006-2012 per secondary sources; THIS file's version/date UNKNOWN",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Place ID 1818 public per Archive Team. The file is NOT proven to be byte-identical to the public copy or to that version.",
+      "grade": "INFERRED",
+      "useFor": "second server test place; scripts inert until runtime exists",
+      "sourceCommit": "a8f666f",
+      "id": "crossroads-uncopylocked-commit",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "a8f666f",
+        "path": "Games/Crossroads.rbxl",
+        "addedInMessage": "Added /extra/ games from March 2007 client"
+      },
+      "sha256": "acec28f504e6dc130a2409b95a01d72882d3503f0abc91d81368a0ac839e0edf",
+      "size": 4401117,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 2155,
+        "parts": 1766,
+        "scripts": 48,
+        "assetRefs": 47,
+        "terrain": false,
+        "guis": 1
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 47
+      }
+    },
+    {
+      "file": "HappyHomeInRobloxia.rbxl",
+      "tier": "P1",
+      "title": "Happy Home in Robloxia",
+      "creator": "UNKNOWN",
+      "placeId": null,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Added in beagleded commit 91f90e9 (March 2007 client /extra/, curator statement only).",
+        "Content: 2010 instances, 1964 parts, no scripts."
+      ],
+      "date": "UNKNOWN (curator says March 2007)",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Shipped as client sample content per curator; not independently verified.",
+      "grade": "INFERRED",
+      "notes": "Distinct from 'Welcome to the Town of Robloxia' (1dev2, id 20723719) which is NOT in the archive.",
+      "id": "happyhomeinrobloxia",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "91f90e9622",
+        "path": "Games/HappyHomeInRobloxia.rbxl",
+        "addedInMessage": "Added /extra/ games from March 2007 client"
+      },
+      "sha256": "91ffda80a0a2550bfbee06f8ebd08cd1c95bf38694eb94d68cc022f0877fc306",
+      "size": 6027487,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 2010,
+        "parts": 1964,
+        "scripts": 0,
+        "assetRefs": 3,
+        "terrain": false,
+        "guis": 0
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 3
+      }
+    },
+    {
+      "file": "RobloxHQ.rbxl",
+      "tier": "P1",
+      "title": "Roblox HQ",
+      "creator": "UNKNOWN",
+      "placeId": null,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Added in beagleded commit 91f90e9 (March 2007 client /extra/, curator statement only).",
+        "Content: 8577 instances, 8077 parts, 2 scripts."
+      ],
+      "date": "UNKNOWN (curator says March 2007)",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Shipped as client sample content per curator; not independently verified.",
+      "grade": "INFERRED",
+      "id": "robloxhq",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "91f90e9622",
+        "path": "Games/RobloxHQ.rbxl",
+        "addedInMessage": "Added /extra/ games from March 2007 client"
+      },
+      "sha256": "aaec98c3ff916191afe00f9021d641a20bf0278290c0180c9061e2fa25a914db",
+      "size": 21043177,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 8577,
+        "parts": 8077,
+        "scripts": 2,
+        "assetRefs": 7,
+        "terrain": false,
+        "guis": 0
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 7
+      }
+    },
+    {
+      "file": "ROBLOX World Headquarters.rbxl",
+      "tier": "P2",
+      "title": "ROBLOX World Headquarters",
+      "creator": "builderman",
+      "placeId": 1501,
+      "status": "ACCEPTED",
+      "evidence": [
+        "Archive Team uncopylocked list entry 1501 'ROBLOX World Headquarters' (builderman) - independent evidence the place was public.",
+        "Added in beagleded commit a8f666f 'Added uncopylocked games' (curator assertion).",
+        "Content: 8640 instances, 22 scripts (inert), binary rbxl."
+      ],
+      "date": "UNKNOWN for this file",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "Place ID public per Archive Team; file identity vs that ID not byte-verified.",
+      "grade": "INFERRED",
+      "id": "roblox-world-headquarters",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "a8f666fb76",
+        "path": "Games/ROBLOX World Headquarters.rbxl",
+        "addedInMessage": "Added uncopylocked games"
+      },
+      "sha256": "692b8cdfefde27a4d44c4606d3638776c58521c8236a51827c7e99bde23e9b48",
+      "size": 83817,
+      "format": "rbxl-binary",
+      "stats": {
+        "instances": 8640,
+        "parts": 8083,
+        "scripts": 22,
+        "assetRefs": 29,
+        "terrain": false,
+        "guis": 1
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 29
+      }
+    },
+    {
+      "file": "mission to the moon.rbxl",
+      "tier": "P2",
+      "title": "Mission to the Moon",
+      "creator": "Shedletsky (per Archive Team listing)",
+      "placeId": 1784,
+      "status": "ACCEPTED-WITH-CAVEAT",
+      "evidence": [
+        "Archive Team uncopylocked list entry 1784 'Mission to the Moon' - independent evidence the ID was public.",
+        "The archive copy arrived in beagleded commit d1c717e 'P4ris' Giant Ass Pack' - an unattributed bulk pack of mixed provenance (also contains a file named 'ROBLOX evil game idk - stolen', rejected).",
+        "Content: 785 instances, 3 scripts."
+      ],
+      "date": "UNKNOWN",
+      "method": "git clone at pinned commit; SHA-256; static parse",
+      "publicEvidence": "ID public; this copy comes from an unattributed pack, so the file is unverified.",
+      "grade": "UNKNOWN",
+      "id": "mission-to-the-moon",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "d1c717e4ff",
+        "path": "Games/mission to the moon.rbxl",
+        "addedInMessage": "Added P4ris' Giant Ass Pack Places"
+      },
+      "sha256": "8b17c1aefa72429b301d65dd3034a54ca615a60dc837f39c6adfb45d780c3af5",
+      "size": 1640553,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 785,
+        "parts": 749,
+        "scripts": 3,
+        "assetRefs": 6,
+        "terrain": false,
+        "guis": 1
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 6
+      }
+    },
+    {
+      "file": "Natural Disaster Survival.rbxl",
+      "tier": "Q",
+      "title": "Natural Disaster Survival",
+      "creator": "Stickmasterluke (Roblox employee) per fandom/rolimons",
+      "placeId": 189707,
+      "status": "QUARANTINED",
+      "evidence": [
+        "Came from the unattributed d1c717e pack.",
+        "No evidence found that Roblox or the author ever released this file as uncopylocked; the commonly circulating copies are ripped/leaked copies.",
+        "Content: 9595 instances, 23 scripts."
+      ],
+      "date": "UNKNOWN",
+      "method": "static parse only",
+      "publicEvidence": "NONE FOUND",
+      "grade": "UNKNOWN",
+      "reason": "No legitimate public-release evidence. Quarantined; never offered in the game list.",
+      "id": "natural-disaster-survival",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "d1c717e4ff",
+        "path": "Games/Natural Disaster Survival.rbxl",
+        "addedInMessage": "Added P4ris' Giant Ass Pack Places"
+      },
+      "sha256": "da90bd8d0892a6093ab0489efd73d89efbd6df851d5b9bf3208bdddb6f5a3933",
+      "size": 20796228,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 9595,
+        "parts": 8631,
+        "scripts": 23,
+        "assetRefs": 14,
+        "terrain": false,
+        "guis": 22
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 14
+      }
+    },
+    {
+      "file": "ROBLOX evil game idk - stolen.rbxl",
+      "tier": "Q",
+      "title": "(file name says: stolen)",
+      "creator": "UNKNOWN",
+      "placeId": null,
+      "status": "REJECTED",
+      "evidence": [
+        "File name itself asserts the content was stolen.",
+        "From the unattributed d1c717e pack."
+      ],
+      "date": "UNKNOWN",
+      "method": "not used beyond intake hash",
+      "publicEvidence": "NONE",
+      "grade": "UNKNOWN",
+      "reason": "Leak/theft indicator in the file name. REJECTED; must not be imported or served.",
+      "id": "roblox-evil-game-idk-stolen",
+      "source": {
+        "repo": "https://github.com/beagleded/Roblox-Places-Archive",
+        "commit": "d1c717e4ff",
+        "path": "Games/ROBLOX evil game idk - stolen.rbxl",
+        "addedInMessage": "Added P4ris' Giant Ass Pack Places"
+      },
+      "sha256": "ece2f80c51f053c7c779bab155d8250cc6689c35b89d7183e806bead843809b9",
+      "size": 18517159,
+      "format": "rbxlx-xml",
+      "stats": {
+        "instances": 10745,
+        "parts": 5768,
+        "scripts": 673,
+        "assetRefs": 155,
+        "terrain": false,
+        "guis": 632
+      },
+      "eraVerdict": "predates-or-matches-2015-API (legacy members present)",
+      "importerCompat": "PARTIAL",
+      "dependencies": {
+        "externalAssetIds": 155
+      }
+    }
+  ],
+  "notFound": [
+    {
+      "title": "Welcome to the Town of Robloxia",
+      "creator": "1dev2",
+      "placeId": 20723719,
+      "reason": "No trustworthy file located. The place was uncopylocked after the author's account termination (~June 2012, fandom, secondary) and copied many times; the archive has none under this title. A fan copy is not a preserved artifact."
+    },
+    {
+      "title": "Work at a Pizza Place",
+      "creator": "Dued1",
+      "reason": "Never officially open-sourced; only fan copies exist. No legitimate file found. Do not substitute."
+    }
+  ]
+}

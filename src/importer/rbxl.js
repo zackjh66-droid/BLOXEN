@@ -52,11 +52,12 @@ function readChunks(buf, place) {
     const clen = buf.readUInt32LE(p + 4), ulen = buf.readUInt32LE(p + 8); p += 16;
     if (ulen > MAX_CHUNK) throw new Error('rbxl: chunk too large');
     let data;
-    if (clen === 0) { data = buf.subarray(p, p + ulen); p += ulen; }
+    if (clen === 0) { if (p + ulen > buf.length) throw new Error('rbxl: truncated chunk'); data = buf.subarray(p, p + ulen); p += ulen; }
     else { if (p + clen > buf.length) throw new Error('rbxl: truncated chunk'); data = lz4Decompress(buf.subarray(p, p + clen), ulen); p += clen; }
     chunks.push({ name, data });
     if (name === 'END') break;
   }
+  if (!chunks.length || chunks[chunks.length - 1].name !== 'END') throw new Error('rbxl: missing END chunk (truncated file?)');
   return { version, classCount, instCount, chunks };
 }
 

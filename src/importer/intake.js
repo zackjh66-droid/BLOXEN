@@ -11,7 +11,7 @@ function intakeFile(file, opts = {}) {
   const place = parsePlace(buf); const a = analyze(place, { fileName: path.basename(file) });
   const report = { schema: 'bloxen.place-intake/1', file: path.basename(file), size: buf.length, sha256: digest, format: place.format, intakeAt: new Date().toISOString(), ...a };
   if (opts.store) {
-    const dir = path.join(__dirname, '../../preservation/store'); fs.mkdirSync(dir, { recursive: true });
+    const dir = typeof opts.store === 'string' ? opts.store : path.join(__dirname, '../../preservation/store'); fs.mkdirSync(dir, { recursive: true });
     const dst = path.join(dir, digest + '.rbx'); if (!fs.existsSync(dst)) { fs.writeFileSync(dst, buf); fs.chmodSync(dst, 0o444); }
     report.storedAs = 'preservation/store/' + digest + '.rbx (gitignored, read-only)';
   }
