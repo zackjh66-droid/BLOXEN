@@ -1,0 +1,5 @@
+{
+ "schema": "bloxen.assets/1",
+ "note": "Real archived asset files only. Empty: no catalog or place asset content has been retrieved yet, so every asset is MISSING. Add entries with tools/register_asset.js (hash, source, date and grade required).",
+ "items": []
+}

@@ -1,5 +1,5 @@
 'use strict';
-const fs = require('fs'); const path = require('path'); const { DatabaseSync } = require('node:sqlite'); const cfg = require('./config');
+const fs = require('fs'); const path = require('path'); const { DatabaseSync } = require('node:sqlite'); const cfg = require('./config'); const assetstore = require('./assetstore');
 
 const SCHEMA = `
 PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;
@@ -32,7 +32,7 @@ function open(file = cfg.dbPath) {
 }
 const TYPE_NAMES = { 2: 'T-Shirt', 8: 'Hat', 11: 'Shirt', 12: 'Pants', 17: 'Head', 18: 'Face', 19: 'Gear', 32: 'Package' };
 
-function seed(db) {
+function seed(db, opts = {}) {
   // ---- catalog (real archived items only)
   const ins = db.prepare(`INSERT OR REPLACE INTO catalog_items(asset_id,name,description,creator,creator_id,type_id,type,price_robux,price_tickets,created_ms,updated_ms,sales,favorited,limited_unique,item_url,source_capture,provenance,min_membership,resale_only) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   const insA = db.prepare(`INSERT OR IGNORE INTO assets(id,type_id,type,name,source,source_date,provenance,availability,note) VALUES(?,?,?,?,?,?,?,'MISSING',?)`);
@@ -45,6 +45,14 @@ function seed(db) {
       insA.run(i.assetId, i.assetTypeId, i.assetType, name, j.source.archiveUrl, j.source.capture, j.source.grade, 'Asset content (mesh/texture/model) was not retrieved; only catalog metadata is archived.');
     }
   }
+  // ---- real asset files (manifest): AVAILABLE only when the stored bytes still match the recorded SHA-256; otherwise the row says why it is not.
+  const am = assetstore.loadManifest(opts.assetManifest); let assets = 0;
+  for (const e of am.items) {
+    const ok = assetstore.verify(e, opts.assetDir); const note = ok ? e.note || '' : 'Manifest lists this file but it is absent from (or no longer matches) the local asset store; treated as MISSING.';
+    db.prepare(`INSERT INTO assets(id,type_id,type,name,source,source_date,sha256,local_path,provenance,availability,note) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET type_id=excluded.type_id, name=excluded.name, source=excluded.source, source_date=excluded.source_date, sha256=excluded.sha256, local_path=excluded.local_path, provenance=excluded.provenance, availability=excluded.availability, note=excluded.note`)
+      .run(+e.id, e.typeId, TYPE_NAMES[e.typeId] || 'Type ' + e.typeId, e.name, e.source, e.sourceDate, e.sha256, ok ? e.sha256 : null, e.grade, ok ? 'AVAILABLE' : 'MISSING', note); assets++;
+  }
   // ---- places (manifest)
   const mp = path.join(cfg.manifests, 'places.json'); let places = 0;
   if (fs.existsSync(mp)) {
@@ -52,6 +60,6 @@ function seed(db) {
     const insP = db.prepare(`INSERT OR REPLACE INTO places(id,title,creator,roblox_place_id,tier,grade,status,sha256,size,format,stats,evidence,date_note,method,public_evidence,source,notes,compat,playable,sort) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
     for (const p of m.items) { insP.run(p.id, p.title, p.creator, p.placeId || null, p.tier, p.grade, p.status, p.sha256, p.size, p.format, JSON.stringify(p.stats), JSON.stringify(p.evidence), p.date, p.method, p.publicEvidence, JSON.stringify(p.source), p.notes || p.reason || '', p.importerCompat, 'GEOMETRY-ONLY', rank[p.tier] || 5); places++; }
   }
-  return { items, places };
+  return { items, places, assets };
 }
 module.exports = { open, seed, TYPE_NAMES };

@@ -3,7 +3,7 @@
 // to request. It NEVER proxies to Roblox. Response FORMATS are INFERRED from recollection of the public-era services unless a comment says otherwise;
 // none have been exercised by the real client. All of this is UNIT/SIMULATOR-TESTED at most.
 const fs = require('fs'); const path = require('path'); const crypto = require('crypto');
-const cfg = require('../lib/config'); const auth = require('../lib/auth'); const S = require('../lib/services'); const { esc, readBody, SEC_HEADERS } = require('../lib/http');
+const cfg = require('../lib/config'); const assetstore = require('../lib/assetstore'); const auth = require('../lib/auth'); const S = require('../lib/services'); const { esc, readBody, SEC_HEADERS } = require('../lib/http');
 
 const numId = id => crypto.createHash('sha256').update('bloxen-place:' + id).digest().readUInt32BE(0) & 0x7fffffff; // stable numeric place id for the client's placeId argument
 const xmlEsc = esc;
@@ -57,7 +57,8 @@ client:PlayerConnect(${user.id}, "127.0.0.1", ${srv.port}, 0, 20)
       if (p === '/asset/bodycolors.ashx') { const id = +q.get('userid'); const u = S.userById(db, id); if (!u) return reply(res, 404, 'no such user'); const c = S.avatarGet(db, id).colors;
         return reply(res, 200, `<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4"><External>null</External><External>nil</External><Item class="BodyColors" referent="RBX0"><Properties><int name="HeadColor">${c.head_color}</int><int name="LeftArmColor">${c.left_arm_color}</int><int name="LeftLegColor">${c.left_leg_color}</int><string name="Name">Body Colors</string><int name="RightArmColor">${c.right_arm_color}</int><int name="RightLegColor">${c.right_leg_color}</int><int name="TorsoColor">${c.torso_color}</int><bool name="archivable">true</bool></Properties></Item></roblox>`, 'text/xml; charset=utf-8'); }
       if (p === '/asset/' || p === '/asset' || p === '/asset/') { const id = q.get('id'); if (!/^\d{1,12}$/.test(id || '')) return reply(res, 400, 'bad id'); const a = db.prepare('SELECT * FROM assets WHERE id=?').get(+id);
-        if (a && a.availability === 'AVAILABLE' && a.local_path) { const f = path.resolve(cfg.assetDir, a.local_path); if (f.startsWith(path.resolve(cfg.assetDir) + path.sep) && fs.existsSync(f)) return reply(res, 200, fs.readFileSync(f), 'application/octet-stream'); }
+        if (a && a.availability === 'AVAILABLE' && a.sha256) { const b = assetstore.read(a.sha256, cfg.assetDir); if (b) return reply(res, 200, b, 'application/octet-stream'); // bytes are re-hashed on every serve
+          db.prepare('INSERT INTO missing_asset_log(asset_id,requested_at,context) VALUES(?,?,?)').run(id, Date.now(), 'STORE FILE MISSING OR FAILED HASH CHECK'); return reply(res, 404, 'MISSING: stored file failed its SHA-256 check'); }
         db.prepare('INSERT INTO missing_asset_log(asset_id,requested_at,context) VALUES(?,?,?)').run(id, Date.now(), 'asset request'); return reply(res, 404, 'MISSING: this asset is not in the BLOXEN asset store'); }
       if (p === '/game/machineconfiguration.ashx') return reply(res, 200, 'true'); // INFERRED
       if (p === '/game/validate-machine') return json(res, { success: true, message: '' }); // INFERRED
