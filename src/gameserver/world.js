@@ -121,7 +121,6 @@ function buildCharacter(world, ws, rec, sp) {
     const asset = world.loadAsset ? world.loadAsset(id) : null; if (!asset) { missing.push(id); continue; }
     for (const root of asset.roots || []) if (root.className === 'Hat' || root.className === 'Accessory') { const h = cloneImported(world, root, model); if (h) { h.props.set('Name', root.name); } }
   }
-  world.emitSilent = true;
   return { model, parts, missing };
 }
 function cloneImported(world, src, parent) {

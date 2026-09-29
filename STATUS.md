@@ -9,8 +9,8 @@ Suite: `npm test` (all green at last run) · e2e: `npm run e2e`.
 | Research docs (`research/*.md`) | **DONE (first pass)** | Source map, provenance, client, protocol, website, catalog, games, assets. Gaps listed inside each. |
 | Client acquisition + verification | **DONE** / execution **BLOCKED** | Hash, PE, Authenticode, manifest done; never executed (needs Windows VM + approval). |
 | Place importer (.rbxl/.rbxlx) | **DONE, UNIT-TESTED** | quarantine→SHA-256→parse→tree→services/props/refs→inert scripts→asset ids→compat report. 125/125 archive files parse. `rbxlx.md` spec unread. |
-| Game candidates | **PARTIAL** | 9 curated; 4 stored (3 accepted places + 1 alt); Happy Home and ROBLOX HQ accepted but not yet fetched into store. All provenance INFERRED; no 2015-era place found. |
-| Script intake/classification | **PARTIAL** | Inventory + static classification (`analyze.js`); `REPLICATED_OK` list must be kept aligned with `world.js` (NOT enforced by test). 4 "post-2015-feature" files not individually identified. |
+| Game candidates | **PARTIAL** | 9 curated; 5 fetched and SHA-256-verified into the git-ignored store (Tabula Rasa, both Crossroads files, Happy Home, Roblox HQ); each joins through the full e2e flow (SIMULATOR-TESTED, geometry only). All provenance INFERRED; no 2015-era place found. |
+| Script intake/classification | **PARTIAL** | Inventory + static classification (`analyze.js`); replication support is taken from `world.js` (single source of truth). The 4 post-2015-feature files are named in research/GAMES.md; their specific features are not itemised. |
 | Script runtime | **NOT STARTED** | No place is claimed playable; all are GEOMETRY-ONLY. |
 | Website pages (16 types) | **PARTIAL** | All render, INTEGRATION-TESTED. Faithful to archived text/structure; **not pixel-verified** (no 2015 reference; font, logo, sprites, thumbnails missing). |
 | Accounts/sessions/security | **DONE, TESTED** | scrypt, hashed sessions, CSRF, XSS/SQLi/traversal/redirect tests, throttling. Email, settings beyond password/blurb, favourites UI minimal. |

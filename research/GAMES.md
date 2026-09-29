@@ -8,8 +8,8 @@ Curated manifest: `preservation/manifests/places.json` (full per-item fields: na
 | tabularasa | Tabula Rasa | — | ACCEPTED P1 | INFERRED | 10 instances, 1 part, no scripts. Smallest; used as the real-place e2e. |
 | crossroads-2007-client | Classic: Crossroads, Roblox | 1818 | ACCEPTED P1 | INFERRED | commit 91f90e9 "Added /extra/ games from March 2007 client". 1835 inst, 1679 parts, 25 scripts. Preferred over HEAD version (narrower claimed origin). |
 | crossroads-uncopylocked-commit | Classic: Crossroads, Roblox | 1818 | ACCEPTED P1 | INFERRED | Later file, 2155 inst, 48 scripts, 47 asset refs. |
-| happyhomeinrobloxia | Happy Home in Robloxia | — | ACCEPTED P1 (not stored yet) | INFERRED | 2010 inst, no scripts. Different title from "Welcome to the Town of Robloxia". |
-| robloxhq | ROBLOX HQ | — | ACCEPTED P1 (not stored yet) | INFERRED | 8577 inst, 2 scripts. |
+| happyhomeinrobloxia | Happy Home in Robloxia | — | ACCEPTED P1 | INFERRED | 2010 inst, no scripts. Different title from "Welcome to the Town of Robloxia". |
+| robloxhq | ROBLOX HQ | — | ACCEPTED P1 | INFERRED | 8577 inst, 2 scripts. |
 | roblox-world-headquarters | ROBLOX World Headquarters, builderman | 1501 | ACCEPTED P2 | INFERRED | Binary rbxl, 8640 inst. Archive Team uncopylocked list includes 1501. |
 | mission-to-the-moon | Mission to the Moon, Shedletsky | 1784 | ACCEPTED-WITH-CAVEAT | UNKNOWN | Archive Team lists 1784; file identity unverified. |
 | natural-disaster-survival | Stickmasterluke | 189707 | **QUARANTINED** | UNKNOWN | No evidence of an official uncopylocked release of this file. |
