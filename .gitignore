@@ -1,0 +1,12 @@
+node_modules/
+data/
+cache/
+quarantine/
+*.sqlite
+*.sqlite-journal
+*.log
+.env
+# Preserved historical binaries are NEVER committed; see preservation/manifests/ for hashes + fetch instructions
+preservation/store/
+preservation/places/
+preservation/client/

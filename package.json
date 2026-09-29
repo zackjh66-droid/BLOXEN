@@ -1,0 +1,15 @@
+{
+  "name": "bloxen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BLOXEN - unofficial preservation-focused reconstruction of the July 2015 Roblox experience. Not affiliated with Roblox Corporation.",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 tests/",
+    "start": "node src/web/server.js",
+    "gameserver": "node src/gameserver/server.js",
+    "intake": "node src/importer/intake.js",
+    "e2e": "node tests/e2e/noclient-flow.js"
+  }
+}
