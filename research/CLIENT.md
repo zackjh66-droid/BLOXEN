@@ -3,7 +3,8 @@
 Status: acquired, inventoried, statically inspected. **Never executed by this project** (no safe Windows validation environment; see `docs/WINDOWS-REAL-CLIENT-VALIDATION.md`).
 
 ## Identity
-* Release: 0.205.0.61876, build 2015-07-23T23:33:45-07:00 per RobloxAPI/build-archive (previous build version-8559dcf342a3424a / 0.205.0.61792; next version-9e549411a6e34c4e / 0.206.0.62042 on 2015-07-29).
+* **First-party deployment record** (`setup.rbxcdn.com/DeployHistory.txt`, PRESERVED; extract in `preservation/manifests/deploy-history-2015-07.json`): `New WindowsPlayer version-0d46087630eb46cd at 7/23/2015 11:33:45 PM, file version: 0, 205, 0, 61876...Done!`, followed 10 minutes later by `RccService version-953dbb2d418145cc` (same file version — the server build this client shipped with; not acquired, but a candidate reference for protocol work) and Studio `version-c996ec7e054749b8`.
+* Release: 0.205.0.61876, build 2015-07-23T23:33:45-07:00 per RobloxAPI/build-archive (agrees with the log) (previous build version-8559dcf342a3424a / 0.205.0.61792; next version-9e549411a6e34c4e / 0.206.0.62042 on 2015-07-29).
 * `RobloxPlayerBeta.exe` SHA-256 `384a4cb38de6977899e09e59c2136619fef521dc7b4adeb34d404945120c8a44` — **verified equal** to the required value.
 * PE: x86 GUI, timestamp 2015-07-23T19:45:30Z, VMProtect-style packed sections, CompanyName "ROBLOX Corporation", FileVersion `0, 205, 0, 61876`.
 * Authenticode: CN=ROBLOX Corporation, VeriSign Class 3 Code Signing 2010 CA, cert valid 2012-08-17→2015-09-09, countersigned 2015-07-23T19:51:54Z. Checked: file digest, signer signature, issuer chain links. NOT checked: root trust store, revocation, countersignature validity.

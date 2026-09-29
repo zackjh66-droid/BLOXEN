@@ -1,0 +1,23 @@
+{
+  "schema": "bloxen.deploy-history-extract/1",
+  "source": "https://setup.rbxcdn.com/DeployHistory.txt (Roblox's own deployment log, read via fetch_page chunk 12 of 70 on 2026-09-29)",
+  "grade": "PRESERVED (first-party log published by the rights-holder); timezone of the timestamps is not stated in the log — build-archive renders the same instants as UTC-07:00",
+  "note": "Verbatim lines for the target build and its neighbours. Corroborates RobloxAPI/build-archive (version, file version, time). Does NOT hash any file.",
+  "lines": [
+    "New WindowsPlayer version-caaa5402518b40ea at 7/8/2015 11:32:02 PM, file version: 0, 203, 0, 61327...Done!",
+    "New WindowsPlayer version-b11c8de329894f4a at 7/9/2015 11:32:21 PM, file version: 0, 203, 0, 61342...Done!",
+    "New WindowsPlayer version-4993687f79834cd9 at 7/15/2015 11:31:59 PM, file version: 0, 204, 0, 61460...Done!",
+    "New WindowsPlayer version-8559dcf342a3424a at 7/22/2015 11:32:38 PM, file version: 0, 205, 0, 61792...Done!",
+    "New RccService version-c8b04a21e240491d at 7/22/2015 11:42:10 PM, file version: 0, 205, 0, 61792...Done!",
+    "New WindowsPlayer version-0d46087630eb46cd at 7/23/2015 11:33:45 PM, file version: 0, 205, 0, 61876...Done!",
+    "New RccService version-953dbb2d418145cc at 7/23/2015 11:43:14 PM, file version: 0, 205, 0, 61876...Done!",
+    "New Studio version-c996ec7e054749b8 at 7/23/2015 11:48:34 PM, file version: 0, 205, 0, 61876...Done!",
+    "New WindowsPlayer version-9e549411a6e34c4e at 7/29/2015 11:34:51 PM, file version: 0, 206, 0, 62042...Done!"
+  ],
+  "derived": {
+    "targetPlayer": "version-0d46087630eb46cd = 0.205.0.61876",
+    "matchingServer": "RccService version-953dbb2d418145cc (same file version 0.205.0.61876) - the server build this client shipped with; NOT acquired",
+    "matchingStudio": "Studio version-c996ec7e054749b8 - NOT acquired",
+    "consistencyCheck": "Client PE timestamp 2015-07-23T19:45:30Z and Symantec countersignature 2015-07-23T19:51:54Z precede the 23:33:45 (log-local) deployment, consistent with compile -> sign -> deploy the same day if log time is US Pacific (UTC-7 => 2015-07-24T06:33:45Z)."
+  }
+}
