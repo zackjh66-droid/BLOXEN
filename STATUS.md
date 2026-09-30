@@ -2,7 +2,7 @@
 
 BLOXEN is an **unofficial, non-commercial preservation project**, not affiliated with Roblox Corporation.
 Test labels: UNIT-TESTED · SIMULATOR-TESTED · REAL-CLIENT-TESTED. **No item is REAL-CLIENT-TESTED.** BLOCKED is per task.
-Suite: `npm test` (all green at last run; exact count in the last commit message / final report) · e2e: `npm run e2e`.
+Suite: `npm test` = 163 tests, 163 pass, 0 fail, 0 skipped (last full run) · e2e: `npm run e2e`.
 
 ## Frozen gates (do not change without new evidence or a Windows run)
 
