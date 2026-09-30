@@ -34,4 +34,6 @@ function playability(entry, { storeHas }) {
   if (!storeHas) return { level: 'GEOMETRY-ONLY', eligible: false, reason: 'place file is not in the local store (run tools/fetch_places.js)' };
   return { level: 'GEOMETRY-ONLY', eligible: true, reason: 'geometry and spawn replicate (SIMULATOR-TESTED); the place\'s scripts are off by default and never claimed to reproduce original gameplay; REAL-CLIENT-TESTED: no' };
 }
-module.exports = { STATUSES, registry, byId, counts, playability, _reset: () => { cache = null; } };
+let reportCache = null;
+const compatReport = id => { if (!reportCache) reportCache = (readJson('place-compat-reports.json') || { reports: {} }).reports; return reportCache[id] || null; };
+module.exports = { compatReport, STATUSES, registry, byId, counts, playability, _reset: () => { cache = null; } };

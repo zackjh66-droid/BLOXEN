@@ -71,7 +71,7 @@ test('rejected/quarantined places are never offered', async () => {
   const b = new Browser(app.webUrl); assert.equal((await b.get('/games/natural-disaster-survival')).status, 404); assert.equal((await b.get('/games/roblox-evil-game-idk-stolen')).status, 404); const dev = await b.get('/develop'); assert.match(dev.text, /QUARANTINED/); assert.match(dev.text, /REJECTED/);
   assert.ok(!(await b.get('/games')).text.includes('Natural Disaster'));
 });
-test('game page states limits honestly', async () => { const t = (await new Browser(app.webUrl).get('/games/crossroads-2007-client')).text; assert.match(t, /no script runtime/); assert.match(t, /SHA-256/); assert.match(t, /INFERRED/); });
+test('game page states limits honestly', async () => { const t = (await new Browser(app.webUrl).get('/games/crossroads-2007-client')).text; assert.match(t, /not a faithful engine/); assert.match(t, /SHA-256/); assert.match(t, /INFERRED/); });
 
 test('CSP-compatible markup: no inline style attributes; every BrickColor has a CSS class', async t => {
   const fs = require('fs'); const path = require('path'); const S = require('../src/lib/services');

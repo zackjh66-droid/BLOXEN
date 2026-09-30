@@ -1,5 +1,5 @@
 /* BLOXEN site stylesheet.
-   Provenance: RECONSTRUCTED-FROM-EVIDENCE. Colour/size values (header #2D528F / hover #27487E / 40px fixed header, 16px header links, 970px page,
+   Provenance: see the EVIDENCE CHROME block at the end (ARCHIVED-NEAR-DATE, 2015-02-21 item-page CSS). Older values (header #2D528F / hover #27487E / 40px fixed header, 16px header links, 970px page,
    button colours #007001 / #0852b7 / #565656, link #095fb5, text #343434, h1 32px / h2 30px) were read from the 2014-era Roblox Navigation2014.css /
    StyleGuide.css as mirrored in RobloxLabs/web (MIT). No Roblox image or sprite is bundled. The original July-2015 CSS was NOT recoverable (Wayback
    returns only rendered text through our tooling), so spacing and page composition are INFERRED. See research/WEBSITE.md. */
@@ -7,15 +7,6 @@ html { height: 100%; background: #f2f2f2; }
 body { margin: 0; font-family: 'Source Sans Pro', Arial, Helvetica, sans-serif; color: #343434; font-size: 14px; line-height: 1.428; background: #f2f2f2; }
 a, a:visited { color: #095fb5; text-decoration: none; } a:hover { text-decoration: underline; }
 h1 { font-size: 32px; font-weight: bold; margin: 12px 0; letter-spacing: -1px; } h2 { font-size: 30px; letter-spacing: -1px; margin: 16px 0 10px; } h3 { font-size: 20px; margin: 12px 0 6px; } h2.light { font-size: 16px; font-weight: normal; color: #000; }
-.header-2014 { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #0e6ba7; color: #fff; z-index: 100; min-width: 960px; }
-.header-2014 a, .header-2014 a:visited { color: #fff; } .header-2014 .inner { width: 970px; margin: 0 auto; height: 40px; display: flex; align-items: center; }
-.header-2014 .logo { font-weight: bold; font-size: 22px; letter-spacing: 1px; margin-right: 14px; padding: 0 6px; }
-.header-2014 .links a { white-space: nowrap; font-size: 16px; margin-right: 6px; padding: 3px 10px 3px; border-radius: 4px; display: inline-block; } .header-2014 .links a:hover { background: #0a5a8e; text-decoration: none; }
-.header-2014 form.search { margin: 0 10px 0 auto; } .header-2014 .search input { width: 220px; height: 24px; border: 0; border-radius: 5px; padding: 0 8px; font-size: 14px; box-sizing: border-box; }
-.header-2014 .acct { white-space: nowrap; font-size: 13px; flex-shrink: 0; font-size: 14px; } .header-2014 .acct span, .header-2014 .acct a, .header-2014 .acct button { margin-left: 10px; }
-.linkbtn { background: none; border: 0; color: #fff; font: inherit; cursor: pointer; padding: 0; } .linkbtn:hover { text-decoration: underline; }
-.notice { margin: 40px 0 0; background: #fffbe0; border-bottom: 1px solid #e0d98a; color: #555; font-size: 12px; text-align: center; padding: 3px 10px; }
-#Container { width: 970px; margin: 0 auto; background: transparent; padding: 10px 0 30px; min-height: 420px; }
 .flash { padding: 8px 12px; margin: 10px 0; border: 1px solid; } .flash.ok { background: #e7f4e4; border-color: #8cc084; } .flash.err { background: #fbe4e4; border-color: #d99; }
 .btn-large, .btn-medium, .btn-small { display: inline-block; text-align: center; font-weight: bold; border: 1px solid; cursor: pointer; text-decoration: none !important; color: #fff !important; font-family: inherit; }
 .btn-large { padding: 9px 20px 0; height: 39px; min-width: 70px; font-size: 23px; line-height: 27px; box-sizing: border-box; } .btn-medium { padding: 1px 13px 3px; height: 28px; min-width: 62px; font-size: 20px; line-height: 24px; box-sizing: border-box; } .btn-small { padding: 1px 7px; height: 20px; min-width: 40px; font-size: 14px; line-height: 18px; box-sizing: border-box; }
@@ -33,7 +24,6 @@ table.t { border-collapse: collapse; width: 100%; } table.t th, table.t td { bor
 form.stack label { display: block; margin: 8px 0 2px; font-weight: bold; } form.stack input[type=text], form.stack input[type=password], form.stack textarea, form.stack select { width: 280px; padding: 4px; font: inherit; box-sizing: border-box; border: 1px solid #aaa; } form.stack textarea { width: 440px; height: 120px; }
 .hero { display: flex; gap: 30px; margin-top: 10px; } .hero .signup { width: 330px; background: #f2f2f2; border: 1px solid #ccc; padding: 10px 16px 16px; }
 .figure { width: 120px; margin: 0 auto; text-align: center; } .figure div { margin: 0 auto; border: 1px solid rgba(0,0,0,.35); box-sizing: border-box; } .figure .row { display: flex; justify-content: center; border: 0; } .figure .row div { margin: 0; }
-footer.site { width: 970px; margin: 0 auto; padding: 14px 0 40px; font-size: 12px; color: #555; text-align: center; border-top: 1px solid #aaa; } footer.site a { color: #2D528F; }
 .prov td:first-child { width: 160px; font-weight: bold; } .mono { font-family: Consolas, monospace; font-size: 12px; word-break: break-all; } pre.ev { white-space: pre-wrap; }
 .msg.unread td { font-weight: bold; }
 
@@ -42,8 +32,6 @@ footer.site { width: 970px; margin: 0 auto; padding: 14px 0 40px; font-size: 12p
 .p40x40 { width: 40px; height: 40px; } .p20x80 { width: 20px; height: 80px; } .p40x80 { width: 40px; height: 80px; }
 .sw { width: 22px; height: 22px; border: 1px solid #777; cursor: pointer; margin: 1px; padding: 0; } .sw.cur { border: 3px solid #000; }
 .swrow form { display: inline; }
-/* fit 4 nav links + search + account area in 970px (found via screenshot: "Character" wrapped) */
-.header-2014 .links { display: flex; flex-shrink: 0; } .header-2014 .search input { width: 150px; } .header-2014 .links a { padding: 3px 8px; }
 
 /* 2015 logged-in chrome: header blue SAMPLED (#0e6ba7) from a blurry 185px reference thumbnail (uncertain +-10%); page grey #f2f2f2 sampled the same way. */
 .hello { display: flex; align-items: flex-end; margin: 14px 0 6px; } .hello-fig { width: 160px; } .hello-h { font-size: 44px; font-weight: 300; color: #555; letter-spacing: -1px; margin: 0 0 10px 30px; }
@@ -53,3 +41,37 @@ footer.site { width: 970px; margin: 0 auto; padding: 14px 0 40px; font-size: 12p
 .fnm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
 .grow { display: flex; gap: 10px; flex-wrap: wrap; } .gtile { width: 150px; background: #fff; border: 1px solid #e3e3e3; padding: 0 0 6px; } .gtile .thumb { width: 150px; height: 150px; box-sizing: border-box; background: #f2f2f2; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; color: #888; }
 .gtile .nm { padding: 4px 6px 0; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .gtile .tip { padding: 0 6px; }
+
+/* ===== EVIDENCE CHROME (ARCHIVED-NEAR-DATE: values read from the real 2015-02-21 Roblox item-page CSS/DOM; observed only, no Roblox code or image copied) =====
+   header.rbx-header #0074bd 40px, white 16px links, navbar item padding 6px 9px, hover rgba(25,25,25,.1) r5; search 28px, border #b8b8b8 r3;
+   .rbx-left-col #f2f2f2 175px fixed at top:40px, only >=1480px; #BodyWrapper 970px white; font stack/colour/line-height as recorded; links #0055B3;
+   footer gradient #ececec->#fff 13px pad 2em 0 60px, links #2D528F, .legal border-top 1px #355C95, legalese #899fc1 10px;
+   buttons .btn-large h39 pad 9px 13px 0 font 23 / .btn-medium h28 font 20 / primary #007001 / neutral #0852b7 / control 1px #777 #ccc;
+   .SquareTabGray bg #D6D6D6 border 1px #9e9e9e bold 15 (selected white); #Item 800px, #Thumbnail 320x320, #Summary 480px, .BuyPriceBox 158px #e1e1e1 border 1px #a7a7a7,
+   .robux-text #060, .stat-label 12px #999. Page grey #e3e3e3 is SECONDARY (third-party restyle values). Logo/icons/sprites are MISSING. */
+html, body { background: #e3e3e3; } body { color: #343434; font-size: 14px; line-height: 1.428; } a, a:visited { color: #0055B3; }
+.rbx-header { position: fixed; top: 0; left: 0; right: 0; height: 40px; background: #0074bd; z-index: 100; min-width: 990px; }
+.rbx-header .inner { width: 970px; margin: 0 auto; height: 40px; display: flex; align-items: center; }
+.rbx-header a, .rbx-header a:visited, .rbx-header .linkbtn { color: #fff; } .rbx-header .rbx-logo { font-weight: bold; font-size: 22px; letter-spacing: 1px; margin-right: 10px; padding: 0 6px; }
+.rbx-navbar { list-style: none; margin: 0; padding: 0; display: flex; flex-shrink: 0; } .rbx-navbar li { margin: 0; } .rbx-navbar a { display: inline-block; font-size: 16px; padding: 6px 9px; border-radius: 5px; white-space: nowrap; } .rbx-navbar a:hover { background: rgba(25,25,25,.1); text-decoration: none; }
+.rbx-search { margin: 0 10px 0 auto; } .rbx-search input { width: 150px; height: 28px; box-sizing: border-box; border: 1px solid #b8b8b8; border-radius: 3px; padding: 0 8px; font-size: 14px; }
+.rbx-header .acct { display: flex; align-items: center; white-space: nowrap; font-size: 14px; flex-shrink: 0; } .rbx-header .acct > * { margin-left: 10px; }
+.linkbtn { background: none; border: 0; font: inherit; cursor: pointer; padding: 0; } .linkbtn:hover { text-decoration: underline; }
+.nav-content { margin-top: 40px; }
+.notice { background: #fffbe0; border-bottom: 1px solid #e0d98a; color: #555; font-size: 12px; text-align: center; padding: 3px 10px; }
+.rbx-left-col { display: none; background: #f2f2f2; width: 175px; position: fixed; top: 40px; bottom: 0; left: 0; overflow: auto; } .rbx-left-col ul { list-style: none; margin: 0; padding: 10px 0; } .rbx-left-col li a { display: block; padding: 7px 14px; color: #191919; font-size: 16px; } .rbx-left-col li a:hover { background: #e3e3e3; text-decoration: none; }
+@media (min-width: 1480px) { .rbx-left-col { display: block; } }
+#Container { width: 970px; margin: 0 auto; padding: 10px 0 30px; min-height: 420px; } #BodyWrapper { width: 970px; background: #fff; box-sizing: border-box; padding: 10px 14px 20px; min-height: 420px; }
+#Footer { background: linear-gradient(#ececec, #fff); font-size: 13px; padding: 2em 0 60px; text-align: center; } #Footer a, #Footer a:visited { color: #2D528F; }
+#Footer .FooterNav { width: 970px; margin: 0 auto; } #Footer .legal { width: 970px; margin: 1em auto 0; border-top: 1px solid #355C95; } #Footer .legalese { color: #899fc1; font-size: 10px; text-align: left; margin: 8px 0 0; }
+.btn-large, .btn-medium, .btn-small { font-family: 'Source Sans Pro', Arial, sans-serif; }
+.btn-large { padding: 9px 13px 0; } .btn-control { border: 1px solid #777; background: #ccc; color: #343434 !important; text-shadow: none; }
+.tabs.SquareTabGray { border-bottom: 1px solid #9e9e9e; margin: 8px 0 12px; } .SquareTabGray a, .SquareTabGray .off { display: inline-block; padding: 6px 14px; background: #D6D6D6; border: 1px solid #9e9e9e; border-bottom: 0; font-weight: bold; font-size: 15px; margin-right: 2px; color: #343434; } .SquareTabGray a:hover { text-decoration: none; } .SquareTabGray a.sel { background: #fff; border-color: #ccc #ccc #fff; position: relative; top: 1px; } .SquareTabGray .off { color: #999; }
+.StandardPanelWhite { background: #fff; border: 1px solid #ccc; margin: 0 0 12px; } .StandardPanelWhite .pn-h { background: #f2f2f2; border-bottom: 1px solid #ccc; padding: 4px 10px; font-weight: bold; font-size: 15px; } .StandardPanelWhite .pn-b { padding: 10px; }
+.pager { margin: 14px 0; text-align: center; } .pager a, .pager .off, .pager .pg { display: inline-block; margin: 0 10px; } .pager .off { color: #999; } .pager .pg { font-weight: bold; }
+.stat-label { font-size: 12px; color: #999; } .robux-text { color: #060; font-weight: bold; font-size: 16px; }
+#Item { width: 800px; } #Item h1 { margin-top: 0; } #Item .two { gap: 0; } #Thumbnail { width: 320px; } #Thumbnail .thumb { width: 320px; height: 320px; } #Summary { width: 480px; padding-left: 0; }
+.BuyPriceBox { width: 158px; background: #e1e1e1; border: 1px solid #a7a7a7; padding: 8px 10px; margin: 10px 0; } .BuyPriceBox .BuyAct { margin-top: 8px; }
+.favstar { background: none; border: 0; font-size: 22px; color: #bbb; cursor: pointer; padding: 0; line-height: 1; } .favstar.on { color: #f0b400; } span.favstar { cursor: default; }
+.gd-play { margin: 10px 0; } .gd-stats { list-style: none; margin: 10px 0; padding: 0; } .gd-stats li { margin: 3px 0; } #GameDetails .by { color: #555; margin-bottom: 8px; }
+.cat-search { margin: 6px 0 10px; } .fav-cat { margin-bottom: 10px; }

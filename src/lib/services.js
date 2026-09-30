@@ -84,4 +84,24 @@ const favorite = (db, u, p, on) => on ? db.prepare('INSERT OR IGNORE INTO favori
 // ---- search
 function search(db, q) { q = String(q || '').slice(0, 60); const like = '%' + q.replace(/[\\%_]/g, m => '\\' + m) + '%';
   return { users: db.prepare("SELECT id,username FROM users WHERE username LIKE ? ESCAPE '\\' ORDER BY username LIMIT 25").all(like), games: db.prepare("SELECT id,title,creator FROM places WHERE status LIKE 'ACCEPTED%' AND title LIKE ? ESCAPE '\\' LIMIT 25").all(like), items: db.prepare("SELECT asset_id,name,type FROM catalog_items WHERE name LIKE ? ESCAPE '\\' LIMIT 25").all(like), groups: db.prepare("SELECT id,name FROM groups WHERE name LIKE ? ESCAPE '\\' LIMIT 25").all(like) }; }
-module.exports = { BODY_PARTS, BRICK_COLORS, TYPE_NAMES, createUser, userByName, userById, catalogList, catalogItem, acquire, inventory, avatarGet, equip, unequip, setColor, avatarForGame, sendFriendRequest, respondFriend, friendsOf, requestsFor, areFriends, sendMessage, createGroup, joinGroup, placeList, placeById, favorite, search };
+// ---- pagination / favorites / people (added with the 2015 page refit)
+function catalogCount(db, { q = '', type = 0 } = {}) {
+  const w = []; const a = []; if (q) { w.push("(name LIKE ? ESCAPE '\\' OR description LIKE ? ESCAPE '\\')"); const like = '%' + String(q).replace(/[\\%_]/g, m => '\\' + m) + '%'; a.push(like, like); } if (+type) { w.push('type_id=?'); a.push(+type); }
+  return db.prepare(`SELECT COUNT(*) n FROM catalog_items ${w.length ? 'WHERE ' + w.join(' AND ') : ''}`).get(...a).n;
+}
+const itemFavorite = (db, u, asset, on) => { if (!catalogItem(db, asset)) return { ok: false, error: 'No such catalog item' }; on ? db.prepare('INSERT OR IGNORE INTO item_favorites(user_id,asset_id) VALUES(?,?)').run(u, +asset) : db.prepare('DELETE FROM item_favorites WHERE user_id=? AND asset_id=?').run(u, +asset); return { ok: true }; };
+const isItemFavorite = (db, u, asset) => !!db.prepare('SELECT 1 FROM item_favorites WHERE user_id=? AND asset_id=?').get(u, +asset);
+const itemFavoriteCount = (db, asset) => db.prepare('SELECT COUNT(*) n FROM item_favorites WHERE asset_id=?').get(+asset).n;
+const placeFavoriteCount = (db, place) => db.prepare('SELECT COUNT(*) n FROM favorites WHERE place_id=?').get(String(place)).n;
+const favoriteItems = (db, u, type = 0) => db.prepare(`SELECT c.* FROM item_favorites f JOIN catalog_items c ON c.asset_id=f.asset_id WHERE f.user_id=? ${+type ? 'AND c.type_id=?' : ''} ORDER BY c.name`).all(...[u, ...(+type ? [+type] : [])]);
+const favoritePlaces = (db, u) => db.prepare("SELECT p.* FROM favorites f JOIN places p ON p.id=f.place_id WHERE f.user_id=? AND p.status LIKE 'ACCEPTED%' ORDER BY p.title").all(u);
+const recentPlaces = (db, u, limit = 20) => db.prepare("SELECT p.*, r.at FROM recent_plays r JOIN places p ON p.id=r.place_id WHERE r.user_id=? AND p.status LIKE 'ACCEPTED%' ORDER BY r.at DESC LIMIT ?").all(u, limit);
+const launchCount = (db, place) => db.prepare('SELECT COUNT(*) n FROM launch_tickets WHERE place_id=?').get(String(place)).n;
+function userSearch(db, q, { limit = 20, offset = 0 } = {}) {
+  const like = '%' + String(q || '').slice(0, 40).replace(/[\\%_]/g, m => '\\' + m) + '%';
+  return { total: db.prepare("SELECT COUNT(*) n FROM users WHERE username LIKE ? ESCAPE '\\'").get(like).n, users: db.prepare("SELECT id,username,created_at FROM users WHERE username LIKE ? ESCAPE '\\' ORDER BY username LIMIT ? OFFSET ?").all(like, limit, offset) };
+}
+const inventoryCounts = (db, u) => Object.fromEntries(db.prepare('SELECT c.type_id t, COUNT(*) n FROM inventory i JOIN catalog_items c ON c.asset_id=i.asset_id WHERE i.user_id=? GROUP BY c.type_id').all(u).map(r => [r.t, r.n]));
+const inventoryPage = (db, u, type, limit, offset) => db.prepare(`SELECT c.*, i.acquired_at FROM inventory i JOIN catalog_items c ON c.asset_id=i.asset_id WHERE i.user_id=? ${+type ? 'AND c.type_id=?' : ''} ORDER BY i.acquired_at DESC, c.name LIMIT ? OFFSET ?`).all(...[u, ...(+type ? [+type] : []), limit, offset]);
+
+module.exports = { catalogCount, itemFavorite, isItemFavorite, itemFavoriteCount, placeFavoriteCount, favoriteItems, favoritePlaces, recentPlaces, launchCount, userSearch, inventoryCounts, inventoryPage, BODY_PARTS, BRICK_COLORS, TYPE_NAMES, createUser, userByName, userById, catalogList, catalogItem, acquire, inventory, avatarGet, equip, unequip, setColor, avatarForGame, sendFriendRequest, respondFriend, friendsOf, requestsFor, areFriends, sendMessage, createGroup, joinGroup, placeList, placeById, favorite, search };

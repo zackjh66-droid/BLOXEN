@@ -1,6 +1,6 @@
 'use strict';
 const fs = require('fs'); const path = require('path'); const http = require('http');
-const cfg = require('../lib/config'); const auth = require('../lib/auth'); const S = require('../lib/services'); const V = require('./views');
+const cfg = require('../lib/config'); const auth = require('../lib/auth'); const S = require('../lib/services'); const V = require('./views'); const registry = require('../lib/registry'); const { paginate } = require('./components');
 const { esc, readForm, send, redirect, cookie, parseCookies, safeEqual, safeNext, SEC_HEADERS } = require('../lib/http');
 
 const STATIC = path.join(cfg.root, 'static'); const MIME = { '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
@@ -63,22 +63,50 @@ function createWebApp({ db, gameservers, log = () => {}, secureCookies = false }
     out(c, 200, V.homeIn(c, { avatar: S.avatarGet(db, u.id), recent: ids, favs, friends: S.friendsOf(db, u.id), unread: db.prepare('SELECT COUNT(*) n FROM messages WHERE to_id=? AND read=0').get(u.id).n })); });
 
   // ---------------- games
-  add('GET', '/games', c => out(c, 200, V.games(c, S.placeList(db).map(withAvail))));
-  add('GET', '/games/:id', c => { const g = S.placeById(db, c.params.id); if (!g || !/^ACCEPTED/.test(g.status)) return out(c, 404, V.notFound(c)); out(c, 200, V.gameDetails(c, g, { available: gameservers.available(g), fav: c.user ? !!db.prepare('SELECT 1 FROM favorites WHERE user_id=? AND place_id=?').get(c.user.id, g.id) : false })); });
-  add('POST', '/games/:id/favorite', { auth: true }, c => { const g = S.placeById(db, c.params.id); if (!g) return out(c, 404, V.notFound(c)); S.favorite(db, c.user.id, g.id, c.form.on === '1'); go(c, '/games/' + g.id); });
-  add('POST', '/games/:id/play', { auth: true }, async c => {
-    const g = S.placeById(db, c.params.id); if (!g || !/^ACCEPTED/.test(g.status)) return out(c, 404, V.notFound(c));
-    let srv; try { srv = await gameservers.ensure(g); } catch (e) { return go(c, '/games/' + g.id, 'Cannot start this game: ' + e.message, true); }
+  const PER = 24;
+  add('GET', '/games', c => {
+    const sort = ['favorite', 'recent'].includes(c.query.sort) && (c.query.sort !== 'recent' || c.user) ? c.query.sort : 'default';
+    let list = S.placeList(db).map(withAvail); const favs = Object.fromEntries(list.map(g => [g.id, S.placeFavoriteCount(db, g.id)])); const statuses = Object.fromEntries(list.map(g => [g.id, (registry.byId(g.id) || {}).status]));
+    if (sort === 'favorite') list = [...list].sort((a, b) => favs[b.id] - favs[a.id] || a.title.localeCompare(b.title)); if (sort === 'recent') list = S.recentPlaces(db, c.user.id).map(withAvail);
+    out(c, 200, V.games(c, list, { sort, favs, statuses }));
+  });
+  add('GET', '/games/registry', c => {
+    const status = registry.STATUSES.includes(c.query.status) ? c.query.status : ''; const all = registry.registry().filter(r => !status || r.status === status); const pg = paginate(all.length, c.query.page, 40);
+    out(c, 200, V.gameRegistry(c, { rows: all.slice(pg.offset, pg.offset + pg.limit), status, counts: registry.counts(), pg }));
+  });
+  add('GET', '/games/:id', c => { const g = S.placeById(db, c.params.id); if (!g || !/^ACCEPTED/.test(g.status)) return out(c, 404, V.notFound(c));
+    const entry = registry.byId(g.id); const srv = gameservers.servers.get(g.id);
+    out(c, 200, V.gameDetails(c, g, { tab: ['compat', 'evidence'].includes(c.query.tab) ? c.query.tab : 'about', registry: entry, report: registry.compatReport(g.id), playability: registry.playability(entry, { storeHas: gameservers.available(g) }), running: srv ? { players: srv.gs.world.players.size, startedAt: srv.startedAt } : null,
+      available: gameservers.available(g), favCount: S.placeFavoriteCount(db, g.id), launches: S.launchCount(db, g.id), fav: c.user ? !!db.prepare('SELECT 1 FROM favorites WHERE user_id=? AND place_id=?').get(c.user.id, g.id) : false })); });
+  add('POST', '/games/:id/favorite', { auth: true }, c => { const g = S.placeById(db, c.params.id); if (!g || !/^ACCEPTED/.test(g.status)) return out(c, 404, V.notFound(c)); S.favorite(db, c.user.id, g.id, c.form.on === '1'); go(c, '/games/' + g.id); });
+  // Shared by Play and Travel->Continue: the ONLY place launch tickets are issued. Gated by the registry (PRESERVED only) and the local store.
+  async function startPlay(c, g) {
+    const entry = registry.byId(g.id); const pl = registry.playability(entry, { storeHas: gameservers.available(g) }); if (!pl.eligible) return { ok: false, error: 'Not playable: ' + pl.reason };
+    let srv; try { srv = await gameservers.ensure(g); } catch (e) { return { ok: false, error: 'Cannot start this game: ' + e.message }; }
     const ticket = auth.issueTicket(db, 'launch_tickets', { userId: c.user.id, placeId: g.id, serverId: srv.serverId, ttl: cfg.launchTicketTtlMs });
     db.prepare('INSERT OR REPLACE INTO recent_plays(user_id,place_id,at) VALUES(?,?,?)').run(c.user.id, g.id, Date.now());
-    const uri = `bloxen-player:1+ticket:${ticket}+version:${cfg.clientVersion}`;
-    if (/application\/json/.test(c.req.headers.accept || '')) return out(c, 200, JSON.stringify({ uri, expiresInSeconds: cfg.launchTicketTtlMs / 1000 }), { 'Content-Type': 'application/json' });
-    out(c, 200, V.launchPage(c, g, uri));
+    return { ok: true, uri: `bloxen-player:1+ticket:${ticket}+version:${cfg.clientVersion}` };
+  }
+  add('POST', '/games/:id/play', { auth: true }, async c => {
+    const g = S.placeById(db, c.params.id); if (!g || !/^ACCEPTED/.test(g.status)) return out(c, 404, V.notFound(c));
+    const r = await startPlay(c, g); if (!r.ok) return go(c, '/games/' + g.id, r.error, true);
+    if (/application\/json/.test(c.req.headers.accept || '')) return out(c, 200, JSON.stringify({ uri: r.uri, expiresInSeconds: cfg.launchTicketTtlMs / 1000 }), { 'Content-Type': 'application/json' });
+    out(c, 200, V.launchPage(c, g, r.uri));
   });
+  // ---------------- travel (TeleportService records; Continue = a normal Play ticket)
+  add('GET', '/my/travel', { auth: true }, c => out(c, 200, V.travel(c, db.prepare('SELECT t.*, pf.title from_title, pt.title to_title FROM teleports t LEFT JOIN places pf ON pf.id=t.from_place LEFT JOIN places pt ON pt.id=t.to_place WHERE t.user_id=? AND t.consumed_at IS NULL ORDER BY t.created_at DESC LIMIT 50').all(c.user.id))));
+  add('POST', '/my/travel/:id/continue', { auth: true }, async c => {
+    const t = db.prepare('SELECT * FROM teleports WHERE id=? AND user_id=? AND consumed_at IS NULL').get(+c.params.id, c.user.id); if (!t) return go(c, '/my/travel', 'That travel request is not pending.', true);
+    const g = S.placeById(db, t.to_place); if (!g || !/^ACCEPTED/.test(g.status)) return go(c, '/my/travel', 'Destination is not available.', true);
+    const r = await startPlay(c, g); if (!r.ok) return go(c, '/my/travel', r.error, true);
+    db.prepare('UPDATE teleports SET consumed_at=? WHERE id=? AND consumed_at IS NULL').run(Date.now(), t.id); out(c, 200, V.launchPage(c, g, r.uri));
+  });
+  add('POST', '/my/travel/:id/dismiss', { auth: true }, c => { db.prepare('UPDATE teleports SET consumed_at=? WHERE id=? AND user_id=? AND consumed_at IS NULL').run(Date.now(), +c.params.id, c.user.id); go(c, '/my/travel', 'Dismissed.'); });
 
   // ---------------- catalog
-  add('GET', '/catalog', c => { const q = { q: String(c.query.q || '').slice(0, 60), type: +c.query.type || 0, sort: c.query.sort || 'relevance' }; out(c, 200, V.catalog(c, S.catalogList(db, q), q)); });
-  add('GET', '/catalog/item/:id', c => { const i = S.catalogItem(db, c.params.id); if (!i) return out(c, 404, V.notFound(c)); out(c, 200, V.catalogItem(c, i, { owned: c.user ? !!db.prepare('SELECT 1 FROM inventory WHERE user_id=? AND asset_id=?').get(c.user.id, i.asset_id) : false, asset: db.prepare('SELECT * FROM assets WHERE id=?').get(i.asset_id) })); });
+  add('GET', '/catalog', c => { const q = { q: String(c.query.q || '').slice(0, 60), type: +c.query.type || 0, sort: ['relevance', 'updated', 'price_asc', 'price_desc'].includes(c.query.sort) ? c.query.sort : 'relevance' }; const pg = paginate(S.catalogCount(db, q), c.query.page, PER); out(c, 200, V.catalog(c, S.catalogList(db, { ...q, limit: pg.limit, offset: pg.offset }), q, pg)); });
+  add('GET', '/catalog/item/:id', c => { const i = S.catalogItem(db, c.params.id); if (!i) return out(c, 404, V.notFound(c)); out(c, 200, V.catalogItem(c, i, { owned: c.user ? !!db.prepare('SELECT 1 FROM inventory WHERE user_id=? AND asset_id=?').get(c.user.id, i.asset_id) : false, fav: c.user ? S.isItemFavorite(db, c.user.id, i.asset_id) : false, favCount: S.itemFavoriteCount(db, i.asset_id), asset: db.prepare('SELECT * FROM assets WHERE id=?').get(i.asset_id) })); });
+  add('POST', '/catalog/item/:id/favorite', { auth: true }, c => { const r = S.itemFavorite(db, c.user.id, c.params.id, c.form.on === '1'); go(c, '/catalog/item/' + +c.params.id, r.ok ? null : r.error, !r.ok); });
   add('POST', '/catalog/item/:id/buy', { auth: true }, c => { const r = S.acquire(db, c.user.id, c.params.id); go(c, '/catalog/item/' + +c.params.id, r.ok ? 'You now own ' + r.item.name + '.' : r.error, !r.ok); });
 
   // ---------------- character / inventory
@@ -86,12 +114,14 @@ function createWebApp({ db, gameservers, log = () => {}, secureCookies = false }
   add('POST', '/my/character/equip', { auth: true }, c => { const r = S.equip(db, c.user.id, c.form.asset); go(c, '/my/character', r.ok ? 'Now wearing ' + r.item.name + '.' : r.error, !r.ok); });
   add('POST', '/my/character/remove', { auth: true }, c => { S.unequip(db, c.user.id, c.form.asset); go(c, '/my/character', 'Removed.'); });
   add('POST', '/my/character/color', { auth: true }, c => { const r = S.setColor(db, c.user.id, String(c.form.part), +c.form.color); go(c, '/my/character', r.ok ? 'Body colour saved.' : r.error, !r.ok); });
-  add('GET', '/my/inventory', { auth: true }, c => out(c, 200, V.inventory(c, S.inventory(db, c.user.id, +c.query.type || 0), +c.query.type || 0)));
+  add('GET', '/my/inventory', { auth: true }, c => { const type = +c.query.type || 0; const counts = S.inventoryCounts(db, c.user.id); const total = type ? counts[type] || 0 : Object.values(counts).reduce((x, y) => x + y, 0); const pg = paginate(total, c.query.page, PER); out(c, 200, V.inventory(c, { type, counts, pg, items: S.inventoryPage(db, c.user.id, type, pg.limit, pg.offset) })); });
+  add('GET', '/my/favorites', { auth: true }, c => { const type = +c.query.type || 0; out(c, 200, V.favorites(c, { type, places: S.favoritePlaces(db, c.user.id), items: S.favoriteItems(db, c.user.id, type) })); });
+  add('GET', '/users', c => { const q = String(c.query.q || '').slice(0, 40); const pg = paginate(S.userSearch(db, q, { limit: 1 }).total, c.query.page, 20); out(c, 200, V.people(c, q, S.userSearch(db, q, { limit: pg.limit, offset: pg.offset }), pg)); });
 
   // ---------------- profile / friends / groups / messages
   add('GET', '/users/:id/profile', c => { const u = S.userById(db, c.params.id); if (!u) return out(c, 404, V.notFound(c)); let btn = '';
-    if (c.user && c.user.id !== u.id) { if (S.areFriends(db, c.user.id, u.id)) btn = '<span class="badge g">Friends</span>'; else btn = `<form method="post" action="/my/friends/request" style="display:inline"><input type="hidden" name="_csrf" value="${esc(c.csrf)}"><input type="hidden" name="username" value="${esc(u.username)}"><button class="btn-small btn-neutral">Add Friend</button></form>`; btn += ` <a class="btn-small btn-neutral" href="/my/messages?to=${encodeURIComponent(u.username)}">Message</a>`; }
-    out(c, 200, V.profile(c, u, { avatar: S.avatarGet(db, u.id), friends: S.friendsOf(db, u.id), groups: db.prepare('SELECT g.id,g.name FROM group_members m JOIN groups g ON g.id=m.group_id WHERE m.user_id=?').all(u.id), friendBtn: btn, msg: '' })); });
+    if (c.user && c.user.id !== u.id) { if (S.areFriends(db, c.user.id, u.id)) btn = '<span class="badge g">Friends</span>'; else btn = V.postForm(c, '/my/friends/request', `<input type="hidden" name="username" value="${esc(u.username)}"><button class="btn-small btn-neutral">Add Friend</button>`); btn += ` <a class="btn-small btn-neutral" href="/my/messages?to=${encodeURIComponent(u.username)}">Message</a>`; }
+    out(c, 200, V.profile(c, u, { avatar: S.avatarGet(db, u.id), friends: S.friendsOf(db, u.id), groups: db.prepare('SELECT g.id,g.name FROM group_members m JOIN groups g ON g.id=m.group_id WHERE m.user_id=?').all(u.id), friendBtn: btn, msg: '', online: false, favCat: String(c.query.fav || 'places'), favPlaces: S.favoritePlaces(db, u.id), favItems: S.favoriteItems(db, u.id, /^\d+$/.test(String(c.query.fav)) ? +c.query.fav : 0) })); });
   add('GET', '/my/friends', { auth: true }, c => out(c, 200, V.friends(c, { friends: S.friendsOf(db, c.user.id), requests: S.requestsFor(db, c.user.id) })));
   add('POST', '/my/friends/request', { auth: true }, c => { const r = S.sendFriendRequest(db, c.user.id, String(c.form.username || '')); go(c, '/my/friends', r.ok ? (r.pending ? 'Friend request sent.' : 'You are now friends.') : r.error, !r.ok); });
   add('POST', '/my/friends/respond', { auth: true }, c => { const r = S.respondFriend(db, c.user.id, c.form.id, c.form.accept === '1'); go(c, '/my/friends', r.ok ? 'Done.' : r.error, !r.ok); });
