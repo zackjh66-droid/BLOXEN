@@ -55,7 +55,7 @@ class World {
   // (script.Parent.TouchScript.TeleportScript.PlaceId.Value). A shadow tree keeps that subtree as detached, never-replicated, never-in-byId
   // WInsts reachable through parent.shadowKids; `parent.children` (what clients see) is untouched. Only plain values are kept.
   _shadowTree(src, parent = null) {
-    const w = new WInst(this.nextId++, src.className); w.referent = src.referent; w.shadow = true;
+    const w = new WInst(this.nextId++, src.className); w.referent = src.referent; w.shadow = true; if (SCRIPT_CLASSES.has(src.className)) w.sourceText = String(src.props.get('Source')?.value ?? '');
     for (const [k, pv] of src.props) { if (k === 'Source' || k === 'LinkedSource') continue; const t = pv.type; let v;
       if (t === 'string' || t === 'ProtectedString' || t === 'Content') v = String(pv.value); else if (t === 'bool') v = !!pv.value; else if (['int', 'int64', 'float', 'double'].includes(t)) v = Number(pv.value); else if (t === 'token') v = Number(pv.value); else continue;
       if (Number.isNaN(v)) continue; w.props.set(k, v); }

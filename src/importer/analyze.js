@@ -79,8 +79,8 @@ function analyze(place, { fileName = '' } = {}) {
   const compat = {
     geometry: parts > 0 ? (unsupportedClasses.length ? 'PARTIAL' : 'SUPPORTED') : 'UNKNOWN',
     geometryDetail: `${parts} part-like instances; instance classes without a replication mapping yet: ${unsupportedClasses.slice(0, 20).join(', ') || 'none'}`,
-    terrain: terrainData ? 'UNSUPPORTED' : 'SUPPORTED', scripts: scripts.length ? 'UNSUPPORTED' : 'SUPPORTED',
-    scriptsDetail: scripts.length ? 'No Lua runtime is wired into the game server yet (inert data only); game logic will not run.' : 'no scripts',
+    terrain: terrainData ? 'UNSUPPORTED' : 'SUPPORTED', scripts: scripts.length ? 'PARTIAL' : 'SUPPORTED',
+    scriptsDetail: scripts.length ? 'A sandboxed, step-budgeted Lua runtime exists (off unless BLOXEN_SCRIPTS=1; LocalScripts never run). It is NOT a faithful Roblox engine: unimplemented APIs are logged, there is no physics, and no script has been verified to behave as in 2015.' : 'no scripts',
     gui: guis ? 'UNSUPPORTED' : 'SUPPORTED', assets: assetList.length ? 'PARTIAL' : 'SUPPORTED',
     assetsDetail: assetList.length ? `${assetList.length} distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)` : 'no external assets',
   };

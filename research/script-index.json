@@ -1,0 +1,1815 @@
+{
+ "schema": "bloxen.script-index/1",
+ "generated": "2026-09-30",
+ "virtualSeconds": 30,
+ "note": "Static scan + sandboxed virtual-time run. executionStatus is about the BLOXEN sandbox, NOT real Roblox behaviour. Source text is not stored; sourceSha256 identifies it. Duplicate hierarchy paths are distinguished by \"occurrence\".",
+ "totals": {
+  "places": 7,
+  "scripts": 100
+ },
+ "places": {
+  "tabularasa": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "29c05bda4a847143afcb50960f3824e0192e002bcc6c9b80263347e722d8d02e",
+   "scripts": 0,
+   "executionStatusCounts": {},
+   "unsupportedApis": {},
+   "teleportLog": 0,
+   "rows": []
+  },
+  "crossroads-2007-client": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "6bf95856c724644c792d7065bcc14e0c5be10cc326bab57f71b7e84bbfa3af7b",
+   "scripts": 25,
+   "executionStatusCounts": {
+    "running": 10,
+    "finished": 15
+   },
+   "unsupportedApis": {
+    "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated": 42
+   },
+   "teleportLog": 0,
+   "rows": [
+    {
+     "place": "crossroads-2007-client",
+     "name": "Regenerate Lost Temple",
+     "path": "Workspace.Regeneration.Regenerate Lost Temple",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 466,
+     "sourceSha256": "8b7e277ec7cb5c286291f429addaba9b92a87dd8740eb8d3f200f32c9bfb6b94",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Regenerate Castle",
+     "path": "Workspace.Regeneration.Regenerate Castle",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 474,
+     "sourceSha256": "e33fecfe2f61525bd507c695eb4cf026ff4f78df703feeaf80f8b8fd8a4b0e6c",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Regenerate Ramp and Trees",
+     "path": "Workspace.Regeneration.Regenerate Ramp and Trees",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 510,
+     "sourceSha256": "7ae757f0bc15e603265862c6cf48c929a14a19b2be80a39bdc1928dd5fc4a544",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Regenerate Tower",
+     "path": "Workspace.Regeneration.Regenerate Tower",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 455,
+     "sourceSha256": "c3d32f3e54f7a297dba7750707313b49e843f7f718267e168427bc98f07d5e51",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Regenerate Hideout",
+     "path": "Workspace.Regeneration.Regenerate Hideout",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 461,
+     "sourceSha256": "61b47875b5a88ef063a638a879d6f5143db2f09463168a80ca7256dd3fa6d780",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "LeaderboardV3",
+     "path": "Workspace.LeaderboardV3",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 3160,
+     "sourceSha256": "11124b5a970437a17012e613e6ef9f717ff6949bfdbf7f3b97dfb4c576e6c72e",
+     "disabled": false,
+     "referencedServices": [
+      "Players"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 257,
+     "sourceSha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 2,
+     "class": "Script",
+     "sourceBytes": 262,
+     "sourceSha256": "cc7bdb2b11809864b6162102db89d753f101b8b2c2ea3bc06d035381a86ffa44",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 3,
+     "class": "Script",
+     "sourceBytes": 255,
+     "sourceSha256": "9c59f8177ccb29e490a2a20b750bca3d88cc89dbf9263c4213c309dd96975c4a",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 4,
+     "class": "Script",
+     "sourceBytes": 257,
+     "sourceSha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 5,
+     "class": "Script",
+     "sourceBytes": 257,
+     "sourceSha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 6,
+     "class": "Script",
+     "sourceBytes": 257,
+     "sourceSha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 7,
+     "class": "Script",
+     "sourceBytes": 269,
+     "sourceSha256": "04f3bbb8504dd50bd9026e8e7dca36f57f572a10f1e5247095372a1044ee875f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 8,
+     "class": "Script",
+     "sourceBytes": 275,
+     "sourceSha256": "f84807244047b6d4bc7c7efd01eb0d04f3a8f1aaa96ba2ecbaca3af93eae6ceb",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 9,
+     "class": "Script",
+     "sourceBytes": 269,
+     "sourceSha256": "04f3bbb8504dd50bd9026e8e7dca36f57f572a10f1e5247095372a1044ee875f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 10,
+     "class": "Script",
+     "sourceBytes": 262,
+     "sourceSha256": "cc7bdb2b11809864b6162102db89d753f101b8b2c2ea3bc06d035381a86ffa44",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 11,
+     "class": "Script",
+     "sourceBytes": 268,
+     "sourceSha256": "32c27817f0c6b33deef0072fd6b3362e79d54389643a9dc0a6b517ca1c548dee",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 12,
+     "class": "Script",
+     "sourceBytes": 257,
+     "sourceSha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 13,
+     "class": "Script",
+     "sourceBytes": 257,
+     "sourceSha256": "adce629fe4e4045344866ff9ecb7919daf867506ee82276d84ceddd2f0f4f7d2",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Red.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2694,
+     "sourceSha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Blue.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2694,
+     "sourceSha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Green.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2694,
+     "sourceSha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Black.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2694,
+     "sourceSha256": "2cce100fb470291531f8f4697ab3ab494e4c300559e3c8a495371059469f1357",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "AndYetItMoves",
+     "path": "Workspace.AndYetItMoves",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 177,
+     "sourceSha256": "f9346cf0b26e061fbac6dbc8d50dbfa9026e7be59fb630648eea512f4f1cf752",
+     "disabled": false,
+     "referencedServices": [
+      "Lighting"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-2007-client",
+     "name": "BattleArmorScript",
+     "path": "Workspace.BattleArmorStand.BattleArmor.BattleArmorScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1199,
+     "sourceSha256": "269e723da8412f7efb9ba06c6413bf2ea5be605b8ec68e436e8b4a5452ff0c65",
+     "disabled": false,
+     "referencedServices": [
+      "Players"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui",
+      "touched"
+     ],
+     "executionStatus": "finished"
+    }
+   ]
+  },
+  "crossroads-uncopylocked-commit": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "acec28f504e6dc130a2409b95a01d72882d3503f0abc91d81368a0ac839e0edf",
+   "scripts": 48,
+   "executionStatusCounts": {
+    "running": 10,
+    "finished": 25,
+    "not-run:client-side script": 6,
+    "not-run:disabled": 5,
+    "not-run:client-side script (nested under a script)": 2
+   },
+   "unsupportedApis": {
+    "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated": 48,
+    "event Activated: connected but never fires (player input is not delivered to tools yet)": 1
+   },
+   "teleportLog": 0,
+   "rows": [
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Red.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2575,
+     "sourceSha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Blue.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2575,
+     "sourceSha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Green.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2575,
+     "sourceSha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.TeamBeacon Black.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2575,
+     "sourceSha256": "8a298fc72bc46144089396ac7f2ab5412fa2dc2bea7ec6a67a02db505b650a7e",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "AndYetItMoves",
+     "path": "Workspace.AndYetItMoves",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 173,
+     "sourceSha256": "c3c9ed6e09fa83f0bcbcf33d696c20d4768054c5247861b913142571ec4a4565",
+     "disabled": false,
+     "referencedServices": [
+      "Lighting"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "BattleArmorScript",
+     "path": "Workspace.BattleArmorStand.BattleArmor.BattleArmorScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1145,
+     "sourceSha256": "67f774ca039d99a8e0f02f16091b486d0a8b31ba77547712e3c7d9a2ad4591a0",
+     "disabled": false,
+     "referencedServices": [
+      "Players"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui",
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "SignScript",
+     "path": "Workspace.Teleporter.sign.SignScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 318,
+     "sourceSha256": "86b5a70c84c6f5b63e0de78ba37a8cced85bd89d17f95c61b282f33cfe496ef5",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [
+      14403
+     ],
+     "teleportTargets": [
+      {
+       "robloxPlaceId": 14403,
+       "result": "unsupported-local-destination",
+       "reason": "UNMAPPED: no approved local place for this historical PlaceId"
+      }
+     ],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "TouchScript",
+     "path": "Workspace.Teleporter.TouchScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 2145,
+     "sourceSha256": "23068ff04961832c98778b20edf6b87de26fbcd713d08664f95545659ec52600",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [
+      14403
+     ],
+     "teleportTargets": [
+      {
+       "robloxPlaceId": 14403,
+       "result": "unsupported-local-destination",
+       "reason": "UNMAPPED: no approved local place for this historical PlaceId"
+      }
+     ],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "SignScript",
+     "path": "Workspace.Teleporter.sign.SignScript",
+     "occurrence": 2,
+     "class": "Script",
+     "sourceBytes": 345,
+     "sourceSha256": "f44f3c22e12c7b05daa62b1f92672ad2cd27f66b5d384f7ac5a3199d63e7198e",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "TouchScript",
+     "path": "Workspace.Teleporter.TouchScript",
+     "occurrence": 2,
+     "class": "Script",
+     "sourceBytes": 2005,
+     "sourceSha256": "04549e096d4cf709e39a13c0f149ea01d93f60b52e00fe99c69c2f6ec4d22c92",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [
+      41324860
+     ],
+     "teleportTargets": [
+      {
+       "robloxPlaceId": 41324860,
+       "result": "unsupported-local-destination",
+       "reason": "UNMAPPED: no approved local place for this historical PlaceId"
+      }
+     ],
+     "compatFindings": [
+      "bodymovers",
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Regenerate Lost Temple",
+     "path": "Workspace.Regeneration.Regenerate Lost Temple",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 442,
+     "sourceSha256": "72c6d29b175897b0accd4c48d4c13360aff4123489e8297b5f9cdf9b4e4dd01c",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Regenerate Castle",
+     "path": "Workspace.Regeneration.Regenerate Castle",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 452,
+     "sourceSha256": "9ca38373beae06540c9f7b645f412da195fd9f52ebf2ffadeb0bf8fe9f7e95c3",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Regenerate Ramp and Trees",
+     "path": "Workspace.Regeneration.Regenerate Ramp and Trees",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 486,
+     "sourceSha256": "39cad538a3736787f32c32b2ab1da142cacf6acd0829a0dc446b5dcbc36cd87f",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Regenerate Tower",
+     "path": "Workspace.Regeneration.Regenerate Tower",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 431,
+     "sourceSha256": "3731cf71d5c3770773e1b57d7f3d5b802a5c1fa0fcd061eb237416627d81390e",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Regenerate Hideout",
+     "path": "Workspace.Regeneration.Regenerate Hideout",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 439,
+     "sourceSha256": "513aae6afea854d6397102db0767870e7ddce102d66a8892c1c37c5397d32d02",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "LeaderboardV3",
+     "path": "Workspace.LeaderboardV3",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 3034,
+     "sourceSha256": "2a7c8ab4c47a79d008e77a8f4c37228d7b24620e85f23f09d2e560c1c47ad109",
+     "disabled": false,
+     "referencedServices": [
+      "Players"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 244,
+     "sourceSha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 2,
+     "class": "Script",
+     "sourceBytes": 248,
+     "sourceSha256": "204c334ed982303a5f904a05d23dd282554c02c8a3a8140169b5b6b602e16797",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 3,
+     "class": "Script",
+     "sourceBytes": 242,
+     "sourceSha256": "9ab8f6571f386767a85e87c29ed14d68d2fcad126cb678377275df6a3b13a95f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 4,
+     "class": "Script",
+     "sourceBytes": 244,
+     "sourceSha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 5,
+     "class": "Script",
+     "sourceBytes": 244,
+     "sourceSha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 6,
+     "class": "Script",
+     "sourceBytes": 244,
+     "sourceSha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 7,
+     "class": "Script",
+     "sourceBytes": 255,
+     "sourceSha256": "bd68f64d333ed5722ee18fa44ceddb1fc518936ec787b0c2395c86502acd7c26",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 8,
+     "class": "Script",
+     "sourceBytes": 259,
+     "sourceSha256": "f8262787b96b3dde6901ce9f1e8fd8446894b222913c6f7dda15c5cd23d3c7c6",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 9,
+     "class": "Script",
+     "sourceBytes": 255,
+     "sourceSha256": "bd68f64d333ed5722ee18fa44ceddb1fc518936ec787b0c2395c86502acd7c26",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 10,
+     "class": "Script",
+     "sourceBytes": 248,
+     "sourceSha256": "204c334ed982303a5f904a05d23dd282554c02c8a3a8140169b5b6b602e16797",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 11,
+     "class": "Script",
+     "sourceBytes": 254,
+     "sourceSha256": "35282ecb2074d4dd9feb62f25e34ab69b9352633ffd2222cdee0758ff7fe6435",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 12,
+     "class": "Script",
+     "sourceBytes": 244,
+     "sourceSha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Script",
+     "path": "Workspace.Tower.PL3Trampoline.Bouncer.Script",
+     "occurrence": 13,
+     "class": "Script",
+     "sourceBytes": 244,
+     "sourceSha256": "e65e2b51ffe05407e9705b9cf13a3674a4e61b48d0d4e005d4a8ca8d7ea9d12f",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "SwordScript",
+     "path": "StarterPack.LinkedSword.SwordScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedSword.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedSlingshot.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Slingshot",
+     "path": "StarterPack.LinkedSlingshot.Slingshot",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "PelletScript",
+     "path": "StarterPack.LinkedSlingshot.PelletScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Server Launcher",
+     "path": "StarterPack.LinkedRocketLauncher.Server Launcher",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "RocketScript",
+     "path": "StarterPack.LinkedRocketLauncher.RocketScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedRocketLauncher.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "WallMaker",
+     "path": "StarterPack.LinkedTrowel.WallMaker",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "BrickCleanup",
+     "path": "StarterPack.LinkedTrowel.BrickCleanup",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedTrowel.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedTimebomb.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "PlantBomb",
+     "path": "StarterPack.LinkedTimebomb.PlantBomb",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Bomb",
+     "path": "StarterPack.LinkedTimebomb.Bomb",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedSuperball.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "CannonBall",
+     "path": "StarterPack.LinkedSuperball.CannonBall",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1255,
+     "sourceSha256": "0e651ae93269a36acb5e7efdb9880624cab39d959f0fe7f445a52f60cabf3ad4",
+     "disabled": true,
+     "referencedServices": [
+      "RunService"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "touched"
+     ],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "CannonScript",
+     "path": "StarterPack.LinkedSuperball.CannonScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1417,
+     "sourceSha256": "5e68b1159158944af01932c213fcb2cdaa15770d657a4a33a384850223952562",
+     "disabled": false,
+     "referencedServices": [
+      "Players",
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "tool"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "TeleportScript",
+     "path": "Workspace.Teleporter.TouchScript.TeleportScript",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 381,
+     "sourceSha256": "0b039015aea53480c27c039def2ba69ed75935d01861ca6f44016ce23e32d431",
+     "disabled": true,
+     "referencedServices": [
+      "TeleportService"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "teleport"
+     ],
+     "executionStatus": "not-run:client-side script (nested under a script)"
+    },
+    {
+     "place": "crossroads-uncopylocked-commit",
+     "name": "TeleportScript",
+     "path": "Workspace.Teleporter.TouchScript.TeleportScript",
+     "occurrence": 2,
+     "class": "LocalScript",
+     "sourceBytes": 376,
+     "sourceSha256": "bb289bb16f77cd4e1a559c671d44beeecf099899e6b703e25d87691f09c557b7",
+     "disabled": true,
+     "referencedServices": [
+      "TeleportService"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [
+      41324860
+     ],
+     "teleportTargets": [
+      {
+       "robloxPlaceId": 41324860,
+       "result": "unsupported-local-destination",
+       "reason": "UNMAPPED: no approved local place for this historical PlaceId"
+      }
+     ],
+     "compatFindings": [
+      "teleport"
+     ],
+     "executionStatus": "not-run:client-side script (nested under a script)"
+    }
+   ]
+  },
+  "happyhomeinrobloxia": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "91ffda80a0a2550bfbee06f8ebd08cd1c95bf38694eb94d68cc022f0877fc306",
+   "scripts": 0,
+   "executionStatusCounts": {},
+   "unsupportedApis": {},
+   "teleportLog": 0,
+   "rows": []
+  },
+  "robloxhq": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "aaec98c3ff916191afe00f9021d641a20bf0278290c0180c9061e2fa25a914db",
+   "scripts": 2,
+   "executionStatusCounts": {
+    "finished": 2
+   },
+   "unsupportedApis": {},
+   "teleportLog": 0,
+   "rows": [
+    {
+     "place": "robloxhq",
+     "name": "Script",
+     "path": "Workspace.WallBuilder.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1058,
+     "sourceSha256": "9ab30f21fa972af0ada9676027d61ec55514eb8c5dbb8741c5ca15500c29e603",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "robloxhq",
+     "name": "LinkedLeaderboard",
+     "path": "Workspace.LinkedLeaderboard",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    }
+   ]
+  },
+  "roblox-world-headquarters": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "692b8cdfefde27a4d44c4606d3638776c58521c8236a51827c7e99bde23e9b48",
+   "scripts": 22,
+   "executionStatusCounts": {
+    "finished": 10,
+    "not-run:client-side script": 6,
+    "not-run:disabled": 6
+   },
+   "unsupportedApis": {
+    "method BreakJoints: no-op (joints are not simulated)": 1236,
+    "event Selected: connected but never fires (player input is not delivered to tools yet)": 1
+   },
+   "teleportLog": 0,
+   "rows": [
+    {
+     "place": "roblox-world-headquarters",
+     "name": "RemoveSnaps",
+     "path": "Workspace.RemoveSnaps",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 334,
+     "sourceSha256": "7e64b65603776fa4f8fdc6d1b00beada4d2f92667dce8ea3b4667ec285c25ea9",
+     "disabled": false,
+     "referencedServices": [
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Script",
+     "path": "Workspace.WallBuilder.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1058,
+     "sourceSha256": "9ab30f21fa972af0ada9676027d61ec55514eb8c5dbb8741c5ca15500c29e603",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "LinkedLeaderboard",
+     "path": "Workspace.LinkedLeaderboard",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Jetboots",
+     "path": "StarterPack.JetBoots.Jetboots",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1999,
+     "sourceSha256": "4a9ea9a2382a25e15f1e56e8e302e962edfff3305d954efd1236af9ba1604eea",
+     "disabled": false,
+     "referencedServices": [
+      "Players"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers"
+     ],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "SwordScript",
+     "path": "StarterPack.LinkedSword.SwordScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedSword.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Server Launcher",
+     "path": "StarterPack.LinkedRocketLauncher.Server Launcher",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "RocketScript",
+     "path": "StarterPack.LinkedRocketLauncher.RocketScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedRocketLauncher.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "WallMaker",
+     "path": "StarterPack.LinkedTrowel.WallMaker",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "BrickCleanup",
+     "path": "StarterPack.LinkedTrowel.BrickCleanup",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedTrowel.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedSlingshot.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Slingshot",
+     "path": "StarterPack.LinkedSlingshot.Slingshot",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "PelletScript",
+     "path": "StarterPack.LinkedSlingshot.PelletScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedSuperball.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "CannonBall",
+     "path": "StarterPack.LinkedSuperball.CannonBall",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "CannonScript",
+     "path": "StarterPack.LinkedSuperball.CannonScript",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Paintball",
+     "path": "StarterPack.LinkedPaintballGun.Paintball",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "Local Gui",
+     "path": "StarterPack.LinkedPaintballGun.Local Gui",
+     "occurrence": 1,
+     "class": "LocalScript",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:client-side script"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "PaintballShooter",
+     "path": "StarterPack.LinkedPaintballGun.PaintballShooter",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": false,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "finished"
+    },
+    {
+     "place": "roblox-world-headquarters",
+     "name": "BrickCleanup",
+     "path": "StarterPack.LinkedPaintballGun.BrickCleanup",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 0,
+     "sourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "disabled": true,
+     "referencedServices": [],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "not-run:disabled"
+    }
+   ]
+  },
+  "mission-to-the-moon": {
+   "registryStatus": "PRESERVED",
+   "placeSha256": "8b17c1aefa72429b301d65dd3034a54ca615a60dc837f39c6adfb45d780c3af5",
+   "scripts": 3,
+   "executionStatusCounts": {
+    "running": 1,
+    "error": 1,
+    "not-run:nested under a script (not imported as a runnable script)": 1
+   },
+   "unsupportedApis": {},
+   "teleportLog": 0,
+   "rows": [
+    {
+     "place": "mission-to-the-moon",
+     "name": "Moon",
+     "path": "Workspace.Moon",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 1362,
+     "sourceSha256": "917982bb01a8069b972c67aba612057e1d6052d25fab37012390d3a306c15780",
+     "disabled": false,
+     "referencedServices": [
+      "Players"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "bodymovers"
+     ],
+     "executionStatus": "running"
+    },
+    {
+     "place": "mission-to-the-moon",
+     "name": "Script",
+     "path": "Workspace.Model.Cannon.Script",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 723,
+     "sourceSha256": "919781319ba6779a0ad5953e9518774de61d0171d95350c9670d3e7be1c762a5",
+     "disabled": false,
+     "referencedServices": [
+      "Debris",
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [],
+     "executionStatus": "error",
+     "executionError": "bad argument #3 to 'new' (number expected, got function)"
+    },
+    {
+     "place": "mission-to-the-moon",
+     "name": "NoHelmet",
+     "path": "Workspace.Moon.NoHelmet",
+     "occurrence": 1,
+     "class": "Script",
+     "sourceBytes": 908,
+     "sourceSha256": "c6eac203ac531c70c6cc521140cc274d8c26f34878cfaef0296025b068a6b5d5",
+     "disabled": true,
+     "referencedServices": [
+      "Players",
+      "Workspace"
+     ],
+     "referencedAssetIds": [],
+     "referencedPlaceIds": [],
+     "compatFindings": [
+      "gui"
+     ],
+     "executionStatus": "not-run:nested under a script (not imported as a runnable script)"
+    }
+   ]
+  }
+ }
+}

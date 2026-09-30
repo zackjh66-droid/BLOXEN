@@ -1,0 +1,478 @@
+{
+ "schema": "bloxen.place-compat-reports/1",
+ "generated": "2026-09-30",
+ "note": "Static analysis + BLOXEN sandbox results. UNIT/SIMULATOR evidence only; REAL-CLIENT-TESTED is \"no\" for every place.",
+ "reports": {
+  "tabularasa": {
+   "sha256": "29c05bda4a847143afcb50960f3824e0192e002bcc6c9b80263347e722d8d02e",
+   "registryStatus": "PRESERVED",
+   "overall": "SUPPORTED",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "1 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "SUPPORTED",
+    "scriptsDetail": "no scripts",
+    "gui": "SUPPORTED",
+    "assets": "SUPPORTED",
+    "assetsDetail": "no external assets"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 1.4
+   },
+   "instances": 10,
+   "parts": 1,
+   "meshes": 0,
+   "sounds": 0,
+   "guis": 0,
+   "terrain": false,
+   "replication": {
+    "imported": 10,
+    "serverOnlyDropped": 0,
+    "unknownClassDropped": 0,
+    "propsDropped": 25,
+    "topDroppedClasses": []
+   },
+   "scripts": {
+    "total": 0,
+    "byClass": {},
+    "markerCounts": {},
+    "flagged": 0,
+    "sandboxStatusCounts": {},
+    "touchedConnections": 0,
+    "unsupportedApis": [],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 0,
+    "clientBuiltin": 0,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  },
+  "crossroads-2007-client": {
+   "sha256": "6bf95856c724644c792d7065bcc14e0c5be10cc326bab57f71b7e84bbfa3af7b",
+   "registryStatus": "PRESERVED",
+   "overall": "PARTIAL",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "1679 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "PARTIAL",
+    "scriptsDetail": "A sandboxed, step-budgeted Lua runtime exists (off unless BLOXEN_SCRIPTS=1; LocalScripts never run). It is NOT a faithful Roblox engine: unimplemented APIs are logged, there is no physics, and no script has been verified to behave as in 2015.",
+    "gui": "SUPPORTED",
+    "assets": "PARTIAL",
+    "assetsDetail": "1 distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 6.5678
+   },
+   "instances": 1835,
+   "parts": 1679,
+   "meshes": 0,
+   "sounds": 0,
+   "guis": 0,
+   "terrain": false,
+   "replication": {
+    "imported": 1810,
+    "serverOnlyDropped": 25,
+    "unknownClassDropped": 0,
+    "propsDropped": 10549,
+    "topDroppedClasses": [
+     "Script x25"
+    ]
+   },
+   "scripts": {
+    "total": 25,
+    "byClass": {
+     "Script": 25
+    },
+    "markerCounts": {
+     "leaderstats": 1,
+     "physics": 4
+    },
+    "flagged": 0,
+    "sandboxStatusCounts": {
+     "running": 10,
+     "finished": 15
+    },
+    "touchedConnections": 42,
+    "unsupportedApis": [
+     "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated"
+    ],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 0,
+    "clientBuiltin": 1,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "Place logic is Lua: sandbox runtime is OFF by default and is not a faithful engine; no server-side physics (Touched = simplified player-contact model)",
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  },
+  "crossroads-uncopylocked-commit": {
+   "sha256": "acec28f504e6dc130a2409b95a01d72882d3503f0abc91d81368a0ac839e0edf",
+   "registryStatus": "PRESERVED",
+   "overall": "PARTIAL",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "1766 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "PARTIAL",
+    "scriptsDetail": "A sandboxed, step-budgeted Lua runtime exists (off unless BLOXEN_SCRIPTS=1; LocalScripts never run). It is NOT a faithful Roblox engine: unimplemented APIs are logged, there is no physics, and no script has been verified to behave as in 2015.",
+    "gui": "UNSUPPORTED",
+    "assets": "PARTIAL",
+    "assetsDetail": "47 distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 1.8394
+   },
+   "instances": 2155,
+   "parts": 1766,
+   "meshes": 11,
+   "sounds": 5,
+   "guis": 1,
+   "terrain": false,
+   "replication": {
+    "imported": 2110,
+    "serverOnlyDropped": 40,
+    "unknownClassDropped": 1,
+    "propsDropped": 516,
+    "topDroppedClasses": [
+     "Script x40",
+     "Timer x1"
+    ]
+   },
+   "scripts": {
+    "total": 48,
+    "byClass": {
+     "Script": 40,
+     "LocalScript": 8
+    },
+    "markerCounts": {
+     "physics": 6,
+     "teleport": 2,
+     "leaderstats": 1,
+     "tool": 1
+    },
+    "flagged": 0,
+    "sandboxStatusCounts": {
+     "running": 10,
+     "finished": 25,
+     "not-run:client-side script": 6,
+     "not-run:disabled": 5
+    },
+    "touchedConnections": 48,
+    "unsupportedApis": [
+     "event Touched: fires only when a player's character overlaps the part (step-sampled box test); part-vs-part contact is not simulated",
+     "event Activated: connected but never fires (player input is not delivered to tools yet)"
+    ],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 25,
+    "clientBuiltin": 22,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "1 GUI instance(s) (GUI replication unverified)",
+    "Place logic is Lua: sandbox runtime is OFF by default and is not a faithful engine; no server-side physics (Touched = simplified player-contact model)",
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  },
+  "happyhomeinrobloxia": {
+   "sha256": "91ffda80a0a2550bfbee06f8ebd08cd1c95bf38694eb94d68cc022f0877fc306",
+   "registryStatus": "PRESERVED",
+   "overall": "SUPPORTED",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "1964 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "SUPPORTED",
+    "scriptsDetail": "no scripts",
+    "gui": "SUPPORTED",
+    "assets": "PARTIAL",
+    "assetsDetail": "3 distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 6.8915
+   },
+   "instances": 2010,
+   "parts": 1964,
+   "meshes": 0,
+   "sounds": 0,
+   "guis": 0,
+   "terrain": false,
+   "replication": {
+    "imported": 2010,
+    "serverOnlyDropped": 0,
+    "unknownClassDropped": 0,
+    "propsDropped": 11940,
+    "topDroppedClasses": []
+   },
+   "scripts": {
+    "total": 0,
+    "byClass": {},
+    "markerCounts": {},
+    "flagged": 0,
+    "sandboxStatusCounts": {},
+    "touchedConnections": 0,
+    "unsupportedApis": [],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 0,
+    "clientBuiltin": 3,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  },
+  "robloxhq": {
+   "sha256": "aaec98c3ff916191afe00f9021d641a20bf0278290c0180c9061e2fa25a914db",
+   "registryStatus": "PRESERVED",
+   "overall": "PARTIAL",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "8077 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "PARTIAL",
+    "scriptsDetail": "A sandboxed, step-budgeted Lua runtime exists (off unless BLOXEN_SCRIPTS=1; LocalScripts never run). It is NOT a faithful Roblox engine: unimplemented APIs are logged, there is no physics, and no script has been verified to behave as in 2015.",
+    "gui": "SUPPORTED",
+    "assets": "PARTIAL",
+    "assetsDetail": "7 distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 6.7545
+   },
+   "instances": 8577,
+   "parts": 8077,
+   "meshes": 7,
+   "sounds": 0,
+   "guis": 0,
+   "terrain": false,
+   "replication": {
+    "imported": 8575,
+    "serverOnlyDropped": 2,
+    "unknownClassDropped": 0,
+    "propsDropped": 50401,
+    "topDroppedClasses": [
+     "Script x2"
+    ]
+   },
+   "scripts": {
+    "total": 2,
+    "byClass": {
+     "Script": 2
+    },
+    "markerCounts": {},
+    "flagged": 0,
+    "sandboxStatusCounts": {
+     "finished": 2
+    },
+    "touchedConnections": 0,
+    "unsupportedApis": [],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 0,
+    "clientBuiltin": 7,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "Place logic is Lua: sandbox runtime is OFF by default and is not a faithful engine; no server-side physics (Touched = simplified player-contact model)",
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  },
+  "roblox-world-headquarters": {
+   "sha256": "692b8cdfefde27a4d44c4606d3638776c58521c8236a51827c7e99bde23e9b48",
+   "registryStatus": "PRESERVED",
+   "overall": "PARTIAL",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "8083 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "PARTIAL",
+    "scriptsDetail": "A sandboxed, step-budgeted Lua runtime exists (off unless BLOXEN_SCRIPTS=1; LocalScripts never run). It is NOT a faithful Roblox engine: unimplemented APIs are logged, there is no physics, and no script has been verified to behave as in 2015.",
+    "gui": "UNSUPPORTED",
+    "assets": "PARTIAL",
+    "assetsDetail": "29 distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 2.8623
+   },
+   "instances": 8640,
+   "parts": 8083,
+   "meshes": 12,
+   "sounds": 6,
+   "guis": 1,
+   "terrain": false,
+   "replication": {
+    "imported": 8621,
+    "serverOnlyDropped": 19,
+    "unknownClassDropped": 0,
+    "propsDropped": 9057,
+    "topDroppedClasses": [
+     "Script x16",
+     "ScriptService x1",
+     "ServerScriptService x1",
+     "ServerStorage x1"
+    ]
+   },
+   "scripts": {
+    "total": 22,
+    "byClass": {
+     "Script": 16,
+     "LocalScript": 6
+    },
+    "markerCounts": {
+     "physics": 1
+    },
+    "flagged": 0,
+    "sandboxStatusCounts": {
+     "finished": 10,
+     "not-run:client-side script": 6,
+     "not-run:disabled": 6
+    },
+    "touchedConnections": 0,
+    "unsupportedApis": [
+     "method BreakJoints: no-op (joints are not simulated)",
+     "event Selected: connected but never fires (player input is not delivered to tools yet)"
+    ],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 6,
+    "clientBuiltin": 23,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "1 GUI instance(s) (GUI replication unverified)",
+    "Place logic is Lua: sandbox runtime is OFF by default and is not a faithful engine; no server-side physics (Touched = simplified player-contact model)",
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  },
+  "mission-to-the-moon": {
+   "sha256": "8b17c1aefa72429b301d65dd3034a54ca615a60dc837f39c6adfb45d780c3af5",
+   "registryStatus": "PRESERVED",
+   "overall": "PARTIAL",
+   "importerCompat": {
+    "geometry": "SUPPORTED",
+    "geometryDetail": "749 part-like instances; instance classes without a replication mapping yet: none",
+    "terrain": "SUPPORTED",
+    "scripts": "PARTIAL",
+    "scriptsDetail": "A sandboxed, step-budgeted Lua runtime exists (off unless BLOXEN_SCRIPTS=1; LocalScripts never run). It is NOT a faithful Roblox engine: unimplemented APIs are logged, there is no physics, and no script has been verified to behave as in 2015.",
+    "gui": "UNSUPPORTED",
+    "assets": "PARTIAL",
+    "assetsDetail": "6 distinct asset references; availability tracked in asset service (most are MISSING until preserved copies are supplied)"
+   },
+   "era": {
+    "verdict": "predates-or-matches-2015-API (legacy members present)",
+    "post2015Score": 0,
+    "legacyScore": 1.9185
+   },
+   "instances": 785,
+   "parts": 749,
+   "meshes": 0,
+   "sounds": 0,
+   "guis": 1,
+   "terrain": false,
+   "replication": {
+    "imported": 781,
+    "serverOnlyDropped": 2,
+    "unknownClassDropped": 1,
+    "propsDropped": 796,
+    "topDroppedClasses": [
+     "Script x2",
+     "Timer x1"
+    ]
+   },
+   "scripts": {
+    "total": 3,
+    "byClass": {
+     "Script": 3
+    },
+    "markerCounts": {
+     "physics": 1
+    },
+    "flagged": 0,
+    "sandboxStatusCounts": {
+     "running": 1,
+     "error": 1
+    },
+    "touchedConnections": 0,
+    "unsupportedApis": [],
+    "runtimeOnByDefault": false
+   },
+   "assets": {
+    "distinctReferences": 6,
+    "clientBuiltin": 0,
+    "availableInStore": 0,
+    "note": "Every referenced asset is MISSING unless the asset manifest lists it (it is empty); missing assets are never substituted."
+   },
+   "blockers": [
+    "1 GUI instance(s) (GUI replication unverified)",
+    "Place logic is Lua: sandbox runtime is OFF by default and is not a faithful engine; no server-side physics (Touched = simplified player-contact model)",
+    "No real-client test (Windows required)"
+   ],
+   "tested": {
+    "UNIT": true,
+    "SIMULATOR": "BLOXEN simulator client joins, receives the place and spawns (tests/e2e-flow.test.js)",
+    "REAL_CLIENT": "NOT TESTED: REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED"
+   }
+  }
+ }
+}
