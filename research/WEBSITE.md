@@ -2,7 +2,10 @@
 
 Implementation: `src/web/{app,views,main}.js`, `static/css/bloxen.css`, `static/css/brickcolors.css`; zero dependencies; server-rendered; CSP `default-src 'self'` with **no inline styles or scripts**. Every page carries a fixed-position banner "BLOXEN is an unofficial, non-commercial preservation project…" and a footer with the target client version. The banner and footer are the only additions to the period UI.
 
-## Pages (all implemented, all render 200; screenshots in `research/visual/`)
+## UPDATE (evidence pass): real 2015 CSS/DOM found
+A real Roblox item page saved on 2015-02-21 (with its `FetchCSS` bundles) and Wayback captures of Game Details (20150627) and Profile (20150903) were located and read; see `research/website/SOURCES.md`. The shared chrome (header `#0074bd`, left nav >=1480px, 970px `#BodyWrapper`, footer, buttons, tabs, item page sizes) now uses those ARCHIVED-NEAR-DATE values, replacing the 2012-14 and sampled values described further down (kept below as history). `src/web/components.js` holds the reusable pieces. Validation: `tools/visual_validate.js` -> `research/website/visual-validation.md` (computed-style comparison, **not** pixel-perfect; screenshots in `research/website/screens/`; `research/visual/` is the superseded pre-refit set). New/changed pages: Game Details (registry status, About/Compatibility/Evidence), `/games/registry`, catalog + inventory + people pagination, item favourites, `/my/favorites`, profile favourites, `/my/travel`, `/users`.
+
+## Pages (all implemented, all render 200; older screenshots in `research/visual/`)
 | Required page | Route | Content evidence | Layout/CSS evidence |
 |---|---|---|---|
 | Home (logged out) | `/` | **ARCHIVED-EXACT text** (Wayback 20150723171630) | layout from a real ~2015 screenshot (ARCHIVED-NEAR-DATE, reduced size); imagery MISSING |

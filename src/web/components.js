@@ -1,7 +1,7 @@
 'use strict';
 // Reusable page components. Structure/class names follow the ARCHIVED-NEAR-DATE 2015-02-21 item-page DOM+CSS (header.rbx-header, #navContent / .rbx-left-col, #BodyWrapper,
 // #Footer/.FooterNav/.legal, .btn-large/.btn-medium, .SquareTabGray, .StandardPanelWhite). Nothing here is a Roblox asset; all imagery is MISSING and labelled.
-// Every dynamic value passes through esc(). No inline style= (CSP).
+// Every dynamic value passes through esc(). No inline style attributes (CSP).
 const { esc } = require('../lib/http');
 const money = n => n == null ? '' : Number(n).toLocaleString('en-US');
 const when = ms => ms ? new Date(ms).toISOString().slice(0, 10) : 'UNKNOWN';

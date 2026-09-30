@@ -1,5 +1,7 @@
 # Windows real-client validation (the final gate) — NOT YET PERFORMED
 
+> **REAL CLIENT EXECUTION = BLOCKED: WINDOWS REQUIRED** · **AUTHORITATIVE SERVER→CLIENT ID_DATA VALIDATION = BLOCKED: REAL CLIENT CAPTURE REQUIRED** (frozen in `STATUS.md`). The non-Windows side of BLOXEN is complete; this document is what remains.
+
 Everything in this repository is **UNIT-TESTED or SIMULATOR-TESTED**. Nothing has been tested with `RobloxPlayerBeta.exe`. This document is the procedure for doing so; it must be run by a person on Windows, in a disposable environment, with approval. This project has never executed the binary and its automation must not.
 
 ## Rules (do not bypass)

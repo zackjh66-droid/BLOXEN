@@ -30,3 +30,7 @@ Join token single-use (consumed by the game server, not by Join.ashx peek), floo
 1. Capture the client's first ID_DATA batch and property-id assignment to replace INFERRED ids.
 2. Determine authoritative server→client ID_DATA (instance/property encoding).
 3. Check the Huffman table against the client's.
+
+
+## Frozen gate
+**AUTHORITATIVE SERVER→CLIENT ID_DATA VALIDATION = BLOCKED: REAL CLIENT CAPTURE REQUIRED.** BLOXEN does not guess the server→client ID_DATA encoding. `bloxen-profile-v0` (ids above) is INFERRED, round-trips only against BLOXEN's own simulator (`src/sim/client.js`), and is labelled so in every report. Packet logging (game-server logger, compat log) and the simulator are retained so a real capture can be compared against them as soon as the Windows gate has been run.
