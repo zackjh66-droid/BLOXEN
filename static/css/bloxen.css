@@ -75,3 +75,8 @@ html, body { background: #e3e3e3; } body { color: #343434; font-size: 14px; line
 .favstar { background: none; border: 0; font-size: 22px; color: #bbb; cursor: pointer; padding: 0; line-height: 1; } .favstar.on { color: #f0b400; } span.favstar { cursor: default; }
 .gd-play { margin: 10px 0; } .gd-stats { list-style: none; margin: 10px 0; padding: 0; } .gd-stats li { margin: 3px 0; } #GameDetails .by { color: #555; margin-bottom: 8px; }
 .cat-search { margin: 6px 0 10px; } .fav-cat { margin-bottom: 10px; }
+.rbx-header .acct span { color: #fff; }
+/* found by tools/visual_validate.js: fixed-width inputs escaped the 250px side column on /my/groups */
+form.stack input[type=text], form.stack input[type=password], form.stack textarea, form.stack select, .w340, .w440 { box-sizing: border-box; max-width: 100%; }
+.thumb { border: 1px solid #ccc; background: #f2f2f2; box-sizing: border-box; display: flex; align-items: center; justify-content: center; text-align: center; color: #999; font-size: 12px; } .side2 .thumb { width: 300px; height: 200px; }
+#Thumbnail, .two > .side2, .two > .side { align-self: flex-start; } #Item .two { gap: 0; } #Summary { width: 480px; box-sizing: border-box; padding-left: 20px; }
