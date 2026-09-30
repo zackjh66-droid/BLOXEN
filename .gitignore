@@ -11,3 +11,4 @@ preservation/store/
 preservation/places/
 preservation/client/
 image-search/
+__pycache__/

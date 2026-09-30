@@ -1,0 +1,33 @@
+{
+  "schema": "bloxen.place-mapping/1",
+  "purpose": "TeleportService design: a place script asks for a HISTORICAL Roblox PlaceId; BLOXEN resolves it to a locally held, approved place version or returns a controlled 'unsupported-local-destination' result. Nothing here ever contacts Roblox.",
+  "rules": [
+    "A mapping is 'approved' only if the target local place is registry status PRESERVED and its SHA-256 is pinned here.",
+    "A PlaceId with no entry is UNMAPPED. A mapped entry whose target is absent from the local store is UNAVAILABLE. Both return unsupported-local-destination.",
+    "Two local files that claim the same historical PlaceId are different VERSIONS; the mapping pins exactly one (by sha256) and the choice is recorded.",
+    "The mapping is a BLOXEN design decision (INFERRED); it is not historical data. Historical PlaceIds come from the place files / Archive Team evidence."
+  ],
+  "entries": [
+    {
+      "robloxPlaceId": 1818,
+      "local": "crossroads-uncopylocked-commit",
+      "sha256": "acec28f504e6dc130a2409b95a01d72882d3503f0abc91d81368a0ac839e0edf",
+      "approved": true,
+      "why": "Classic: Crossroads. Two held versions claim id 1818 (crossroads-2007-client = 2007-era, crossroads-uncopylocked-commit = a later file). The later commit version is the one whose own scripts teleport to other places, so it is pinned for script-driven travel. The alternative is selectable only by its registry id on the Games page."
+    },
+    {
+      "robloxPlaceId": 1501,
+      "local": "roblox-world-headquarters",
+      "sha256": "692b8cdfefde27a4d44c4606d3638776c58521c8236a51827c7e99bde23e9b48",
+      "approved": true,
+      "why": "Archive Team uncopylocked list: 1501 = World HQ."
+    },
+    {
+      "robloxPlaceId": 1784,
+      "local": "mission-to-the-moon",
+      "sha256": "8b17c1aefa72429b301d65dd3034a54ca615a60dc837f39c6adfb45d780c3af5",
+      "approved": true,
+      "why": "Archive Team uncopylocked list: 1784 = Mission to the Moon. Accepted with caveat (provenance grade UNKNOWN)."
+    }
+  ]
+}

@@ -5,14 +5,14 @@ const fs = require('fs'); const { RakServer, REL } = require('./raknet'); const 
 const MAX_PKT_PER_SEC = 400; const BATCH_INSTANCES = 150;
 
 class GameServer {
-  constructor({ world, place, placeInfo, port = 53640, host = '127.0.0.1', allowRemote = false, verifyTicket, logger = () => {}, capturePath = null, respawnSeconds = 5, loadAsset = null, maxPlayers = 12, scripts = false } = {}) {
+  constructor({ world, place, placeInfo, port = 53640, host = '127.0.0.1', allowRemote = false, verifyTicket, logger = () => {}, capturePath = null, respawnSeconds = 5, loadAsset = null, maxPlayers = 12, scripts = false, teleport = null, onTeleport = null } = {}) {
     if (typeof verifyTicket !== 'function') throw new Error('GameServer requires verifyTicket(ticket) -> {userId, username, avatar, placeId} | null');
     this.world = world || new World({ place, placeInfo, respawnSeconds, loadAsset }); this.log = logger; this.verifyTicket = verifyTicket; this.maxPlayers = maxPlayers;
     let cap = null; if (capturePath) { const fd = fs.openSync(capturePath, 'a'); cap = (r, m) => fs.writeSync(fd, JSON.stringify({ t: new Date().toISOString(), from: r.address + ':' + r.port, len: m.length, hex: m.subarray(0, 512).toString('hex') }) + '\n'); } // raw UDP capture for profile calibration
     this.rak = new RakServer({ host, port, allowRemote, capture: cap }); this.peers = new Map(); this.stats = { connections: 0, refused: 0, protocolMismatch: 0, badPackets: 0, moves: 0, movesRejected: 0 };
     this.rak.on('data', (p, pk) => this._onData(p, pk)); this.rak.on('disconnect', p => this._drop(p));
     this.unsub = this.world.onChange(ev => this._feed(ev)); this.flushTimer = setInterval(() => this._flush(), 40); this.flushTimer.unref();
-    this.scriptHost = null; if (scripts) { const { ScriptHost } = require('../script/engine'); this.scriptHost = new ScriptHost(this.world, { logger: m => this.log(m) }); }
+    this.scriptHost = null; if (scripts) { const { ScriptHost } = require('../script/engine'); this.scriptHost = new ScriptHost(this.world, { logger: m => this.log(m), teleport: teleport ? (pid, uid) => { const r = teleport(pid, uid); if (r && r.ok && onTeleport) onTeleport(uid, r); return r; } : null }); }
     this.descriptors = P.encodeDescriptors(this.world.schema); this.globalsBuf = null;
   }
   async listen() { await this.rak.listen(); this.port = this.rak.port; if (this.scriptHost) { this.scriptHost.start(); /* scripts run to their first wait() before any client can join */ this.scriptHost.step(0); let last = Date.now(); this.scriptTimer = setInterval(() => { const n = Date.now(); this.scriptHost.step(Math.min((n - last) / 1000, 1)); last = n; }, 50); this.scriptTimer.unref(); } this.log('game server listening on ' + this.rak.host + ':' + this.port); return this; }

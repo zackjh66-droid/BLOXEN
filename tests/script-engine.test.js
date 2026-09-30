@@ -24,7 +24,7 @@ test('print, script.Parent, FindFirstChild, property get/set with type conversio
     m.Count.Value = m.Count.Value + 1 m.P.Anchored = false m.P.Position = Vector3.new(9,8,7) m.Name = "Renamed" m.P.Size = Vector3.new(1,1,1)
     print(m.Count.Value, m.P.Anchored, m.P.CFrame.x, #m:GetChildren(), m.P:IsA("BasePart"), m.P:IsA("Model"), m.P:GetFullName())`))));
   run(host, 1); assert.deepEqual(host.errors, []);
-  assert.deepEqual(out, ['M\tModel\tP\t1\t5\tnil', '6\tfalse\t9\t2\ttrue\tfalse\tWorkspace.Renamed.P']);
+  assert.deepEqual(out, ['M\tModel\tP\t1\t5\tnil', '6\tfalse\t9\t3\ttrue\tfalse\tWorkspace.Renamed.P']);
   assert.ok(events.some(e => e.op === 'prop' && e.name === 'CFrame')); assert.ok(events.some(e => e.op === 'prop' && e.name === 'Name'));
   const p = [...world.byId.values()].find(i => i.name === 'P'); assert.deepEqual(p.props.get('CFrame').pos, { x: 9, y: 8, z: 7 }); assert.equal(p.props.get('Anchored'), false);
 });
@@ -54,7 +54,7 @@ test('Instance.new: creatable classes work, NotCreatable / Script / unknown / bl
     print(pcall(function() return game:GetService("HttpService") end)) print(pcall(function() return game.HttpService end)) print(pcall(function() return game:service("Lighting").Name end))
     print(pcall(function() return loadstring("x") end)) print(pcall(function() return require end))`)));
   run(host, 1); assert.deepEqual(host.errors, []);
-  assert.equal(out[0], 'hi\tnil'); assert.equal(out[1], 'Workspace\t1'); // scripts themselves are not in the replicated tree
+  assert.equal(out[0], 'hi\tnil'); assert.equal(out[1], 'Workspace\t2'); // GetChildren includes the never-replicated script itself (shadow child), as real Roblox does: the new Message + the script
   assert.match(out[2], /^false\t.*not creatable/); assert.match(out[3], /^false\t.*not allowed/); assert.match(out[4], /^false\t.*Unable to create an Instance of type "NoSuchClass"/);
   assert.match(out[5], /^false\t.*HttpService is not available/); assert.match(out[6], /^false\t.*HttpService is not available/); assert.equal(out[7], 'true\tLighting');
   assert.match(out[8], /^false\t.*attempt to call global 'loadstring' \(a nil value\)/); assert.equal(out[9], 'true\tnil'); // loadstring / require simply do not exist

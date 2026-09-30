@@ -11,8 +11,9 @@ const LEGACY_HUMANOID_PARTS = { Torso: 'Torso', LeftArm: 'Left Arm', RightArm: '
 
 const BRICK_NAMES = { 1: 'White', 5: 'Brick yellow', 9: 'Light reddish violet', 18: 'Nougat', 21: 'Bright red', 23: 'Bright blue', 24: 'Bright yellow', 26: 'Black', 28: 'Dark green', 37: 'Bright green', 102: 'Medium blue', 105: 'Br. yellowish orange', 106: 'Bright orange', 119: 'Br. yellowish green', 194: 'Medium stone grey', 199: 'Dark stone grey', 217: 'Brown', 226: 'Cool yellow', 1001: 'Institutional white', 1003: 'Really black', 1004: 'Really red', 1010: 'Really blue' }; // partial (same 22 as src/lib/services.js)
 const ALIASES = { size: 'Size', formFactor: 'FormFactor', shape: 'Shape' };
+const allKids = w => w.shadowKids && w.shadowKids.length ? w.children.concat(w.shadowKids) : w.children; // world children + never-replicated script shadows
 const METHOD_ALIAS = { children: 'GetChildren', service: 'GetService' };
-const BLOCKED_SERVICES = new Set(['HttpService', 'DataStoreService', 'MarketplaceService', 'InsertService', 'TeleportService', 'BadgeService', 'GamePassService', 'PointsService', 'ScriptContext', 'NetworkServer', 'NetworkClient']);
+const BLOCKED_SERVICES = new Set(['HttpService', 'DataStoreService', 'MarketplaceService', 'InsertService', 'BadgeService', 'GamePassService', 'PointsService', 'ScriptContext', 'NetworkServer', 'NetworkClient']);
 
 class LuaVec3 {
   constructor(x, y, z) { this.x = x; this.y = y; this.z = z; }
@@ -75,8 +76,8 @@ function obbOverlap(A, B, eps = 0.05) {   // separating-axis test over the 15 ca
   return true;
 }
 class ScriptHost {
-  constructor(world, { print = () => {}, budget = 2_000_000, enabled = true, logger = () => {} } = {}) {
-    this.world = world; this.log = logger; this.output = []; this.unsupported = new Map(); this.scripts = []; this.errors = []; this.cache = new Map(); this.signals = new Map(); this.deadHum = new WeakSet(); this.touchedConnections = 0;
+  constructor(world, { print = () => {}, budget = 2_000_000, enabled = true, logger = () => {}, teleport = null } = {}) {
+    this.teleportResolver = teleport; this.teleportLog = []; this.world = world; this.log = logger; this.output = []; this.unsupported = new Map(); this.scripts = []; this.errors = []; this.cache = new Map(); this.signals = new Map(); this.deadHum = new WeakSet(); this.touchedConnections = 0;
     this.interp = new Interp({ budget, print: s => { this.output.push(s); if (this.output.length > 500) this.output.shift(); print(s); } });
     this.scheduler = new Scheduler(this.interp, { onError: (t, e) => { const msg = e.budget ? 'script exceeded its execution budget and was stopped' : String(e.value); this.errors.push({ thread: t.name, message: msg }); this.log('script error: ' + msg); const rec = this.scripts.find(s => s.thread === t); if (rec) { rec.status = e.budget ? 'budget-exceeded' : 'error'; rec.error = msg; } } });
     this.enabled = enabled; this._installGlobals(); this.unsub = world.onChange(ev => this._onWorldChange(ev));
@@ -124,6 +125,7 @@ class ScriptHost {
     return { scripts: this.scripts.map(r => ({ path: r.path, class: r.className, bytes: r.bytes, status: r.thread && r.thread.dead && r.status === 'running' ? 'finished' : r.status, error: r.error })), statusCounts: st, unsupported: Object.fromEntries(this.unsupported), touchedConnections: this.touchedConnections, errors: this.errors.slice(-20), note: 'No server-side physics or joints exist; scripts that depend on them are PARTIAL at best.' };
   }
   // -------------------------------------------------------------- wrapping
+  wrapList(arr) { const t = new LuaTable(); arr.forEach((x, i) => t.set(i + 1, this.wrap(x))); return t; }
   wrap(w) { if (!w) return undefined; let o = this.cache.get(w); if (!o) { o = new LuaInstance(this, w); this.cache.set(w, o); } return o; }
   sig(w, name) { let m = this.signals.get(w); if (!m) { m = new Map(); this.signals.set(w, m); } let s = m.get(name); if (!s) { s = new LuaSignal(this, name); m.set(name, s); } return s; }
   fire(w, name, args) { const m = this.signals.get(w); const s = m && m.get(name); if (s) s.fire(args); }
@@ -199,7 +201,7 @@ class ScriptHost {
     if (this.isA(w, 'BasePart') && key === 'Color') { const n = w.props.get('BrickColor'); const hex = (BRICKHEX[n === undefined ? 194 : n] || BRICKHEX[194])[1]; return new LuaColor3(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255); }
     if (this.isA(w, 'BasePart') && (key === 'Position')) { const cf = w.props.get('CFrame'); if (cf) return new LuaVec3(cf.pos.x, cf.pos.y, cf.pos.z); }
     if (pd) { const v = w.props.has(pd.name) ? w.props.get(pd.name) : (w.className === 'Humanoid' && pd.name === 'Health' ? (w.props.get('MaxHealth') ?? 100) : this.defaultFor(pd.kind)); const out = this.toLua(pd.kind, pd.type, v); if (out === undefined && v !== undefined && v !== 0 && pd.kind !== 'Object') { this._unsupported(`property ${w.className}.${key} (${pd.kind}) has no Lua value type`); throw new LuaError(`property ${key} (${pd.kind}) is not readable in this sandbox`); } return out; }
-    for (const c of w.children) if (c.name === key) return this.wrap(c);
+    for (const c of allKids(w)) if (c.name === key) return this.wrap(c);
     throw new LuaError(`${key} is not a valid member of ${w.className}`);
   }
   _set(o, key, val) {
@@ -223,8 +225,8 @@ class ScriptHost {
   _methods() {
     if (this._m) return this._m; const H = this; const wrap = w => H.wrap(w); const T = arr => { const t = new LuaTable(); arr.forEach((x, i) => t.set(i + 1, x)); return t; };
     this._m = {
-      FindFirstChild: { fn(o, a) { const name = String(a[0]); const rec = truthy(a[1]); const find = w => { for (const c of w.children) if (c.name === name) return c; if (rec) for (const c of w.children) { const r = find(c); if (r) return r; } return undefined; }; return [wrap(find(o.w))]; } },
-      GetChildren: { fn(o) { return [T(o.w.children.map(wrap))]; } },
+      FindFirstChild: { fn(o, a) { const name = String(a[0]); const rec = truthy(a[1]); const find = w => { for (const c of allKids(w)) if (c.name === name) return c; if (rec) for (const c of allKids(w)) { const r = find(c); if (r) return r; } return undefined; }; return [wrap(find(o.w))]; } },
+      GetChildren: { fn(o) { return [T(allKids(o.w).map(wrap))]; } },
       IsA: { fn(o, a) { return [this.isA(o.w, String(a[0]))]; } },
       GetFullName: { fn(o) { const parts = []; for (let p = o.w; p; p = p.parent) parts.unshift(p.name); return [parts.join('.')]; } },
       IsDescendantOf: { fn(o, a) { return [a[0] instanceof LuaInstance && o.w !== a[0].w && this._isDescendant(o.w, a[0].w)]; } },
@@ -245,7 +247,7 @@ class ScriptHost {
   // -------------------------------------------------------------- globals
   _installGlobals() {
     const H = this; const I = this.interp; const G = I.globals; const N = fn => fn; const num = (v, i, f) => { const n = toNumber(v); if (n === undefined || typeof v === 'boolean') throw new LuaError(`bad argument #${i} to '${f}' (number expected, got ${v === undefined ? 'no value' : typeOf(v)})`); return n; };
-    const game = { luaGet(k) { k = String(k); const l = k[0].toLowerCase() + k.slice(1); if (l === 'getService' || l === 'service') return a => H._service(a[1]); if (l === 'workspace' || k === 'Workspace') return [H.world.service('Workspace')].map(w => H.wrap(w))[0]; if (k === 'PlaceId' || k === 'placeId') return H.world.placeInfo?.placeId ?? 0; if (l === 'isA') return () => [false]; const w = H.world.roots.find(r => r.className === k || r.name === k); if (w && classStatus(w.className, H.world.schema) === 'replicable') return H.wrap(w); if (BLOCKED_SERVICES.has(k)) { H._unsupported(`service ${k} blocked by the sandbox`); throw new LuaError(`${k} is not available in the BLOXEN script sandbox`); } throw new LuaError(`${k} is not a valid member of DataModel`); }, luaToString() { return 'Game'; } };
+    const game = { luaGet(k) { k = String(k); const l = k[0].toLowerCase() + k.slice(1); if (l === 'getService' || l === 'service') return a => H._service(a[1]); if (l === 'workspace' || k === 'Workspace') return [H.world.service('Workspace')].map(w => H.wrap(w))[0]; if (k === 'PlaceId' || k === 'placeId') return H.world.placeInfo?.placeId ?? 0; if (l === 'isA') return () => [false]; const w = H.world.roots.find(r => r.className === k || r.name === k); if (w && classStatus(w.className, H.world.schema) === 'replicable') return H.wrap(w); if (k === 'TeleportService') return H._teleportService(); if (BLOCKED_SERVICES.has(k)) { H._unsupported(`service ${k} blocked by the sandbox`); throw new LuaError(`${k} is not available in the BLOXEN script sandbox`); } throw new LuaError(`${k} is not a valid member of DataModel`); }, luaToString() { return 'Game'; } };
     G.set('game', game); G.set('Game', game); G.set('workspace', this.wrap(this.world.service('Workspace'))); G.set('Workspace', G.get('workspace'));
     const inst = new LuaTable(); G.set('Instance', inst);
     inst.set('new', a => { const cls = String(a[0]); const s = this.world.schema.classes.get(cls); if (!s) throw new LuaError(`Unable to create an Instance of type "${cls}"`); if (s.tags.includes('NotCreatable') || s.tags.includes('Service')) throw new LuaError(`Unable to create an Instance of type "${cls}" (not creatable)`);
@@ -260,11 +262,30 @@ class ScriptHost {
     G.set('Enum', Enum);
     G.set('printidentity', () => []); G.set('LoadLibrary', () => { H._unsupported('LoadLibrary'); throw new LuaError('LoadLibrary is not available in the sandbox'); });
   }
-  _service(name) { const n = String(name); if (BLOCKED_SERVICES.has(n)) { this._unsupported(`service ${n} blocked by the sandbox`); throw new LuaError(`${n} is not available in the BLOXEN script sandbox`); } const w = this.world.roots.find(r => r.className === n); if (!w || classStatus(n, this.world.schema) !== 'replicable') throw new LuaError(`Service ${n} is not available`); return [this.wrap(w)]; }
+  // TeleportService (BLOXEN-safe). Scripts name a HISTORICAL Roblox PlaceId; the host-supplied resolver maps it to an approved LOCAL place or refuses.
+  // Nothing here contacts Roblox. A result is always logged in teleportLog: {placeId, userId, result, reason|local}. Without a resolver every call is refused.
+  _teleportService() {
+    const H = this; const asPlayer = v => { if (!(v instanceof LuaInstance) || v.w.className !== 'Player') throw new LuaError('TeleportService: argument is not a Player'); for (const r of H.world.players.values()) if (r.player === v.w) return r; return null; };
+    const attempt = (placeId, playerArg, spawn) => { const rec = asPlayer(playerArg); let r; try { r = H.teleportResolver ? H.teleportResolver(placeId, rec && rec.userId) : { ok: false, result: 'unsupported-local-destination', reason: 'no teleport resolver configured on this host', robloxPlaceId: placeId }; } catch (e) { r = { ok: false, result: 'unsupported-local-destination', reason: 'resolver error: ' + e.message, robloxPlaceId: placeId }; }
+      const entry = { at: H.scheduler.now !== undefined ? H.scheduler.now : 0, robloxPlaceId: Number(placeId) || String(placeId).slice(0, 24), userId: rec ? rec.userId : null, spawn: spawn ? String(spawn).slice(0, 40) : null, result: r.result, ok: !!r.ok, local: r.local || null, reason: r.reason || null };
+      H.teleportLog.push(entry); if (H.teleportLog.length > 200) H.teleportLog.shift(); if (!r.ok) H._unsupported(`TeleportService: ${r.reason || r.result} (PlaceId ${entry.robloxPlaceId})`); H.log('teleport ' + JSON.stringify(entry)); return entry; };
+    const ts = { luaGet(k) { k = String(k); const l = k.toLowerCase();
+      if (l === 'teleport') return a => { attempt(a[1], a[2]); return []; };
+      if (l === 'teleporttospawnbyname') return a => { attempt(a[1], a[3], a[2]); return []; };
+      if (l === 'teleporttoplaceinstance') return a => { H._unsupported('TeleportService:TeleportToPlaceInstance: specific server instances are not supported'); H.teleportLog.push({ robloxPlaceId: Number(a[1]) || null, userId: null, result: 'unsupported-local-destination', ok: false, local: null, reason: 'instance-targeted teleport unsupported' }); return []; };
+      if (l === 'teleportcancel' || l === 'setteleportgui') return () => [];
+      H._unsupported('TeleportService.' + k + ': not implemented'); throw new LuaError(`${k} is not a valid member of TeleportService`); }, luaToString() { return 'TeleportService'; } };
+    return ts;
+  }
+  _service(name) { const n = String(name); if (n === 'TeleportService') return [this._teleportService()]; if (BLOCKED_SERVICES.has(n)) { this._unsupported(`service ${n} blocked by the sandbox`); throw new LuaError(`${n} is not available in the BLOXEN script sandbox`); } const w = this.world.roots.find(r => r.className === n); if (!w || classStatus(n, this.world.schema) !== 'replicable') throw new LuaError(`Service ${n} is not available`); return [this.wrap(w)]; }
 }
 class LuaScriptObject {
   constructor(host, src) { this.host = host; this.src = src; }
-  luaGet(k) { k = String(k); if (k === 'Parent' || k === 'parent') return this.host.wrap(this.src.parent); if (k === 'Name' || k === 'name') return this.src.name; if (k === 'ClassName' || k === 'className') return 'Script'; if (k === 'Disabled') return this.src.disabled; throw new LuaError(`${k} is not a valid member of Script`); }
+  luaGet(k) { k = String(k); if (k === 'Parent' || k === 'parent') return this.host.wrap(this.src.parent); if (k === 'Name' || k === 'name') return this.src.name; if (k === 'ClassName' || k === 'className') return this.src.className; if (k === 'Disabled') return this.src.disabled;
+    const kids = (this.src.shadow && this.src.shadow.children) || []; const l = k.toLowerCase();
+    if (l === 'findfirstchild' || l === 'waitforchild') return a => [this.host.wrap(kids.find(c => c.name === String(a[1])))];
+    if (l === 'getchildren' || l === 'children') return () => [this.host.wrapList(kids)];
+    const c = kids.find(c => c.name === k); if (c) return this.host.wrap(c); throw new LuaError(`${k} is not a valid member of Script`); }
   luaSet(k) { throw new LuaError(`script.${k} cannot be set in this sandbox`); }
   luaToString() { return this.src.name; }
 }

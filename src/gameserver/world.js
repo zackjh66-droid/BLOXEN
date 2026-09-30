@@ -36,7 +36,8 @@ class World {
     const map = new Map(); const pending = [];
     const visit = (src, parent) => {
       const st = classStatus(src.className, this.schema);
-      if (SCRIPT_CLASSES.has(src.className)) { this.stats.scriptsInert++; const so = src.props.get('Source'); this.scriptSources.push({ className: src.className, name: String(src.props.get('Name')?.value ?? src.className), source: typeof so?.value === 'string' ? so.value : '', disabled: src.props.get('Disabled')?.value === true, parent, referent: src.referent }); }
+      if (SCRIPT_CLASSES.has(src.className)) { this.stats.scriptsInert++; const so = src.props.get('Source'); const rec = { className: src.className, name: String(src.props.get('Name')?.value ?? src.className), source: typeof so?.value === 'string' ? so.value : '', disabled: src.props.get('Disabled')?.value === true, parent, referent: src.referent, shadow: null };
+        if (parent) { rec.shadow = this._shadowTree(src); rec.shadow.parent = parent; (parent.shadowKids || (parent.shadowKids = [])).push(rec.shadow); } this.scriptSources.push(rec); }
       if (st !== 'replicable') { if (st === 'server-only') this.stats.serverOnlyDropped++; else { this.stats.unknownClassDropped++; } this.stats.droppedClasses[src.className] = (this.stats.droppedClasses[src.className] || 0) + 1; return; }
       const w = this.create(src.className, parent); w.referent = src.referent; map.set(src.referent, w); this.stats.imported++;
       const cls = this.schema.classes.get(src.className);
@@ -50,11 +51,21 @@ class World {
     for (const r of place.roots) { const st = classStatus(r.className, this.schema); if (st !== 'replicable') { visit(r, null); continue; } const existing = this.roots.find(x => x.className === r.className && this.schema.classes.get(r.className).tags.includes('Service')); visit(r, null); if (existing) { /* duplicate service root: merged not needed */ } }
     for (const [w, k, ref] of pending) { const t = map.get(ref); if (t) w.props.set(k, t.id); }
   }
+  // Scripts and everything under them are NOT replicated (non-replicable classes), but other scripts look them up by name
+  // (script.Parent.TouchScript.TeleportScript.PlaceId.Value). A shadow tree keeps that subtree as detached, never-replicated, never-in-byId
+  // WInsts reachable through parent.shadowKids; `parent.children` (what clients see) is untouched. Only plain values are kept.
+  _shadowTree(src, parent = null) {
+    const w = new WInst(this.nextId++, src.className); w.referent = src.referent; w.shadow = true;
+    for (const [k, pv] of src.props) { if (k === 'Source' || k === 'LinkedSource') continue; const t = pv.type; let v;
+      if (t === 'string' || t === 'ProtectedString' || t === 'Content') v = String(pv.value); else if (t === 'bool') v = !!pv.value; else if (['int', 'int64', 'float', 'double'].includes(t)) v = Number(pv.value); else if (t === 'token') v = Number(pv.value); else continue;
+      if (Number.isNaN(v)) continue; w.props.set(k, v); }
+    if (parent) { w.parent = parent; } for (const c of src.children) { const k = this._shadowTree(c, w); w.children.push(k); } return w;
+  }
   // ---------- change feed
   onChange(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
   emit(ev) { for (const l of this.listeners) l(ev); }
   add(inst) { this.emit({ op: 'new', inst }); }
-  remove(inst) { const parentBefore = inst.parent; for (const d of [...inst.descendants()].reverse()) this.byId.delete(d.id); this.byId.delete(inst.id); this.emit({ op: 'del', id: inst.id, inst, parent: parentBefore }); inst.setParent(null); const i = this.roots.indexOf(inst); if (i >= 0) this.roots.splice(i, 1); }
+  remove(inst) { if (!this.byId.has(inst.id) || this.byId.get(inst.id) !== inst) { inst.setParent(null); const i0 = this.roots.indexOf(inst); if (i0 >= 0) this.roots.splice(i0, 1); return; } const parentBefore = inst.parent; for (const d of [...inst.descendants()].reverse()) this.byId.delete(d.id); this.byId.delete(inst.id); this.emit({ op: 'del', id: inst.id, inst, parent: parentBefore }); inst.setParent(null); const i = this.roots.indexOf(inst); if (i >= 0) this.roots.splice(i, 1); }
   // ---- tree operations used by the script host. Detached instances are NOT in byId and are never sent to clients.
   inWorld(inst) { return this.byId.get(inst.id) === inst; }
   createDetached(cls) { return new WInst(this.nextId++, cls); }
@@ -73,12 +84,14 @@ class World {
     if (!parent) return;
     inst.setParent(parent);
     if (!this.inWorld(parent)) return;
-    const all = [...this.subtree(inst)]; const remap = new Map(); for (const w of all) { remap.set(w.id, this.nextId); w.id = this.nextId++; }
+    // Non-replicable classes (Script/LocalScript and their contents, server-only classes) stay in the tree so scripts can find them by name, but are never given wire ids or announced.
+    const all = [...this.replSubtree(inst)]; const remap = new Map(); for (const w of all) { remap.set(w.id, this.nextId); w.id = this.nextId++; }
     for (const w of all) { for (const [k, v] of w.props) if (this.schema.classes.get(w.className)?.byName.get(k)?.kind === 'Object' && remap.has(v)) w.props.set(k, remap.get(v)); this.byId.set(w.id, w); }
     for (const w of all) this.add(w);
   }
   setProp(inst, name, value) { inst.props.set(name, value); this.emit({ op: 'prop', inst, name }); }
   topContainers() { const svc = this.roots.filter(r => this.schema.classes.get(r.className)?.tags.includes('Service') && classReplicable(r.className)); const first = SERVICE_TOP_ORDER.map(n => svc.find(s => s.className === n)).filter(Boolean); return [...first, ...svc.filter(s => !first.includes(s))]; }
+  *replSubtree(inst) { if (classStatus(inst.className, this.schema) !== 'replicable') return; yield inst; for (const c of inst.children) yield* this.replSubtree(c); }
   *subtree(inst) { yield inst; for (const c of inst.children) yield* this.subtree(c); }
   // ---------- spawn
   spawnPoint() {

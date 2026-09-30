@@ -3,7 +3,7 @@
 // to request. It NEVER proxies to Roblox. Response FORMATS are INFERRED from recollection of the public-era services unless a comment says otherwise;
 // none have been exercised by the real client. All of this is UNIT/SIMULATOR-TESTED at most.
 const fs = require('fs'); const path = require('path'); const crypto = require('crypto');
-const cfg = require('../lib/config'); const assetstore = require('../lib/assetstore'); const auth = require('../lib/auth'); const S = require('../lib/services'); const { esc, readBody, SEC_HEADERS } = require('../lib/http');
+const placemap = require('../lib/placemap'); const cfg = require('../lib/config'); const assetstore = require('../lib/assetstore'); const auth = require('../lib/auth'); const S = require('../lib/services'); const { esc, readBody, SEC_HEADERS } = require('../lib/http');
 
 const numId = id => crypto.createHash('sha256').update('bloxen-place:' + id).digest().readUInt32BE(0) & 0x7fffffff; // stable numeric place id for the client's placeId argument
 const xmlEsc = esc;
@@ -44,6 +44,15 @@ client:PlayerConnect(${user.id}, "127.0.0.1", ${srv.port}, 0, 20)
         const place = S.placeById(db, t.place_id); const user = S.userById(db, t.user_id); if (!place || !user) return json(res, { error: 'gone' }, 410);
         const join = auth.issueTicket(db, 'join_tokens', { userId: user.id, placeId: place.id, serverId: t.server_id, ttl: cfg.joinTokenTtlMs });
         return json(res, { placeId: numId(place.id), userId: user.id, userName: user.username, baseUrl: base(), joinScriptUrl: `${base()}/Game/Join.ashx?t=${join}`, authenticationUrl: `${base()}/Login/Negotiate.ashx`, authenticationTicket: join, clientVersion: cfg.clientVersion });
+      }
+      if (p === '/game/placelauncher.ashx' && q.get('placeid') !== null) { // client-initiated travel (TeleportService from a LocalScript, or a direct request). Query names and response shape are INFERRED.
+        // The historical PlaceId is mapped to an approved LOCAL place (preservation/manifests/place-mapping.json) or refused with a controlled result. Nothing is forwarded to Roblox.
+        const row = peekToken(q.get('t')); if (!row) return json(res, { jobId: null, status: 0, joinScriptUrl: null, authenticationUrl: null, authenticationTicket: null, message: 'No valid BLOXEN join token' }, 403);
+        const r = placemap.resolve(q.get('placeid'), { storeHas: pl => gameservers.available(pl) }); note('(teleport)', JSON.stringify({ placeId: r.robloxPlaceId, result: r.result, reason: r.reason || null }));
+        if (!r.ok) return json(res, { jobId: null, status: 4, joinScriptUrl: null, authenticationUrl: null, authenticationTicket: null, message: 'unsupported-local-destination: ' + r.reason });
+        const place = S.placeById(db, r.local); let srv; try { srv = await gameservers.ensure(place); } catch (e) { return json(res, { jobId: null, status: 4, joinScriptUrl: null, authenticationUrl: null, authenticationTicket: null, message: 'unsupported-local-destination: ' + e.message }); }
+        const join = auth.issueTicket(db, 'join_tokens', { userId: row.user_id, placeId: place.id, serverId: srv.serverId, ttl: cfg.joinTokenTtlMs });
+        return json(res, { jobId: srv.serverId, status: 2, joinScriptUrl: `${base()}/Game/Join.ashx?t=${join}`, authenticationUrl: `${base()}/Login/Negotiate.ashx`, authenticationTicket: join, message: null });
       }
       if (p === '/game/placelauncher.ashx') { // INFERRED response shape: {jobId,status,joinScriptUrl,authenticationUrl,authenticationTicket,message}
         const t = q.get('t'); const row = peekToken(t); if (!row) return json(res, { jobId: null, status: 0, joinScriptUrl: null, authenticationUrl: null, authenticationTicket: null, message: 'No valid BLOXEN join token' }, 403);
