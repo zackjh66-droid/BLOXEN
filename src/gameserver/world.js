@@ -153,7 +153,7 @@ function buildCharacter(world, ws, rec, sp) {
   const mesh = world.create('SpecialMesh', parts.Head); mesh.props.set('Name', 'Mesh'); mesh.props.set('MeshType', 0);
   if (av.faceId) { const d = world.create('Decal', parts.Head); d.props.set('Name', 'face'); d.props.set('Texture', assetUrl(av.faceId)); }
   // Hats / heads / gear need the actual asset content. If unavailable they stay MISSING (never substituted).
-  for (const id of [...(av.hatIds || []), ...(av.headId ? [av.headId] : [])]) {
+  for (const id of [...(av.hatIds || []), ...(av.headId ? [av.headId] : []), ...(av.packageIds || [])]) { // packages are body-part bundles: same rule, content needed or MISSING
     const asset = world.loadAsset ? world.loadAsset(id) : null; if (!asset) { missing.push(id); continue; }
     for (const root of asset.roots || []) if (root.className === 'Hat' || root.className === 'Accessory') { const h = cloneImported(world, root, model); if (h) { h.props.set('Name', root.name); } }
   }
