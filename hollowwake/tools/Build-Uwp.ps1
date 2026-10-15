@@ -41,6 +41,12 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Package signature verification failed.' }
     }
     foreach ($package in $packages) { & (Join-Path $PSScriptRoot 'Test-Uwp.ps1') -PackagePath $package.FullName -OutputDirectory $OutputDirectory -BackendOrigin $BackendOrigin }
+    $runtime = Get-Content (Join-Path $OutputDirectory 'windows-runtime-test.json') -Raw | ConvertFrom-Json
+    if ($runtime.packageDeployment -ne 'succeeded' -or $runtime.activation -ne 'succeeded' -or !$runtime.processStillRunning) { throw 'Windows installation/activation test failed.' }
+    if ($BackendOrigin) {
+        $native = Get-Content (Join-Path $OutputDirectory 'native-link-ui-test.json') -Raw | ConvertFrom-Json
+        if ($native.result -ne 'PASS') { throw 'Native linking verification did not pass; see native-link-ui-test.json.' }
+    }
     $packages | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'package-hashes.json')
     Write-Host 'Companion APPX build completed. Fortnite is not included. Xbox runtime validation is still required.'
 } finally { [System.IO.File]::WriteAllText($configPath, $originalConfig) }
