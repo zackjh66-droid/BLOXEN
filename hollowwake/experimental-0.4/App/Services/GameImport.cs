@@ -25,6 +25,7 @@ namespace Hollowwake.Services {
    var local=ApplicationData.Current.LocalFolder.Path;long existing=Directory.Exists(Root)?Directory.EnumerateFiles(Root,"*",SearchOption.AllDirectories).Sum(f=>new FileInfo(f).Length):0;string zip=Path.Combine(local,"Original-6.21.zip");long offset=File.Exists(zip)?new FileInfo(zip).Length:0;if(offset>ArchiveBytes)throw new IOException("Existing archive is larger than the pinned source. Preserve it and clear only this experimental app's import data before retrying.");
    await Free(Math.Max(0,ArchiveBytes-offset+26771777271L-existing)+1073741824L);
    using(var handler=new HttpClientHandler{AllowAutoRedirect=false,UseCookies=false})using(var http=new HttpClient(handler){Timeout=TimeSpan.FromMinutes(10)}){
+    http.DefaultRequestHeaders.UserAgent.ParseAdd("Hollowwake/0.4");
     while(offset<ArchiveBytes){token.ThrowIfCancellationRequested();long end=Math.Min(ArchiveBytes-1,offset+32*1024*1024-1);using(var request=new HttpRequestMessage(HttpMethod.Get,Source)){
      request.Headers.Range=new System.Net.Http.Headers.RangeHeaderValue(offset,end);
      using(var response=await http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,token)){
