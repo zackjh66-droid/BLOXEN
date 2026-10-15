@@ -14,7 +14,20 @@ try {
   do {try {$element=Visible-Control $automationId;if($element -and (!$expected -or $element.Current.Name -eq $expected)){return $element}}catch{};Start-Sleep -Milliseconds 500} while([DateTime]::UtcNow -lt $deadline)
   throw "Native control unavailable: $automationId"
  }
- function Invoke-Button([string]$automationId) {$button=Wait-Control $automationId;$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()}
+ function Find-Control([string]$automationId) {
+  $condition=New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::AutomationIdProperty),$automationId
+  return [System.Windows.Automation.AutomationElement]::RootElement.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+ }
+ function Invoke-Button([string]$automationId) {
+  $button=Find-Control $automationId
+  if (!$button -or $button.Current.IsOffscreen) {
+   $scroller=Find-Control 'MainScroller'
+   if ($scroller) {try {$scroller.GetCurrentPattern([System.Windows.Automation.ScrollPattern]::Pattern).SetScrollPercent(-1,100)}catch{}}
+   Start-Sleep -Milliseconds 500;$button=Find-Control $automationId
+  }
+  if (!$button) {throw "Native button unavailable: $automationId"}
+  $button.SetFocus();$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+ }
  $status=Invoke-RestMethod -Uri ($BackendOrigin+'/api/status')
  if($status.project -ne 'Hollowwake'){throw 'Wrong backend'}
  $result.checks+='Hosted Windows HTTPS backend access'
