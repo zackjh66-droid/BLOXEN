@@ -1,0 +1,50 @@
+name: Hollowwake companion only — guarded Windows build
+on:
+  workflow_dispatch:
+    inputs:
+      run_build:
+        description: 'Actually allocate a Windows runner (false performs a zero-runner permissions check)'
+        type: boolean
+        default: false
+      free_minutes_confirmed:
+        description: 'Verified standard public-repository runner is free; no paid runner'
+        type: boolean
+        default: false
+      backend_origin:
+        description: 'Real deployed HTTPS origin; leave empty for an unconfigured companion'
+        type: string
+        default: ''
+permissions:
+  contents: read
+concurrency:
+  group: hollowwake-companion-build
+  cancel-in-progress: false
+jobs:
+  companion:
+    if: ${{ inputs.run_build && inputs.free_minutes_confirmed }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - name: Check out private project inputs
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # checkout v4
+        with:
+          persist-credentials: false
+      - name: Discover Windows tools
+        shell: pwsh
+        run: |
+          Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\Include' -Name
+          & (Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe') -latest -products '*' -format json
+      - name: Build and development-sign the companion (NOT Fortnite)
+        shell: powershell
+        env:
+          HOLLOWWAKE_BACKEND: ${{ inputs.backend_origin }}
+        run: |
+          & .\hollowwake\tools\Build-Uwp.ps1 -BackendOrigin $env:HOLLOWWAKE_BACKEND -OutputDirectory "$env:GITHUB_WORKSPACE\artifacts\uwp"
+      - name: Collect package, public certificate, dependencies and build logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # upload-artifact v4
+        with:
+          name: hollowwake-companion-x64-not-fortnite
+          path: artifacts/uwp/
+          if-no-files-found: warn
+          retention-days: 1
