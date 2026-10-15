@@ -15,10 +15,12 @@ static void* Export(BYTE* base,const char* name){
  auto names=(DWORD*)(base+e->AddressOfNames);auto ord=(WORD*)(base+e->AddressOfNameOrdinals);auto funcs=(DWORD*)(base+e->AddressOfFunctions);
  for(DWORD i=0;i<e->NumberOfNames;++i)if(!strcmp((char*)base+names[i],name))return base+funcs[ord[i]];return nullptr;
 }
-static LONG CALLBACK Crash(EXCEPTION_POINTERS* e){std::cerr<<"Crash code="<<std::hex<<e->ExceptionRecord->ExceptionCode<<" RIP="<<e->ContextRecord->Rip<<" address="<<e->ExceptionRecord->ExceptionInformation[1]<<std::dec<<"\n";return EXCEPTION_CONTINUE_SEARCH;}
+__declspec(thread) volatile DWORD hostTlsMarker=0xABC621;
+static LONG CALLBACK Crash(EXCEPTION_POINTERS* e){HMODULE m=nullptr;wchar_t path[512]={};GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,(LPCWSTR)e->ContextRecord->Rip,&m);GetModuleFileNameW(m,path,512);std::wcerr<<"Fault module="<<path<<" offset="<<std::hex<<(e->ContextRecord->Rip-(DWORD64)m)<<std::dec<<"\n";std::cerr<<"Crash code="<<std::hex<<e->ExceptionRecord->ExceptionCode<<" RIP="<<e->ContextRecord->Rip<<" address="<<e->ExceptionRecord->ExceptionInformation[1]<<std::dec<<"\n";return EXCEPTION_CONTINUE_SEARCH;}
 int main(){
  std::cout<<std::unitbuf;SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);AddVectoredExceptionHandler(1,Crash);
  bool ok=true;HMODULE donor=LoadLibraryW(L"HollowwakeTlsDonor.dll");if(!Check(donor!=nullptr,"OS loads original donor"))return 1;
+ std::cout<<"Host TLS marker before bind="<<std::hex<<hostTlsMarker<<std::dec<<"\n";
  auto bind=(Bind)GetProcAddress(donor,"BindGuest");auto index=(Index)GetProcAddress(donor,"GuestTlsIndex");auto init=(Init)GetProcAddress(donor,"InitializeGuestThread");if(!bind||!index||!init)return 2;
  std::ifstream file("GuestTls.dll",std::ios::binary);std::vector<BYTE> raw((std::istreambuf_iterator<char>(file)),{});
  if(raw.size()<1024)return 3;auto dos=(IMAGE_DOS_HEADER*)raw.data();if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<=0||(size_t)dos->e_lfanew>raw.size()-sizeof(IMAGE_NT_HEADERS64))return 3;
@@ -41,7 +43,7 @@ int main(){
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;++i){DWORD protect=(sec[i].Characteristics&IMAGE_SCN_MEM_EXECUTE)?PAGE_EXECUTE_READ:((sec[i].Characteristics&IMAGE_SCN_MEM_WRITE)?PAGE_READWRITE:PAGE_READONLY);if((sec[i].Characteristics&IMAGE_SCN_MEM_EXECUTE)&&(sec[i].Characteristics&IMAGE_SCN_MEM_WRITE))return 10;if(!VirtualProtect(base+sec[i].VirtualAddress,sec[i].Misc.VirtualSize,protect,&old))return 10;}
  FlushInstructionCache(GetCurrentProcess(),base,nt->OptionalHeader.SizeOfImage);
  std::cout<<"Applying memory protections complete\n";auto read=(unsigned long(*)())Export(base,"GuestRead");auto write=(void(*)(unsigned long))Export(base,"GuestWrite");if(!read||!write)return 11;
- ok&=Check(read()==0x62145269,"Mapped guest instructions read initialized donor TLS");write(10);
+ ok&=Check(read()==0x62145269,"Mapped guest instructions read initialized donor TLS");write(10);ok&=Check(hostTlsMarker==0xABC621,"Guest binding does not corrupt host TLS");
  unsigned long initial=0,changed=0;std::thread t([&](){initial=read();write(20);changed=read();});t.join();
  ok&=Check(initial==0x62145269&&changed==20&&read()==10,"OS thread attach seeds guest TLS and preserves thread isolation");
  std::cout<<"OS donor static TLS index: "<<index()<<"; main/worker values: "<<read()<<"/"<<changed<<"\n";
