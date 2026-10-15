@@ -21,8 +21,11 @@ static bool Hash(const std::vector<BYTE>& raw){
  static const BYTE expected[32]={0x9d,0x18,0xfb,0x5c,0x5c,0x43,0xdd,0xc2,0x12,0x51,0xd5,0xce,0x9e,0x02,0x6c,0xa0,0x1f,0x90,0xd4,0x29,0x21,0xdd,0x74,0x19,0x73,0xbd,0x55,0x36,0xe8,0x94,0x94,0x78};
  BCRYPT_ALG_HANDLE alg=nullptr;BYTE result[32];if(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)return false;auto s=BCryptHash(alg,nullptr,0,const_cast<BYTE*>(raw.data()),(ULONG)raw.size(),result,32);BCryptCloseAlgorithmProvider(alg,0);return s>=0&&!memcmp(expected,result,32);
 }
+void* ResolveWindowImport(const char*,const char*);
+extern "C" void __cdecl HWViewport(int,int);
 static void* Import(const char* dll,const char* name){
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
+ if(auto p=ResolveWindowImport(dll,name))return p;
  if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"api-ms-win-core-processthreads-l1-1-0.dll"))return nullptr;
  #define REAL(api) if(!strcmp(name,#api))return reinterpret_cast<void*>(&api)
  REAL(GetCurrentThreadId);REAL(GetCurrentProcessId);REAL(QueryPerformanceCounter);REAL(QueryPerformanceFrequency);REAL(GetLastError);REAL(SetLastError);REAL(GetTickCount64);REAL(GetCurrentProcess);
@@ -39,7 +42,7 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 }
 extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  logName=path;auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
- return Hollowwake::BindGraphicsWindow(reinterpret_cast<IUnknown*>(w));
+ HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);return Hollowwake::BindGraphicsWindow(reinterpret_cast<IUnknown*>(w));
 }
 static int MemoryPolicy(const wchar_t* path){
  logName=path;Log("POLICY allocate RW -> protect RX -> execute ORIGINAL return-621 fixture");

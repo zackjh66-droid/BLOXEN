@@ -1,0 +1,46 @@
+// Original single-CoreWindow Win32 message bridge. No native desktop HWND APIs.
+// Multiple top-level windows, raw input, IME and monitor APIs are not implemented.
+#include <windows.h>
+#include <string>
+#include <vector>
+#include <deque>
+#include <memory>
+#include <mutex>
+#include <condition_variable>
+#include <cstring>
+using Proc=LRESULT(CALLBACK*)(HWND,UINT,WPARAM,LPARAM);
+struct ClassW {UINT style;Proc proc;int clsExtra,wndExtra;HINSTANCE instance;HICON icon;HCURSOR cursor;HBRUSH brush;LPCWSTR menu,name;};
+struct Msg {HWND window;UINT message;WPARAM wp;LPARAM lp;DWORD time;POINT point;DWORD privateData;};
+struct Class {ATOM atom;std::wstring name;Proc proc;HINSTANCE instance;};
+struct Window {bool alive,destroying;Proc proc;std::wstring title;};
+struct CreateStruct {void* params;HINSTANCE instance;HMENU menu;HWND parent;int cy,cx,y,x;LONG style;LPCWSTR name,cls;DWORD exStyle;};
+static std::mutex mutex;static std::condition_variable wake;static std::vector<Class> classes;static std::unique_ptr<Window> window;static std::deque<Msg> queue;static LONG width=0,height=0;static bool keys[256]={};
+static HWND Handle(){return reinterpret_cast<HWND>(window.get());}
+static bool Valid(HWND h){return window&&window->alive&&h==Handle();}
+extern "C" __declspec(dllexport) void __cdecl HWViewport(int w,int h){std::lock_guard<std::mutex> l(mutex);width=w;height=h;}
+static void Push(HWND target,UINT message,WPARAM wp,LPARAM lp){if(queue.size()>=4096){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return;}queue.push_back({target,message,wp,lp,(DWORD)GetTickCount64(),{0,0},0});wake.notify_all();}
+extern "C" __declspec(dllexport) void __cdecl HWKey(unsigned key,int down){std::lock_guard<std::mutex> l(mutex);if(key<256)keys[key]=down!=0;if(window&&window->alive)Push(Handle(),down?0x100:0x101,key,down?1:0xC0000001);}
+extern "C" __declspec(dllexport) void __cdecl HWChar(unsigned key){std::lock_guard<std::mutex> l(mutex);if(window&&window->alive)Push(Handle(),0x102,key,1);}
+static ATOM WINAPI Register(const ClassW* value){if(!value||!value->name||!value->proc||value->clsExtra||value->wndExtra){SetLastError(ERROR_NOT_SUPPORTED);return 0;}std::lock_guard<std::mutex> l(mutex);for(auto& c:classes)if(c.name==value->name){SetLastError(ERROR_CLASS_ALREADY_EXISTS);return 0;}if(classes.size()>=64){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return 0;}ATOM atom=(ATOM)(0xc000+classes.size());classes.push_back({atom,value->name,value->proc,value->instance});return atom;}
+static HWND WINAPI Create(DWORD ex,LPCWSTR name,LPCWSTR title,DWORD style,int x,int y,int cx,int cy,HWND parent,HMENU menu,HINSTANCE instance,void* params){
+ Proc proc=nullptr;HWND handle;
+ {std::lock_guard<std::mutex> l(mutex);if(width<=0||height<=0||parent||window){SetLastError(ERROR_NOT_SUPPORTED);return nullptr;}for(auto& c:classes)if(((ULONG_PTR)name<=0xffff?c.atom==(ATOM)(ULONG_PTR)name:c.name==name)&&c.instance==instance)proc=c.proc;if(!proc){SetLastError(ERROR_CANNOT_FIND_WND_CLASS);return nullptr;}window.reset(new Window{true,false,proc,title?title:L""});handle=Handle();}
+ CreateStruct create={params,instance,menu,parent,cy,cx,y,x,(LONG)style,title,name,ex};
+ if(!proc(handle,0x81,0,(LPARAM)&create)||proc(handle,1,0,(LPARAM)&create)==-1){proc(handle,0x82,0,0);std::lock_guard<std::mutex> l(mutex);window.reset();return nullptr;}
+ {std::lock_guard<std::mutex> l(mutex);Push(handle,5,0,MAKELPARAM(width,height));}return handle;
+}
+static BOOL WINAPI Post(HWND h,UINT message,WPARAM wp,LPARAM lp){std::lock_guard<std::mutex> l(mutex);if(h&&!Valid(h)){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}Push(h,message,wp,lp);return TRUE;}
+static void WINAPI Quit(int code){std::lock_guard<std::mutex> l(mutex);Push(nullptr,0x12,code,0);}
+static BOOL WINAPI Peek(Msg* out,HWND h,UINT min,UINT max,UINT flags){if(!out||flags&~1){SetLastError(ERROR_NOT_SUPPORTED);return FALSE;}std::lock_guard<std::mutex> l(mutex);for(auto i=queue.begin();i!=queue.end();++i){if((!h||h==i->window)&&(!min&&!max||(min<=i->message&&i->message<=max))){*out=*i;if(flags&1)queue.erase(i);return TRUE;}}return FALSE;}
+static LRESULT WINAPI Dispatch(const Msg* msg){if(!msg)return 0;Proc proc=nullptr;{std::lock_guard<std::mutex> l(mutex);if(Valid(msg->window))proc=window->proc;}return proc?proc(msg->window,msg->message,msg->wp,msg->lp):0;}
+static BOOL WINAPI Rect(HWND h,RECT* out){std::lock_guard<std::mutex> l(mutex);if(!out||!Valid(h)){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}*out={0,0,width,height};return TRUE;}
+static BOOL WINAPI Destroy(HWND h){Proc proc;{std::lock_guard<std::mutex> l(mutex);if(!Valid(h)||window->destroying){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}window->destroying=true;proc=window->proc;}proc(h,2,0,0);proc(h,0x82,0,0);{std::lock_guard<std::mutex> l(mutex);window.reset();}return TRUE;}
+static LRESULT WINAPI Default(HWND h,UINT message,WPARAM,LPARAM){if(message==0x81)return TRUE;if(message==0x10){Destroy(h);return 0;}if(message==0x83||message>=0x400)return 0;SetLastError(ERROR_NOT_SUPPORTED);return 0;}
+static BOOL WINAPI Get(Msg* out,HWND h,UINT min,UINT max){if(!out){SetLastError(ERROR_INVALID_PARAMETER);return -1;}std::unique_lock<std::mutex> l(mutex);for(;;){for(auto i=queue.begin();i!=queue.end();++i)if(i->message==0x12||((!h||h==i->window)&&(!min&&!max||(min<=i->message&&i->message<=max)))){*out=*i;queue.erase(i);return out->message==0x12?0:1;}wake.wait(l);}}
+static SHORT WINAPI KeyState(int key){std::lock_guard<std::mutex> l(mutex);return key>=0&&key<256&&keys[key]?(SHORT)0x8000:0;}
+void* ResolveWindowImport(const char* dll,const char* name){if(_stricmp(dll,"USER32.dll"))return nullptr;
+ #define ENTRY(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
+ ENTRY("DestroyWindow",Destroy);ENTRY("DefWindowProcW",Default);ENTRY("GetMessageW",Get);ENTRY("RegisterClassW",Register);ENTRY("CreateWindowExW",Create);ENTRY("PostMessageW",Post);ENTRY("PostQuitMessage",Quit);ENTRY("PeekMessageW",Peek);ENTRY("DispatchMessageW",Dispatch);ENTRY("GetClientRect",Rect);ENTRY("GetWindowRect",Rect);ENTRY("GetAsyncKeyState",KeyState);ENTRY("GetKeyState",KeyState);
+ #undef ENTRY
+ return nullptr;
+}

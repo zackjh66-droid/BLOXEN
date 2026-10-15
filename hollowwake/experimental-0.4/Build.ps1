@@ -5,7 +5,7 @@ New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe';$vs=& $vswhere -latest -products '*' -property installationPath;$msbuild=Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
 & $msbuild (Join-Path $source 'Native\Native.vcxproj') /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-build.log')
 if($LASTEXITCODE){throw 'Native client integration compilation failed'}
-$native=Join-Path $source 'App\Native';New-Item -ItemType Directory -Force $native|Out-Null
+$native=Join-Path $source 'App';New-Item -ItemType Directory -Force $native|Out-Null
 Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll') $native
 # Build the original TLS donor using the same official toolchain/API-family checks.
 & (Join-Path $repo 'client-runtime\Build-Checks.ps1') -OutputDirectory (Join-Path $OutputDirectory 'focused-checks')
