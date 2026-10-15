@@ -20,4 +20,4 @@ t=api('git/trees',{'base_tree':t['sha'],'tree':entries});b=api('git/commits',{'m
 try:api('git/refs',{'ref':'refs/heads/'+branch,'sha':b['sha']})
 except:api('git/refs/heads/'+branch,{'sha':b['sha'],'force':False},'PATCH')
 if '--no-dispatch' not in __import__('sys').argv:api('actions/workflows/hollowwake-client-runtime.yml/dispatches',{'ref':branch,'inputs':{'run_checks':True}})
-r={'commit':b['sha'],'branch':branch,'workflow':'hollowwake-client-runtime.yml','dispatched':True};(root/'client-runtime/evidence/source.json').write_text(json.dumps(r,indent=2));print(json.dumps(r))
+r={'commit':b['sha'],'branch':branch,'workflow':'hollowwake-client-runtime.yml','dispatched':'--no-dispatch' not in __import__('sys').argv};(root/'client-runtime/evidence/source.json').write_text(json.dumps(r,indent=2));print(json.dumps(r))
