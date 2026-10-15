@@ -15,4 +15,6 @@ public class HwActivation{public static uint Launch(string id){var m=(IHwActivat
  foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}
  # Record a denied policy as an observed blocker, not as successful native execution.
  $r.originalDynamicCodeExecuted=$r.policy.Contains('memoryExecution=621');$r.result='PASS: installed, activated, policy outcome recorded';Stop-Process -Id $pidApp -Force
-}catch{$r.error=$_.Exception.Message;throw}finally{$r|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'windows-test.json')}
+}catch{$r.error=$_.Exception.Message;throw}finally{
+ if($data-and(Test-Path $data)){foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}}
+ $r|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'windows-test.json')}

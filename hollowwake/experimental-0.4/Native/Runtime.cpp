@@ -10,6 +10,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <cstring>
+#include "Dependencies.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false;
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
@@ -26,7 +27,7 @@ extern "C" void __cdecl HWViewport(int,int);
 static void* Import(const char* dll,const char* name){
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
- if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"api-ms-win-core-processthreads-l1-1-0.dll"))return nullptr;
+ if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"api-ms-win-core-processthreads-l1-1-0.dll"))return ResolveDependency(dll,name);
  #define REAL(api) if(!strcmp(name,#api))return reinterpret_cast<void*>(&api)
  REAL(GetCurrentThreadId);REAL(GetCurrentProcessId);REAL(QueryPerformanceCounter);REAL(QueryPerformanceFrequency);REAL(GetLastError);REAL(SetLastError);REAL(GetTickCount64);REAL(GetCurrentProcess);
  #undef REAL
@@ -52,6 +53,7 @@ static int MemoryPolicy(const wchar_t* path){
  FlushInstructionCache(GetCurrentProcess(),p,sizeof(code));int result=((int(*)())p)();VirtualFree(p,0,MEM_RELEASE);Log("POLICY original code returned="+std::to_string(result));return result;
 }
 static int Attempt(const wchar_t* root){
+ ConfigureDependencies(root,Import,Log);
  if(consumed)Fail("Restart the app before another mapping attempt");
  std::wstring file=std::wstring(root)+L"\\6.21\\FortniteGame\\Binaries\\Win64\\FortniteClient-Win64-Shipping.exe";
  std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in)Fail("Exact client missing: import archive first");auto length=in.tellg();if(length<4096||length>512*1024*1024)Fail("Unexpected main image size");in.seekg(0);std::vector<BYTE> raw((SIZE_T)length);if(!in.read((char*)raw.data(),length))Fail("Image read failed");if(!Hash(raw))Fail("Main executable SHA256 differs from inspected 6.21 build");Log("HASH exact main image verified");
@@ -82,7 +84,8 @@ static int Attempt(const wchar_t* root){
   if(!VirtualProtectFromApp(Rva(s.VirtualAddress,s.Misc.VirtualSize),s.Misc.VirtualSize,protect,&old)){Log("PROTECT error="+std::to_string(GetLastError()));Fail("Client section protection failed");}}
  FlushInstructionCache(GetCurrentProcess(),mapped,mappedSize);Log("PROTECT target sections applied");
  auto unwind=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];if(unwind.Size){if(unwind.Size%sizeof(RUNTIME_FUNCTION))Fail("Invalid unwind table size");auto table=(PRUNTIME_FUNCTION)Rva(unwind.VirtualAddress,unwind.Size);for(DWORD i=0;i<unwind.Size/sizeof(*table);++i){if(table[i].BeginAddress>=table[i].EndAddress||!Range(table[i].BeginAddress,table[i].EndAddress-table[i].BeginAddress,mappedSize))Fail("Invalid unwind function range");Rva(table[i].UnwindData,1);}if(!RtlAddFunctionTable(table,unwind.Size/sizeof(*table),(DWORD64)mapped))Fail("Unwind registration failed");Log("UNWIND registered="+std::to_string(unwind.Size/sizeof(*table)));}
- if(missing)Fail("Client entry blocked by unresolved native imports; see UNRESOLVED records");
+ Log("DEPENDENCY unresolved/initialization blockers="+std::to_string(DependencyFailures()));
+ if(missing||DependencyFailures())Fail("Client entry blocked by unresolved native imports; see UNRESOLVED records");
  Fail("Entry gate: dependency graph, window/input ABI and private client-network routing are not complete");
  return 0;
 }

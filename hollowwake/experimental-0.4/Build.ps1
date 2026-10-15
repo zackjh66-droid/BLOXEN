@@ -10,6 +10,7 @@ Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll
 # Build the original TLS donor using the same official toolchain/API-family checks.
 & (Join-Path $repo 'client-runtime\Build-Checks.ps1') -OutputDirectory (Join-Path $OutputDirectory 'focused-checks')
 Copy-Item (Join-Path $OutputDirectory 'focused-checks\HollowwakeTlsDonor.dll') $native
+foreach($slot in 1..31){Copy-Item (Join-Path $OutputDirectory 'focused-checks\HollowwakeTlsDonor.dll') (Join-Path $native ('HollowwakeTlsSlot{0:D2}.dll' -f $slot))}
 $cert=New-SelfSignedCertificate -Type Custom -Subject 'CN=HollowwakeDevelopment' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -KeyUsage DigitalSignature -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
 Export-Certificate -Cert $cert -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer')|Out-Null
 $project=Join-Path $source 'App\Hollowwake.csproj'

@@ -8,6 +8,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <cstring>
+#include <algorithm>
 using Proc=LRESULT(CALLBACK*)(HWND,UINT,WPARAM,LPARAM);
 struct ClassW {UINT style;Proc proc;int clsExtra,wndExtra;HINSTANCE instance;HICON icon;HCURSOR cursor;HBRUSH brush;LPCWSTR menu,name;};
 struct Msg {HWND window;UINT message;WPARAM wp;LPARAM lp;DWORD time;POINT point;DWORD privateData;};
@@ -34,7 +35,7 @@ static void WINAPI Quit(int code){std::lock_guard<std::mutex> l(mutex);Push(null
 static BOOL WINAPI Peek(Msg* out,HWND h,UINT min,UINT max,UINT flags){if(!out||flags&~1){SetLastError(ERROR_NOT_SUPPORTED);return FALSE;}std::lock_guard<std::mutex> l(mutex);for(auto i=queue.begin();i!=queue.end();++i){if((!h||h==i->window)&&(!min&&!max||(min<=i->message&&i->message<=max))){*out=*i;if(flags&1)queue.erase(i);return TRUE;}}return FALSE;}
 static LRESULT WINAPI Dispatch(const Msg* msg){if(!msg)return 0;Proc proc=nullptr;{std::lock_guard<std::mutex> l(mutex);if(Valid(msg->window))proc=window->proc;}return proc?proc(msg->window,msg->message,msg->wp,msg->lp):0;}
 static BOOL WINAPI Rect(HWND h,RECT* out){std::lock_guard<std::mutex> l(mutex);if(!out||!Valid(h)){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}*out={0,0,width,height};return TRUE;}
-static BOOL WINAPI Destroy(HWND h){Proc proc;{std::lock_guard<std::mutex> l(mutex);if(!Valid(h)||window->destroying){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}window->destroying=true;proc=window->proc;}proc(h,2,0,0);proc(h,0x82,0,0);{std::lock_guard<std::mutex> l(mutex);window.reset();}return TRUE;}
+static BOOL WINAPI Destroy(HWND h){Proc proc;{std::lock_guard<std::mutex> l(mutex);if(!Valid(h)||window->destroying){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}window->destroying=true;proc=window->proc;}proc(h,2,0,0);proc(h,0x82,0,0);{std::lock_guard<std::mutex> l(mutex);window.reset();queue.erase(std::remove_if(queue.begin(),queue.end(),[&](const Msg& m){return m.window==h;}),queue.end());}return TRUE;}
 static LRESULT WINAPI Default(HWND h,UINT message,WPARAM,LPARAM){if(message==0x81)return TRUE;if(message==0x10){Destroy(h);return 0;}if(message==0x83||message>=0x400)return 0;SetLastError(ERROR_NOT_SUPPORTED);return 0;}
 static BOOL WINAPI Get(Msg* out,HWND h,UINT min,UINT max){if(!out){SetLastError(ERROR_INVALID_PARAMETER);return -1;}std::unique_lock<std::mutex> l(mutex);for(;;){for(auto i=queue.begin();i!=queue.end();++i)if(i->message==0x12||((!h||h==i->window)&&(!min&&!max||(min<=i->message&&i->message<=max)))){*out=*i;queue.erase(i);return out->message==0x12?0:1;}wake.wait(l);}}
 static SHORT WINAPI KeyState(int key){std::lock_guard<std::mutex> l(mutex);return key>=0&&key<256&&keys[key]?(SHORT)0x8000:0;}
@@ -43,4 +44,11 @@ void* ResolveWindowImport(const char* dll,const char* name){if(_stricmp(dll,"USE
  ENTRY("DestroyWindow",Destroy);ENTRY("DefWindowProcW",Default);ENTRY("GetMessageW",Get);ENTRY("RegisterClassW",Register);ENTRY("CreateWindowExW",Create);ENTRY("PostMessageW",Post);ENTRY("PostQuitMessage",Quit);ENTRY("PeekMessageW",Peek);ENTRY("DispatchMessageW",Dispatch);ENTRY("GetClientRect",Rect);ENTRY("GetWindowRect",Rect);ENTRY("GetAsyncKeyState",KeyState);ENTRY("GetKeyState",KeyState);
  #undef ENTRY
  return nullptr;
+}
+static unsigned contractKeys=0;static bool contractCreate=false;
+static LRESULT CALLBACK ContractProc(HWND,UINT message,WPARAM wp,LPARAM lp){if(message==0x81){auto c=(CreateStruct*)lp;contractCreate=c&&c->params==(void*)621&&c->name&&!wcscmp(c->name,L"HollowwakeContract");return contractCreate?1:0;}if(message==0x100&&wp==65)++contractKeys;return 0;}
+extern "C" __declspec(dllexport) int __cdecl HWWindowContract(){
+ ClassW cls={};cls.proc=ContractProc;cls.name=L"HollowwakeContract";if(!Register(&cls))return -1;HWND h=Create(0,cls.name,cls.name,0,0,0,0,0,nullptr,nullptr,nullptr,(void*)621);if(!h)return -2;
+ RECT rect={};bool valid=Rect(h,&rect)&&rect.right>0&&rect.bottom>0;HWKey(65,1);bool pressed=(KeyState(65)&0x8000)!=0;Msg msg={};while(Peek(&msg,nullptr,0,0,1))Dispatch(&msg);HWKey(65,0);bool released=KeyState(65)==0;Destroy(h);while(Peek(&msg,nullptr,0,0,1)){};
+ return contractCreate&&contractKeys==1&&valid&&pressed&&released?621:-3;
 }
