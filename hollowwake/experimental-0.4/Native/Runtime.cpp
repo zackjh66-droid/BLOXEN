@@ -22,11 +22,13 @@ static bool Hash(const std::vector<BYTE>& raw){
  static const BYTE expected[32]={0x9d,0x18,0xfb,0x5c,0x5c,0x43,0xdd,0xc2,0x12,0x51,0xd5,0xce,0x9e,0x02,0x6c,0xa0,0x1f,0x90,0xd4,0x29,0x21,0xdd,0x74,0x19,0x73,0xbd,0x55,0x36,0xe8,0x94,0x94,0x78};
  BCRYPT_ALG_HANDLE alg=nullptr;BYTE result[32];if(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)return false;auto s=BCryptHash(alg,nullptr,0,const_cast<BYTE*>(raw.data()),(ULONG)raw.size(),result,32);BCryptCloseAlgorithmProvider(alg,0);return s>=0&&!memcmp(expected,result,32);
 }
+void* ResolveControllerImport(const char*,const char*);
 void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
 static void* Import(const char* dll,const char* name){
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
+ if(auto p=ResolveControllerImport(dll,name))return p;
  if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"api-ms-win-core-processthreads-l1-1-0.dll"))return ResolveDependency(dll,name);
  #define REAL(api) if(!strcmp(name,#api))return reinterpret_cast<void*>(&api)
  REAL(GetCurrentThreadId);REAL(GetCurrentProcessId);REAL(QueryPerformanceCounter);REAL(QueryPerformanceFrequency);REAL(GetLastError);REAL(SetLastError);REAL(GetTickCount64);REAL(GetCurrentProcess);
@@ -37,7 +39,8 @@ static unsigned imports=0,missing=0;
 static void Thunks(const char* dll,DWORD source,DWORD target){
  for(SIZE_T i=0;i<32768;++i){ULONGLONG value=*(ULONGLONG*)Rva(source+(DWORD)(i*8),8);if(!value)return;auto out=(ULONGLONG*)Rva(target+(DWORD)(i*8),8);void* p=nullptr;std::string symbol;
   if(value&IMAGE_ORDINAL_FLAG64)symbol="#"+std::to_string(value&0xffff);
-  else {if(value>MAXDWORD)Fail("Invalid name thunk");Rva((DWORD)value,3);symbol=Name((DWORD)value+2);p=Import(dll,symbol.c_str());}
+  else {if(value>MAXDWORD)Fail("Invalid name thunk");Rva((DWORD)value,3);symbol=Name((DWORD)value+2);}
+  p=Import(dll,symbol.c_str());
   ++imports;if(p)*out=(ULONGLONG)p;else {++missing;if(missing<=256)Log("UNRESOLVED "+std::string(dll)+"!"+symbol);}
  }Fail("Unbounded import thunk list");
 }
