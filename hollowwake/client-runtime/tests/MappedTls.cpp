@@ -7,7 +7,9 @@
 #include <iostream>
 #include <cstring>
 using Bind=BOOL(WINAPI*)(const void*,SIZE_T,SIZE_T,void*,const PIMAGE_TLS_CALLBACK*,unsigned);
-using Index=DWORD(WINAPI*)();using Init=BOOL(WINAPI*)();
+using Index=DWORD(WINAPI*)();using Init=BOOL(WINAPI*)();using Block=void*(WINAPI*)();
+static volatile LONG attaches=0,detaches=0;
+static void NTAPI ThreadCallback(void*,DWORD reason,void*){if(reason==DLL_THREAD_ATTACH)InterlockedIncrement(&attaches);if(reason==DLL_THREAD_DETACH)InterlockedIncrement(&detaches);}
 static bool Check(bool v,const char* name){std::cout<<name<<": "<<(v?"PASS":"FAIL")<<"\n";return v;}
 static void* Export(BYTE* base,const char* name){
  auto n=(IMAGE_NT_HEADERS64*)(base+((IMAGE_DOS_HEADER*)base)->e_lfanew);
@@ -22,7 +24,10 @@ int main(){
  bool ok=true;HMODULE donor=LoadLibraryW(L"HollowwakeTlsDonor.dll");if(!Check(donor!=nullptr,"OS loads original donor"))return 1;
  std::cout<<"Host TLS marker before bind="<<std::hex<<hostTlsMarker<<std::dec<<"\n";
  auto attach=(Index)GetProcAddress(donor,"DonorAttachThread");std::cout<<"Donor PROCESS_ATTACH observed thread="<<(attach?attach():0)<<"\n";
- auto bind=(Bind)GetProcAddress(donor,"BindGuest");auto index=(Index)GetProcAddress(donor,"GuestTlsIndex");auto init=(Init)GetProcAddress(donor,"InitializeGuestThread");if(!bind||!index||!init)return 2;
+ auto bind=(Bind)GetProcAddress(donor,"BindGuest");auto index=(Index)GetProcAddress(donor,"GuestTlsIndex");auto init=(Init)GetProcAddress(donor,"InitializeGuestThread");auto block=(Block)GetProcAddress(donor,"GuestThreadBlock");if(!bind||!index||!init||!block)return 2;
+ unsigned long(*read)()=nullptr;void(*write)(unsigned long)=nullptr;
+ std::promise<void> ready,release;auto readyWait=ready.get_future();auto releaseWait=release.get_future();bool existingGuard=false;unsigned long existingInitial=0;
+ std::thread existing([&](){ready.set_value();releaseWait.wait();existingGuard=block()==nullptr&&init()!=0;existingInitial=read();write(30);});readyWait.wait();
  std::ifstream file("GuestTls.dll",std::ios::binary);std::vector<BYTE> raw((std::istreambuf_iterator<char>(file)),{});
  if(raw.size()<1024)return 3;auto dos=(IMAGE_DOS_HEADER*)raw.data();if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<=0||(size_t)dos->e_lfanew>raw.size()-sizeof(IMAGE_NT_HEADERS64))return 3;
  auto nt=(IMAGE_NT_HEADERS64*)(raw.data()+dos->e_lfanew);if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||nt->OptionalHeader.SizeOfImage>1024*1024||nt->FileHeader.NumberOfSections>32)return 3;
@@ -38,20 +43,26 @@ int main(){
  SIZE_T tlsSize=tls->EndAddressOfRawData-tls->StartAddressOfRawData;
  ok&=Check(tlsSize>=4&&tlsSize<=32,"Mapped fixture has initialized static TLS");
  auto host=(BYTE*)GetModuleHandleW(nullptr);auto hn=(IMAGE_NT_HEADERS64*)(host+((IMAGE_DOS_HEADER*)host)->e_lfanew);auto ht=(IMAGE_TLS_DIRECTORY64*)(host+hn->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);DWORD hostIndex=*(DWORD*)ht->AddressOfIndex;
- std::cout<<"Donor index="<<index()<<"; host index="<<hostIndex<<"\n";if(!Check(index()!=hostIndex,"OS assigns a noncolliding donor TLS index"))return 13;ok&=Check(bind((void*)tls->StartAddressOfRawData,tlsSize,0,base,nullptr,0)!=0,"Donor binds template");
+ std::cout<<"Donor index="<<index()<<"; host index="<<hostIndex<<"\n";if(!Check(index()!=hostIndex,"OS assigns a noncolliding donor TLS index"))return 13;PIMAGE_TLS_CALLBACK callback=&ThreadCallback;
+ ok&=Check(!bind(nullptr,65537,0,base,nullptr,0),"Donor rejects oversized template");
+ ok&=Check(bind((void*)tls->StartAddressOfRawData,tlsSize,16,base,&callback,1)!=0,"Donor binds template");
  *(DWORD*)tls->AddressOfIndex=index();
  ok&=Check(!bind((void*)tls->StartAddressOfRawData,tlsSize,0,base,nullptr,0),"Donor rejects unsafe rebinding");
  DWORD old;VirtualProtect(base,nt->OptionalHeader.SizeOfHeaders,PAGE_READONLY,&old);
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;++i){DWORD protect=(sec[i].Characteristics&IMAGE_SCN_MEM_EXECUTE)?PAGE_EXECUTE_READ:((sec[i].Characteristics&IMAGE_SCN_MEM_WRITE)?PAGE_READWRITE:PAGE_READONLY);if((sec[i].Characteristics&IMAGE_SCN_MEM_EXECUTE)&&(sec[i].Characteristics&IMAGE_SCN_MEM_WRITE))return 10;if(!VirtualProtect(base+sec[i].VirtualAddress,sec[i].Misc.VirtualSize,protect,&old))return 10;}
  FlushInstructionCache(GetCurrentProcess(),base,nt->OptionalHeader.SizeOfImage);
- std::cout<<"Applying memory protections complete\n";auto read=(unsigned long(*)())Export(base,"GuestRead");auto write=(void(*)(unsigned long))Export(base,"GuestWrite");if(!read||!write)return 11;
+ std::cout<<"Applying memory protections complete\n";read=(unsigned long(*)())Export(base,"GuestRead");write=(void(*)(unsigned long))Export(base,"GuestWrite");if(!read||!write)return 11;
  ok&=Check(read()==0x62145269,"Mapped guest instructions read initialized donor TLS");write(10);ok&=Check(hostTlsMarker==0xABC621,"Guest binding does not corrupt host TLS");
+ bool zeroFilled=true;auto bytes=(unsigned char*)block();for(SIZE_T i=tlsSize;i<tlsSize+16;++i)zeroFilled&=bytes[i]==0;
+ ok&=Check(zeroFilled,"Donor zero-fill is provisioned in the actual TLS block");
+ release.set_value();existing.join();ok&=Check(existingGuard&&existingInitial==0x62145269&&read()==10,"Existing host thread guard initializes mapped guest TLS without changing main thread");
  unsigned long initial=0,changed=0;std::thread t([&](){initial=read();write(20);changed=read();});t.join();
+ ok&=Check(attaches==2&&detaches==2,"Original thread callbacks receive balanced attach/detach");
  ok&=Check(initial==0x62145269&&changed==20&&read()==10,"OS thread attach seeds guest TLS and preserves thread isolation");
  std::cout<<"OS donor static TLS index: "<<index()<<"; main/worker values: "<<read()<<"/"<<changed<<"\n";
  // Existing thread-pool callbacks MUST call InitializeGuestThread before guest code.
  // That runtime-wide interception remains unimplemented; no completeness claim.
- std::ofstream("mapped-tls-results.json")<<"{\"mappedOriginalGuestExecuted\":true,\"usesOsAssignedStaticTlsSlot\":true,\"newThreadTemplateAndIsolationPassed\":"<<(ok?"true":"false")<<",\"threadPoolIntegration\":false,\"fullGameLoader\":false,\"xboxTested\":false}";
+ std::ofstream("mapped-tls-results.json")<<"{\"mappedOriginalGuestExecuted\":true,\"usesOsAssignedStaticTlsSlot\":true,\"newThreadTemplateAndIsolationPassed\":"<<(ok?"true":"false")<<",\"existingThreadExplicitGuardTested\":true,\"threadCallbacksAndZeroFillTested\":true,\"threadPoolIntegration\":false,\"fullGameLoader\":false,\"xboxTested\":false}";
  // Process-lifetime donor binding: keep both modules resident until process exit.
  return ok?0:12;
 }

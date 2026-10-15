@@ -32,6 +32,8 @@ extern "C" __declspec(dllexport) BOOL WINAPI InitializeGuestThread(){
  return TRUE;
 }
 extern "C" __declspec(dllexport) BOOL WINAPI BindGuest(const void* bytes,SIZE_T size,SIZE_T zero,void* base,const PIMAGE_TLS_CALLBACK* cb,unsigned count){
+ if(!processAttachThread)return FALSE;
+ for(unsigned i=0;i<count&&cb&&count<=16;++i)if(!cb[i])return FALSE;
  if(size>65536||zero>65536-size||(!bytes&&size)||count>16||(!cb&&count))return FALSE;
  if(InterlockedCompareExchange(&state,1,0)!=0)return FALSE;
  for(SIZE_T i=0;i<size;++i)initial[i]=static_cast<const unsigned char*>(bytes)[i];
