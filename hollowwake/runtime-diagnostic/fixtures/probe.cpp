@@ -21,8 +21,8 @@ int main(){
  const auto dir=nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];auto sections=IMAGE_FIRST_SECTION(nt);DWORD offset=0;
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;i++)if(dir.VirtualAddress>=sections[i].VirtualAddress&&dir.VirtualAddress<sections[i].VirtualAddress+sections[i].Misc.VirtualSize)offset=sections[i].PointerToRawData+dir.VirtualAddress-sections[i].VirtualAddress;
  if(!require(offset&&dir.Size>=sizeof(IMAGE_TLS_DIRECTORY64),"Original fixture has a real PE TLS directory"))return 3;
- auto real=(IMAGE_TLS_DIRECTORY64*)(raw.data()+offset);ok&=require(real->EndAddressOfRawData>real->StartAddressOfRawData&&real->AddressOfCallBacks==0,"Fixture has initialized static TLS without callbacks");
- // A non-executable buffer models the post-relocation TLS directory only. No fixture code is called through the candidate.
+ auto real=(IMAGE_TLS_DIRECTORY64*)(raw.data()+offset);ok&=require(real->EndAddressOfRawData>real->StartAddressOfRawData,"Fixture has initialized static TLS template");
+ // A non-executable buffer models the post-relocation TLS directory with its OPTIONAL callback array omitted. No fixture code is called through the candidate.
  std::vector<unsigned char> image(4096);auto data=(IMAGE_TLS_DIRECTORY64*)(image.data()+256);*data=*real;DWORD marker=0xCCCCCCCC;data->AddressOfIndex=(ULONGLONG)&marker;data->AddressOfCallBacks=0;
  xwr::PeLoader candidate;bool returned=candidate.ProcessTls(image.data(),256,sizeof(*data),IMAGE_NT_OPTIONAL_HDR64_MAGIC);
  bool defect=returned&&marker==0xCCCCCCCC;ok&=require(defect,"Candidate negative finding reproduced: reports success but does not initialize even TLS index without callbacks");
