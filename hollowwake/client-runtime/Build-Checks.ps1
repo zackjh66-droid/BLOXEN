@@ -29,6 +29,15 @@ try {
  if($LASTEXITCODE){throw 'Mapped fixture harness build failed'}
  & .\MappedTls.exe 2>&1|Tee-Object mapped-test.log
  if($LASTEXITCODE){throw "Mapped fixture runtime failed: $LASTEXITCODE"}
+ # A modified fixture must be rejected by the compiled hash gate BEFORE mapping.
+ $original=[IO.File]::ReadAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'))
+ try {
+  $modified=$original.Clone();$modified[$modified.Length-1]=$modified[$modified.Length-1] -bxor 1
+  [IO.File]::WriteAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'),$modified)
+  $negative=Start-Process -FilePath (Join-Path $OutputDirectory 'MappedTls.exe') -NoNewWindow -Wait -PassThru -RedirectStandardOutput 'hash-rejection-stdout.log' -RedirectStandardError 'hash-rejection-stderr.log'
+  if($negative.ExitCode-ne 3){throw 'Modified fixture was not safely rejected before mapping'}
+  '{"modifiedFixtureRejectedBeforeMapping":true,"exitCode":3}'|Set-Content hash-rejection.json
+ }finally{[IO.File]::WriteAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'),$original)}
  Get-ChildItem -File | Where-Object {$_.Extension -in @('.obj','.exp')} | Remove-Item -Force
  Get-ChildItem -File | Where-Object {$_.Extension -in @('.dll','.exe')} | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content fixture-hashes.json
 }finally{Pop-Location}

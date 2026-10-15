@@ -29,13 +29,14 @@ int main(){
  auto bind=(Bind)GetProcAddress(donor,"BindGuest");auto index=(Index)GetProcAddress(donor,"GuestTlsIndex");auto init=(Init)GetProcAddress(donor,"InitializeGuestThread");auto block=(Block)GetProcAddress(donor,"GuestThreadBlock");if(!bind||!index||!init||!block)return 2;
  unsigned long(*read)()=nullptr;void(*write)(unsigned long)=nullptr;
  std::promise<void> ready,release;auto readyWait=ready.get_future();auto releaseWait=release.get_future();bool existingGuard=false;unsigned long existingInitial=0;
- std::thread existing([&](){ready.set_value();releaseWait.wait();existingGuard=block()==nullptr&&init()!=0;existingInitial=read();write(30);});readyWait.wait();
+ 
  std::ifstream file("GuestTls.dll",std::ios::binary|std::ios::ate);auto length=file.tellg();if(length<1024||length>1024*1024)return 3;file.seekg(0);std::vector<BYTE> raw((size_t)length);if(!file.read((char*)raw.data(),raw.size()))return 3;
  BCRYPT_ALG_HANDLE alg=nullptr;BYTE digest[32];if(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)return 3;auto status=BCryptHash(alg,nullptr,0,raw.data(),(ULONG)raw.size(),digest,sizeof(digest));BCryptCloseAlgorithmProvider(alg,0);if(status<0||memcmp(digest,ExpectedGuestSha256,32)){std::cerr<<"Original fixture hash mismatch: refusing to map\n";return 3;}
  if(raw.size()<1024)return 3;auto dos=(IMAGE_DOS_HEADER*)raw.data();if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<=0||(size_t)dos->e_lfanew>raw.size()-sizeof(IMAGE_NT_HEADERS64))return 3;
  auto nt=(IMAGE_NT_HEADERS64*)(raw.data()+dos->e_lfanew);if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||nt->OptionalHeader.SizeOfImage>1024*1024||nt->FileHeader.NumberOfSections>32)return 3;
  // The private fixture is hash-recorded by the build. No arbitrary image accepted.
  if(nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size||nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION].Size)return 4;
+ std::thread existing([&](){ready.set_value();releaseWait.wait();existingGuard=block()==nullptr&&init()!=0;existingInitial=read();write(30);});readyWait.wait();
  std::cout<<"Mapping original fixture\n";auto base=(BYTE*)VirtualAlloc(nullptr,nt->OptionalHeader.SizeOfImage,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!base)return 5;
  memcpy(base,raw.data(),nt->OptionalHeader.SizeOfHeaders);auto sec=IMAGE_FIRST_SECTION(nt);
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;++i){if(sec[i].PointerToRawData+sec[i].SizeOfRawData>raw.size()||sec[i].VirtualAddress+sec[i].SizeOfRawData>nt->OptionalHeader.SizeOfImage)return 6;memcpy(base+sec[i].VirtualAddress,raw.data()+sec[i].PointerToRawData,sec[i].SizeOfRawData);}
