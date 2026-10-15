@@ -1,0 +1,13 @@
+# Build and evidence
+
+Final tested source: `e7beddb7fc185d278ef4da49c5fe09ae19a93dfd`.
+Successful hosted Windows run: https://github.com/zackjh66-droid/BLOXEN/actions/runs/38800803125
+Original source branch: `hollowwake/client-runtime-0.3.2`, workflow `hollowwake-client-runtime.yml`, explicit `run_checks=true`. Standard authorized public-repository Windows2022 runner only; no paid resources or user computer. Official VS2022/MSVC and Windows SDK10.0.19041 were used. No Fortnite executable or third-party launcher/runner was executed.
+
+The source archive contains the complete retained0.3.1 project plus new `client-runtime/` changes. The binaries/logs archive is original Windows fixture/implementation output, **not an APPX/APPXBUNDLE, installer, or Fortnite client**. The donor is compiled for the UWP API family and linked as an AppContainer DLL. The bridge is compiled for that API family and linked against windowsapp.lib and Store CRT. Successful link does not establish Xbox compatibility. The DLLs are not development-signed installable Xbox applications; no new certificate or private signing key was created.
+
+TLS runtime checks pass: actual mapped fixture instructions, initialized template, OS-assigned index2 distinct from host index0, host integrity, independent main/worker values10/20, explicit initialization on an existing host thread, zero-fill, attach/detach callbacks, oversize/rebind rejection. An altered fixture is rejected by the embedded BCrypt SHA256 gate before mapping, exit3. The fixture mapper is intentionally restricted to its hash-pinned, no-import/no-unwind original fixture. It is not a game mapper.
+
+CoreWindow factory/import hooks compile/link successfully; this bridge has no presentation runtime test in this iteration. No new independent graphics demonstration was created. Windows fixture execution is separate from UWP app execution and Xbox execution. Xbox tests and Fortnite execution remain absent. No original loading/lobby screenshots or successful account-to-game integration are claimed.
+
+Retained logs include early TLS donor collision/crash, subsequent fault addresses and host-integrity failure, bridge CRT link failure and final successful checks. `STATUS.md` explains limitations and remaining PE/Win32/protocol requirements. Existing frontend/backend were not redeployed or modified this iteration; browser GET still returns200, and the working0.3 rollback APPX hash is unchanged. A raw Python HTTP request encountered an edge1010/403; fresh Chromium accessed the normal site successfully. No account database was altered to test preservation.
