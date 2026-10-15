@@ -34,7 +34,10 @@ try {
  try {
   $modified=$original.Clone();$modified[$modified.Length-1]=$modified[$modified.Length-1] -bxor 1
   [IO.File]::WriteAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'),$modified)
-  $negative=Start-Process -FilePath (Join-Path $OutputDirectory 'MappedTls.exe') -WorkingDirectory $OutputDirectory -NoNewWindow -Wait -PassThru -RedirectStandardOutput 'hash-rejection-stdout.log' -RedirectStandardError 'hash-rejection-stderr.log'
+  $negative=New-Object System.Diagnostics.Process
+  $negative.StartInfo.FileName=Join-Path $OutputDirectory 'MappedTls.exe';$negative.StartInfo.WorkingDirectory=$OutputDirectory
+  $negative.StartInfo.UseShellExecute=$false;$negative.StartInfo.CreateNoWindow=$true;$negative.StartInfo.RedirectStandardOutput=$true;$negative.StartInfo.RedirectStandardError=$true
+  $null=$negative.Start();$negative.StandardOutput.ReadToEnd()|Set-Content hash-rejection-stdout.log;$negative.StandardError.ReadToEnd()|Set-Content hash-rejection-stderr.log;$negative.WaitForExit()
   if($negative.ExitCode-ne 3){throw 'Modified fixture was not safely rejected before mapping'}
   '{"modifiedFixtureRejectedBeforeMapping":true,"exitCode":3}'|Set-Content hash-rejection.json
  }finally{[IO.File]::WriteAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'),$original)}
