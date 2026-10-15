@@ -14,8 +14,8 @@ public class HwActivation{public static uint Launch(string id,string args=""){va
  $r.policy=([string](Get-Content (Join-Path $data 'runtime-policy.txt') -Raw)).Trim()
  foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}
  # Record a denied policy as an observed blocker, not as successful native execution.
- $r.originalDynamicCodeExecuted=$r.policy.Contains('memoryExecution=621');$r.windowMessageContract=$r.policy.Contains('windowMessageContract=621');$r.graphicsContract=$r.policy.Contains('graphicsContract=621');if(!$r.originalDynamicCodeExecuted-or !$r.windowMessageContract-or !$r.graphicsContract){throw 'Native memory/window/graphics contract failed; inspect runtime-policy.txt'};$r.result='PASS: installed, activated, policy outcome recorded';Stop-Process -Id $pidApp -Force
- $trapProcessId=0;try{$trapProcessId=[HwActivation]::Launch($p.PackageFamilyName+'!App','hollowwake-selftest-unsupported')}catch{$r.trapActivationReturnedError=$true};$deadline=[DateTime]::UtcNow.AddSeconds(40)
+ $r.projectMemoryFixtureExecuted=$r.policy.Contains('memoryExecution=621');$r.windowMessageContract=$r.policy.Contains('windowMessageContract=621');$r.graphicsContract=$r.policy.Contains('graphicsContract=621');if(!$r.projectMemoryFixtureExecuted-or !$r.windowMessageContract-or !$r.graphicsContract){throw 'Native memory/window/graphics contract failed; inspect runtime-policy.txt'};$before=Get-Process -Id $pidApp;Stop-Process -Id $pidApp -Force;$null=$before.WaitForExit(10000);Start-Sleep -Seconds 2;[IO.File]::WriteAllText((Join-Path $data 'selftest-unsupported.once'),'Original Hollowwake fixture only')
+ $trapProcessId=0;try{$trapProcessId=[HwActivation]::Launch($p.PackageFamilyName+'!App')}catch{$r.trapActivationReturnedError=$true;$r.trapActivationHResult='0x{0:X8}' -f $_.Exception.InnerException.HResult};$deadline=[DateTime]::UtcNow.AddSeconds(40)
  do{Start-Sleep -Seconds 1;$trapAlive=if($trapProcessId){Get-Process -Id $trapProcessId -ErrorAction SilentlyContinue}else{Get-Process -Name Hollowwake -ErrorAction SilentlyContinue|Where-Object {$_.Path-and $_.Path.StartsWith($p.InstallLocation)}}}while($trapAlive-and[DateTime]::UtcNow-lt $deadline)
  $trapLog=Get-Content (Join-Path $data 'native-launch.log') -Raw
  $r.unsupportedOriginalFixtureLogged=$trapLog.Contains('CALLED_UNSUPPORTED HOLLOWWAKE_ORIGINAL_FIXTURE!MissingFunction');$r.failFastProcessExited=!$trapAlive
@@ -24,6 +24,6 @@ public class HwActivation{public static uint Launch(string id,string args=""){va
  & (Join-Path $PSScriptRoot 'Test-Link.ps1') -BackendOrigin 'https://hollowwake.jihnjohn10.chatgpt.site' -PackageFamilyName $p.PackageFamilyName -AppProcessId $pidApp -OutputDirectory $OutputDirectory
  $link=Get-Content (Join-Path $OutputDirectory 'native-link-ui-test.json') -Raw|ConvertFrom-Json;$r.accountLink=$link.result;if($link.result-ne 'PASS'){throw 'Native project-account linking regression failed'}
  $r.result='PASS: native contracts, fail-fast logs and project account linking';
-}catch{$r.error=$_.Exception.Message;throw}finally{
+}catch{$r.result='FAIL';$r.error=$_.Exception.Message;throw}finally{
  if($data-and(Test-Path $data)){foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}}
  $r|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'windows-test.json')}

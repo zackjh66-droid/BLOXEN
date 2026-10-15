@@ -57,7 +57,7 @@ namespace Hollowwake
             Show(SplashPanel); StatusText.Text = "Experimental native client loader. No working Fortnite lobby is claimed.";
             try {var bound=HWBindWindow(LaunchLog);var policy=HWMemoryPolicy(LaunchLog);var contract=HWWindowContract();var graphics=HWGraphicsContract();policyReady=bound>=0&&policy==621&&contract==621&&graphics==621;await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"windowBind="+bound+" memoryExecution="+policy+" windowMessageContract="+contract+" graphicsContract="+graphics+" controllerCount="+HWControllerCount()+" xboxUnverified=true");}
             catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
-            if(App.UnsupportedSelfTest){HWUnsupportedContract();return;}
+            var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try
             {
