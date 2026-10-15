@@ -10,7 +10,13 @@ Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll
 # Build the original TLS donor using the same official toolchain/API-family checks.
 & (Join-Path $repo 'client-runtime\Build-Checks.ps1') -OutputDirectory (Join-Path $OutputDirectory 'focused-checks')
 Copy-Item (Join-Path $OutputDirectory 'focused-checks\HollowwakeTlsDonor.dll') $native
-foreach($slot in 1..31){Copy-Item (Join-Path $OutputDirectory 'focused-checks\HollowwakeTlsDonor.dll') (Join-Path $native ('HollowwakeTlsSlot{0:D2}.dll' -f $slot))}
+# Give each donor a distinct PE export-directory module name/file hash. Do not
+# rely on byte-identical copies surviving package/loader deduplication.
+foreach($slot in 1..31){
+ $slotPath=Join-Path $native ('HollowwakeTlsSlot{0:D2}.dll' -f $slot)
+ & cl.exe /nologo /LD /GS- /Oi /Zl /DWINAPI_FAMILY=WINAPI_FAMILY_APP /DWIN32_LEAN_AND_MEAN (Join-Path $repo 'client-runtime\tls\Donor.cpp') windowsapp.lib /link /NODEFAULTLIB /APPCONTAINER /ENTRY:DonorEntry /INCLUDE:_tls_used "/OUT:$slotPath" 2>&1|Out-File -Append (Join-Path $OutputDirectory 'donor-pool-build.log')
+ if($LASTEXITCODE){throw 'Distinct TLS donor pool build failed'}
+}
 $cert=New-SelfSignedCertificate -Type Custom -Subject 'CN=HollowwakeDevelopment' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -KeyUsage DigitalSignature -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
 Export-Certificate -Cert $cert -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer')|Out-Null
 $project=Join-Path $source 'App\Hollowwake.csproj'

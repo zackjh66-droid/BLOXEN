@@ -28,6 +28,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWControllerCount();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWGraphicsContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWUnsupportedContract();
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWTlsContract();
         private bool importBusy,loadBusy,policyReady;
         private string LaunchLog {get{return Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-launch.log");}}
         private readonly SessionStore store = new SessionStore();
@@ -55,7 +56,7 @@ namespace Hollowwake
         private async Task InitializeAsync()
         {
             Show(SplashPanel); StatusText.Text = "Experimental native client loader. No working Fortnite lobby is claimed.";
-            try {var bound=HWBindWindow(LaunchLog);var policy=HWMemoryPolicy(LaunchLog);var contract=HWWindowContract();var graphics=HWGraphicsContract();policyReady=bound>=0&&policy==621&&contract==621&&graphics==621;await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"windowBind="+bound+" memoryExecution="+policy+" windowMessageContract="+contract+" graphicsContract="+graphics+" controllerCount="+HWControllerCount()+" xboxUnverified=true");}
+            try {var bound=HWBindWindow(LaunchLog);var policy=HWMemoryPolicy(LaunchLog);var contract=HWWindowContract();var graphics=HWGraphicsContract();var tls=HWTlsContract();policyReady=bound>=0&&policy==621&&contract==621&&graphics==621&&tls==621;await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"windowBind="+bound+" memoryExecution="+policy+" windowMessageContract="+contract+" tlsSlotsContract="+tls+" graphicsContract="+graphics+" controllerCount="+HWControllerCount()+" xboxUnverified=true");}
             catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);

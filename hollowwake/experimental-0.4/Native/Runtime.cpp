@@ -134,3 +134,7 @@ extern "C" __declspec(dllexport) int __cdecl HWGraphicsContract(){
  Microsoft::WRL::ComPtr<IDXGISwapChain> swap;hr=factory->CreateSwapChain(device.Get(),&desc,&swap);if(FAILED(hr)){Log("GRAPHICS composition bridge HRESULT="+std::to_string(hr));return hr;}
  Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer;hr=swap->GetBuffer(0,IID_PPV_ARGS(&buffer));if(FAILED(hr))return hr;Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;hr=device->CreateRenderTargetView(buffer.Get(),nullptr,&view);if(FAILED(hr))return hr;float color[]={0.02f,0.02f,0.02f,1};context->ClearRenderTargetView(view.Get(),color);hr=swap->Present(1,0);Log("GRAPHICS real factory/composition Present HRESULT="+std::to_string(hr));if(gamePanel)gamePanel->SetSwapChain(nullptr);return SUCCEEDED(hr)?621:hr;
 }
+
+extern "C" __declspec(dllexport) int __cdecl HWTlsContract(){
+ auto first=LoadPackagedLibrary(L"HollowwakeTlsDonor.dll",0),second=LoadPackagedLibrary(L"HollowwakeTlsSlot01.dll",0);if(!first||!second){Log("TLS packaged contract LoadPackagedLibrary error="+std::to_string(GetLastError()));return -1;}auto a=(DWORD(WINAPI*)())GetProcAddress(first,"GuestTlsIndex"),b=(DWORD(WINAPI*)())GetProcAddress(second,"GuestTlsIndex");if(!a||!b)return -2;auto x=a(),y=b();Log("TLS packaged contract indices="+std::to_string(x)+","+std::to_string(y));return first!=second&&x!=y?621:-3;
+}
