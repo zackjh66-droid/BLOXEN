@@ -18,7 +18,7 @@ try {
  & lib.exe /nologo /OUT:HollowwakeCoreWindowBridge.lib CoreWindowBridge.obj GuestImports.obj
  & link.exe /DLL /APPCONTAINER CoreWindowBridge.obj GuestImports.obj windowsapp.lib vcruntime.lib ucrt.lib /OPT:NOREF "/LIBPATH:$vc\lib\x64\store" /OUT:CoreWindowBridge.dll 2>&1|Tee-Object graphics-link.log
  if($LASTEXITCODE){throw 'CoreWindow bridge UWP linkage failed'}
- & cl.exe /nologo /LD /GS- /Oi /Zl (Join-Path $source 'tls\Donor.cpp') kernel32.lib /link /NODEFAULTLIB /ENTRY:DonorEntry /INCLUDE:_tls_used /OUT:HollowwakeTlsDonor.dll 2>&1|Tee-Object donor-build.log
+ & cl.exe /nologo /LD /GS- /Oi /Zl /DWINAPI_FAMILY=WINAPI_FAMILY_APP /DWIN32_LEAN_AND_MEAN (Join-Path $source 'tls\Donor.cpp') windowsapp.lib /link /NODEFAULTLIB /APPCONTAINER /ENTRY:DonorEntry /INCLUDE:_tls_used /OUT:HollowwakeTlsDonor.dll 2>&1|Tee-Object donor-build.log
  if($LASTEXITCODE){throw 'Donor build failed'}
  & cl.exe /nologo /LD /GS- /Oi /Zl (Join-Path $source 'tests\GuestTls.cpp') /link /NODEFAULTLIB /NOENTRY /INCLUDE:_tls_used /OUT:GuestTls.dll 2>&1|Tee-Object guest-build.log
  if($LASTEXITCODE){throw 'Guest build failed'}
@@ -34,7 +34,7 @@ try {
  try {
   $modified=$original.Clone();$modified[$modified.Length-1]=$modified[$modified.Length-1] -bxor 1
   [IO.File]::WriteAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'),$modified)
-  $negative=Start-Process -FilePath (Join-Path $OutputDirectory 'MappedTls.exe') -NoNewWindow -Wait -PassThru -RedirectStandardOutput 'hash-rejection-stdout.log' -RedirectStandardError 'hash-rejection-stderr.log'
+  $negative=Start-Process -FilePath (Join-Path $OutputDirectory 'MappedTls.exe') -WorkingDirectory $OutputDirectory -NoNewWindow -Wait -PassThru -RedirectStandardOutput 'hash-rejection-stdout.log' -RedirectStandardError 'hash-rejection-stderr.log'
   if($negative.ExitCode-ne 3){throw 'Modified fixture was not safely rejected before mapping'}
   '{"modifiedFixtureRejectedBeforeMapping":true,"exitCode":3}'|Set-Content hash-rejection.json
  }finally{[IO.File]::WriteAllBytes((Join-Path $OutputDirectory 'GuestTls.dll'),$original)}
