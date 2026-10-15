@@ -13,8 +13,8 @@ int main(){
  if(!require(tls&&runtime,"Original fixture DLLs load through Windows loader"))return 1;
  auto read=(unsigned long(*)())GetProcAddress(tls,"FixtureRead");auto set=(void(*)(unsigned long))GetProcAddress(tls,"FixtureSet");
  if(!read||!set)return 2;
- ok&=require(read()==0x62145269,"OS loader copies initialized TLS template");set(10);unsigned long threadValue=0,afterThread=0;
- std::thread thread([&](){threadValue=read();set(20);afterThread=read();});thread.join();ok&=require(threadValue==0x62145269&&afterThread==20&&read()==10,"TLS initialized separately on another thread");
+ std::cout<<"Observed initialized TLS value: "<<std::hex<<read()<<std::dec<<"\n";ok&=require(read()==0x62145269,"OS loader copies initialized TLS template");set(10);unsigned long threadValue=0,afterThread=0;
+ std::thread thread([&](){threadValue=read();set(20);afterThread=read();});thread.join();std::cout<<"TLS worker initial/set/main: "<<std::hex<<threadValue<<" / "<<afterThread<<" / "<<read()<<std::dec<<"\n";ok&=require(threadValue==0x62145269&&afterThread==20&&read()==10,"TLS initialized separately on another thread");
  auto import=(DWORD(*)())GetProcAddress(runtime,"FixtureImport");auto exception=(int(*)())GetProcAddress(runtime,"FixtureException");auto delay=(int(*)())GetProcAddress(runtime,"FixtureDelay");
  ok&=require(import&&import()!=0,"Normal Windows import resolves");ok&=require(exception&&exception()==621,"Native C++ throw/catch baseline");ok&=require(delay&&delay()==1,"Delay-loaded version.dll import resolves");
  std::ifstream file("tls_fixture.dll",std::ios::binary);std::vector<unsigned char> raw((std::istreambuf_iterator<char>(file)),{});auto dos=(IMAGE_DOS_HEADER*)raw.data();auto nt=(IMAGE_NT_HEADERS64*)(raw.data()+dos->e_lfanew);

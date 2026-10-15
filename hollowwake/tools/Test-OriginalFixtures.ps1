@@ -21,7 +21,7 @@ $prefix='namespace xwr { class PeLoader { public: uint32_t m_tlsIndexCounter=0; 
 [IO.File]::WriteAllText((Join-Path $private 'TLSProbe.generated.h'),$prefix+"`n"+$match.Value+"`n}")
 Push-Location $OutputDirectory
 try {
- & cl.exe /nologo /LD /MT /GS- /Zl (Join-Path $source 'tls_fixture.cpp') /link /NOENTRY /NODEFAULTLIB /OUT:tls_fixture.dll 2>&1|Tee-Object 'tls-build.log';if($LASTEXITCODE -ne 0){throw 'Original static TLS fixture compilation failed'}
+ & cl.exe /nologo /LD /MT /GS- /Zl (Join-Path $source 'tls_fixture.cpp') /link /ENTRY:FixtureDllMain /NODEFAULTLIB /OUT:tls_fixture.dll 2>&1|Tee-Object 'tls-build.log';if($LASTEXITCODE -ne 0){throw 'Original static TLS fixture compilation failed'}
  & cl.exe /nologo /LD /MD /EHsc (Join-Path $source 'runtime_fixture.cpp') version.lib delayimp.lib /link /DELAYLOAD:version.dll /OUT:runtime_fixture.dll 2>&1|Tee-Object 'runtime-build.log';if($LASTEXITCODE -ne 0){throw 'Original import/exception fixture compilation failed'}
  & cl.exe /nologo /MD /EHsc /std:c++17 "/I$private" (Join-Path $source 'probe.cpp') /Fe:original-fixture-probe.exe 2>&1|Tee-Object 'probe-build.log';if($LASTEXITCODE -ne 0){throw 'Original fixture harness compilation failed'}
  & .\original-fixture-probe.exe 2>&1|Tee-Object 'fixture-test.log';if($LASTEXITCODE -ne 0){throw 'Fixture baseline or scoped candidate negative test failed'}
