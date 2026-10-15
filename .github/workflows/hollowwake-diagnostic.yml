@@ -1,0 +1,31 @@
+name: Hollowwake original runtime diagnostic
+on:
+  workflow_dispatch:
+    inputs:
+      run_build:
+        type: boolean
+        default: false
+        description: 'Use standard public-repository free Windows runner for original diagnostic only'
+permissions:
+  contents: read
+concurrency:
+  group: hollowwake-runtime-diagnostic
+  cancel-in-progress: false
+jobs:
+  diagnostic:
+    if: ${{ inputs.run_build }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build, sign and test original UWP graphics diagnostic
+        shell: powershell
+        run: .\hollowwake\tools\Build-Diagnostic.ps1 -OutputDirectory "$env:GITHUB_WORKSPACE\artifacts\diagnostic"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hollowwake-original-diagnostic-x64
+          path: artifacts/diagnostic/
+          retention-days: 1

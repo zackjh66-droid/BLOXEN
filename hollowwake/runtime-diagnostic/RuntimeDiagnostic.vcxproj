@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<ItemGroup Label="ProjectConfigurations"><ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration></ItemGroup>
+<PropertyGroup Label="Globals"><ProjectGuid>{3455EF29-E09C-4207-A9EB-2B918245903E}</ProjectGuid><RootNamespace>HollowwakeRuntimeDiagnostic</RootNamespace><DefaultLanguage>en-US</DefaultLanguage><MinimumVisualStudioVersion>16.0</MinimumVisualStudioVersion><AppContainerApplication>true</AppContainerApplication><ApplicationType>Windows Store</ApplicationType><ApplicationTypeRevision>10.0</ApplicationTypeRevision><WindowsTargetPlatformVersion>10.0.19041.0</WindowsTargetPlatformVersion><WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion></PropertyGroup>
+<Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
+<PropertyGroup Label="Configuration"><ConfigurationType>Application</ConfigurationType><PlatformToolset>v143</PlatformToolset><UseDebugLibraries>false</UseDebugLibraries><CharacterSet>Unicode</CharacterSet><WholeProgramOptimization>false</WholeProgramOptimization></PropertyGroup>
+<Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
+<PropertyGroup><OutDir>$(MSBuildProjectDirectory)\bin\$(Platform)\$(Configuration)\</OutDir><IntDir>$(MSBuildProjectDirectory)\obj\$(Platform)\$(Configuration)\</IntDir><TargetName>HollowwakeRuntimeDiagnostic</TargetName><AppxPackageSigningEnabled>false</AppxPackageSigningEnabled><AppxBundle>Never</AppxBundle><AppxPackageExtension>.appx</AppxPackageExtension></PropertyGroup>
+<ItemDefinitionGroup><ClCompile><PrecompiledHeader>NotUsing</PrecompiledHeader><CompileAsWinRT>true</CompileAsWinRT><ExceptionHandling>Sync</ExceptionHandling><WarningLevel>Level4</WarningLevel><AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions><PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_WIN32_WINNT=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions></ClCompile><Link><AdditionalDependencies>d3d11.lib;dxgi.lib;d2d1.lib;dwrite.lib;xaudio2.lib;windowsapp.lib;%(AdditionalDependencies)</AdditionalDependencies><SubSystem>Windows</SubSystem><GenerateWindowsMetadata>true</GenerateWindowsMetadata></Link></ItemDefinitionGroup>
+<ItemGroup><ClCompile Include="main.cpp"/><AppxManifest Include="Package.appxmanifest"/><Content Include="Assets\*"/></ItemGroup>
+<Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
+</Project>

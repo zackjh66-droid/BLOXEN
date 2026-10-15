@@ -1,0 +1,1 @@
+struct V { float3 position:POSITION; float4 color:COLOR; };struct P {float4 position:SV_POSITION;float4 color:COLOR;};P main(V input){P o;o.position=float4(input.position,1);o.color=input.color;return o;}
