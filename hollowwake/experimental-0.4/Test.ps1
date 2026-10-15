@@ -15,8 +15,8 @@ public class HwActivation{public static uint Launch(string id,string args=""){va
  foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}
  # Record a denied policy as an observed blocker, not as successful native execution.
  $r.originalDynamicCodeExecuted=$r.policy.Contains('memoryExecution=621');$r.windowMessageContract=$r.policy.Contains('windowMessageContract=621');$r.graphicsContract=$r.policy.Contains('graphicsContract=621');if(!$r.originalDynamicCodeExecuted-or !$r.windowMessageContract-or !$r.graphicsContract){throw 'Native memory/window/graphics contract failed; inspect runtime-policy.txt'};$r.result='PASS: installed, activated, policy outcome recorded';Stop-Process -Id $pidApp -Force
- $trapProcessId=[HwActivation]::Launch($p.PackageFamilyName+'!App','hollowwake-selftest-unsupported');$deadline=[DateTime]::UtcNow.AddSeconds(40)
- do{Start-Sleep -Seconds 1;$trapAlive=Get-Process -Id $trapProcessId -ErrorAction SilentlyContinue}while($trapAlive-and[DateTime]::UtcNow-lt $deadline)
+ $trapProcessId=0;try{$trapProcessId=[HwActivation]::Launch($p.PackageFamilyName+'!App','hollowwake-selftest-unsupported')}catch{$r.trapActivationReturnedError=$true};$deadline=[DateTime]::UtcNow.AddSeconds(40)
+ do{Start-Sleep -Seconds 1;$trapAlive=if($trapProcessId){Get-Process -Id $trapProcessId -ErrorAction SilentlyContinue}else{Get-Process -Name Hollowwake -ErrorAction SilentlyContinue|Where-Object {$_.Path-and $_.Path.StartsWith($p.InstallLocation)}}}while($trapAlive-and[DateTime]::UtcNow-lt $deadline)
  $trapLog=Get-Content (Join-Path $data 'native-launch.log') -Raw
  $r.unsupportedOriginalFixtureLogged=$trapLog.Contains('CALLED_UNSUPPORTED HOLLOWWAKE_ORIGINAL_FIXTURE!MissingFunction');$r.failFastProcessExited=!$trapAlive
  if(!$r.unsupportedOriginalFixtureLogged-or !$r.failFastProcessExited){throw 'Unsupported-import fail-fast/logging contract failed'}

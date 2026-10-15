@@ -195,7 +195,7 @@ namespace Hollowwake
             try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await Task.Run(()=>GameImport.Run(new Progress<string>(text=>{var ignored=Dispatcher.RunAsync(CoreDispatcherPriority.Normal,()=>StatusText.Text=text);}),operation.Token));StatusText.Text="Import complete. Choose Attempt client loading.";await ManagedLog("Immutable archive verified; clean copy and quarantine inventory complete.");
                 var splash=Path.Combine(GameImport.Root,"6.21","FortniteGame","Content","Splash","Splash.bmp");if(File.Exists(splash)){var f=await StorageFile.GetFileFromPathAsync(splash);using(var input=await f.OpenReadAsync()){var image=new BitmapImage();await image.SetSourceAsync(input);BackgroundImage.Source=image;}}
             }catch(OperationCanceledException){StatusText.Text="Import paused. Download bytes are retained; retry resumes. Incomplete extraction is never marked ready.";}
-            catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8"));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
+            catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8")+(ex is IOException?" "+ex.Message:""));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
         }
         private async void Launch_Click(object sender,RoutedEventArgs e){
             if(loadBusy||importBusy)return;if(!policyReady||!GameImport.Ready){StatusText.Text="A successful executable-memory check and completed pinned archive import are required.";return;}

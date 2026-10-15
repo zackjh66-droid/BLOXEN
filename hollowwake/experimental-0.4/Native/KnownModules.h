@@ -1,8 +1,7 @@
-// Immutable hash allowlist derived from the inspected archive, not Epic reference hashes.
+// Observed x64 file hashes in the inspected community archive; not Epic reference hashes.
 struct KnownModule {const wchar_t* path;const char* name;const char* hash;};
 static const KnownModule known[]={
 {L"6.21\\Engine\\Binaries\\ThirdParty\\CEF3\\Win64\\chrome_elf.dll","chrome_elf.dll","2e97ad5910f36e02532bb4f8a1e8c39dcaacfdbd643f518a25825a456f86c10a"},
-{L"6.21\\Engine\\Binaries\\ThirdParty\\CEF3\\Win64\\d3dcompiler_43.dll","d3dcompiler_43.dll","f24a031f93385285ac612426ebae8af55fed21f616459e4a31ae07b2a1792c08"},
 {L"6.21\\Engine\\Binaries\\ThirdParty\\CEF3\\Win64\\d3dcompiler_47.dll","d3dcompiler_47.dll","dada1fd6832f00d45adfe4ab8c8feca1a50fa8ab57f09816698d8c2bdc8b16cb"},
 {L"6.21\\Engine\\Binaries\\ThirdParty\\CEF3\\Win64\\libcef.dll","libcef.dll","3d20b36b2e64fb695b1268acb646db02e39ba67032d03ded134257eb5398ccdd"},
 {L"6.21\\Engine\\Binaries\\ThirdParty\\CEF3\\Win64\\libEGL.dll","libEGL.dll","fc98abe0ca86dd2950a58e18801a7a6a071d002ab6153194439d2bb17fcd5cfd"},
@@ -122,7 +121,6 @@ static const KnownModule known[]={
 {L"6.21\\FortniteGame\\Binaries\\Win64\\concrt140.dll","concrt140.dll","c7fe56cac97f95cd02f1abe841f2f127e7795adcdf6991301feb2288fa80a44c"},
 {L"6.21\\FortniteGame\\Binaries\\Win64\\dbghelp.dll","dbghelp.dll","6482c46d256dbe8ba3b716d895befb20b97b1039183485d192eaeb490aab4148"},
 {L"6.21\\FortniteGame\\Binaries\\Win64\\EasyAntiCheat\\EasyAntiCheat_x64.dll","EasyAntiCheat_x64.dll","c2ce9e944daeb20c444f130db24a1d818ede23a91b9e157645558b4423c097fe"},
-{L"6.21\\FortniteGame\\Binaries\\Win64\\EasyAntiCheat\\EasyAntiCheat_x86.dll","EasyAntiCheat_x86.dll","e7cc73fc18ec380616c0ccabb149b965bc7b4518f1db448b42e2816825042eb0"},
 {L"6.21\\FortniteGame\\Binaries\\Win64\\msvcp140.dll","msvcp140.dll","2c9f1e878134e042abea02d91c9266ec49b88bc226554e757cd203056bf1eb3e"},
 {L"6.21\\FortniteGame\\Binaries\\Win64\\msvcp140_1.dll","msvcp140_1.dll","2de26462dc599b3843fce177f1f39787d32c5f67b10324c048ab2f8c7d2977ba"},
 {L"6.21\\FortniteGame\\Binaries\\Win64\\ucrtbase.dll","ucrtbase.dll","65a3553daf517fbe6c4b7957fb341ad950f9563df916e7c1aa643167bbb18a5c"},

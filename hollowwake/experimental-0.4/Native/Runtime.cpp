@@ -20,13 +20,15 @@
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false;
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
+static bool testingGraphics=false;
 static Microsoft::WRL::ComPtr<ISwapChainPanelNative> gamePanel;
 static Platform::Agile<Windows::UI::Core::CoreDispatcher> gameDispatcher;
 static Microsoft::WRL::ComPtr<IUnknown> boundCoreWindow;
+static HRESULT AttachOnUi(IDXGISwapChain* value){auto hr=gamePanel->SetSwapChain(value);if(SUCCEEDED(hr)&&!testingGraphics){auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto overlay=page?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(page->FindName(L"HostOverlay")):nullptr;if(overlay)overlay->Visibility=Windows::UI::Xaml::Visibility::Collapsed;}return hr;}
 static HRESULT AttachComposition(IDXGISwapChain* value){
- auto dispatcher=gameDispatcher.Get();if(!dispatcher||!gamePanel)return E_UNEXPECTED;if(dispatcher->HasThreadAccess)return gamePanel->SetSwapChain(value);
+ auto dispatcher=gameDispatcher.Get();if(!dispatcher||!gamePanel)return E_UNEXPECTED;if(dispatcher->HasThreadAccess)return AttachOnUi(value);
  struct Pending{std::promise<HRESULT> result;std::atomic<bool> active{true};};auto pending=std::make_shared<Pending>();auto future=pending->result.get_future();Microsoft::WRL::ComPtr<IDXGISwapChain> chain=value;
- try{dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,ref new Windows::UI::Core::DispatchedHandler([pending,chain](){pending->result.set_value(pending->active.load()?gamePanel->SetSwapChain(chain.Get()):E_ABORT);}));}catch(Platform::Exception^ e){return e->HResult;}
+ try{dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,ref new Windows::UI::Core::DispatchedHandler([pending,chain](){pending->result.set_value(pending->active.load()?AttachOnUi(chain.Get()):E_ABORT);}));}catch(Platform::Exception^ e){return e->HResult;}
  if(future.wait_for(std::chrono::seconds(5))!=std::future_status::ready){pending->active=false;return HRESULT_FROM_WIN32(WAIT_TIMEOUT);}return future.get();
 }
 static void Fail(const char* message){throw std::runtime_error(message);}
@@ -122,6 +124,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttempt(const wchar_t* root){__tr
 extern "C" __declspec(dllexport) int __cdecl HWMemoryPolicy(const wchar_t* path){__try{return MemoryPolicy(path);}__except(Crash(GetExceptionInformation())){return -2;}}
 
 extern "C" __declspec(dllexport) int __cdecl HWGraphicsContract(){
+ struct ContractScope{ContractScope(){testingGraphics=true;}~ContractScope(){testingGraphics=false;}} scope;
  Microsoft::WRL::ComPtr<ID3D11Device> device;Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;D3D_FEATURE_LEVEL level;D3D_FEATURE_LEVEL requested[]={D3D_FEATURE_LEVEL_11_1,D3D_FEATURE_LEVEL_11_0};
  HRESULT hr=D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,requested,2,D3D11_SDK_VERSION,&device,&level,&context);if(FAILED(hr)){Log("GRAPHICS device HRESULT="+std::to_string(hr));return hr;}
  Microsoft::WRL::ComPtr<IDXGIFactory1> factory;hr=Hollowwake::CreateCoreFactory(boundCoreWindow.Get(),IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;DXGI_SWAP_CHAIN_DESC desc={};desc.BufferDesc.Width=640;desc.BufferDesc.Height=360;desc.BufferDesc.Format=DXGI_FORMAT_B8G8R8A8_UNORM;desc.SampleDesc.Count=1;desc.BufferUsage=DXGI_USAGE_RENDER_TARGET_OUTPUT;desc.BufferCount=2;desc.Windowed=TRUE;
