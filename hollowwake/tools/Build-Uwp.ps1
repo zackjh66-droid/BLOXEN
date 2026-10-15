@@ -35,7 +35,7 @@ try {
     $sdkBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin\10.0.19041.0\x64'
     $signtool = Join-Path $sdkBin 'signtool.exe'
     # Trust only this ephemeral development certificate on the disposable build runner.
-    Import-Certificate -FilePath (Join-Path $OutputDirectory 'HollowwakeDevelopment.cer') -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+    Import-Certificate -FilePath (Join-Path $OutputDirectory 'HollowwakeDevelopment.cer') -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
     foreach ($package in $packages) {
         & $signtool verify /pa /v $package.FullName 2>&1 | Tee-Object (Join-Path $OutputDirectory 'signature-verification.log')
         if ($LASTEXITCODE -ne 0) { throw 'Package signature verification failed.' }
