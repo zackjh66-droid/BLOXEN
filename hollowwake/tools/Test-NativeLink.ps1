@@ -26,7 +26,8 @@ try {
  $null=Invoke-RestMethod -Uri ($BackendOrigin+'/api/auth/sign-up/email') -Method POST -ContentType 'application/json' -Headers $headers -WebSession $session -Body $signup
  $password=$null;$signup=$null
  function Approve-DisplayedCode {
-  $codeElement=Wait-Control 'CodeText';$code=$codeElement.Current.Name -replace '\s',''
+  $deadline=[DateTime]::UtcNow.AddSeconds(40);$code=''
+  do {try {$codeElement=Visible-Control 'CodeText';if($codeElement){$code=$codeElement.Current.Name -replace '\s',''}}catch{};if($code -match '^[A-Z2-9]{8}$'){break};Start-Sleep -Milliseconds 500} while([DateTime]::UtcNow -lt $deadline)
   if($code -notmatch '^[A-Z2-9]{8}$'){throw 'Native device code is not ready'}
   $body=@{user_code=$code}|ConvertTo-Json
   $null=Invoke-RestMethod -Uri ($BackendOrigin+'/api/link/verify') -Method POST -ContentType 'application/json' -Headers $headers -WebSession $session -Body $body
