@@ -2,6 +2,7 @@
 // Does not execute guest code with unresolved imports or an unimplemented runtime.
 #include <windows.h>
 #include <bcrypt.h>
+#include <roerrorapi.h>
 #include <agile.h>
 #include <fstream>
 #include <vector>
@@ -18,7 +19,7 @@
 #include "Dependencies.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
-static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false;
+static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false,guestStarted=false;
 std::string DescribeGuestAddress(unsigned long long address){if(mapped&&address>=(ULONGLONG)mapped&&address-(ULONGLONG)mapped<mappedSize)return "FortniteClient-Win64-Shipping.exe RVA="+std::to_string(address-(ULONGLONG)mapped);return DescribeDependencyAddress(address);}
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
 static bool testingGraphics=false;
@@ -114,12 +115,13 @@ static int Attempt(const wchar_t* root){
  Log("BOOT unsupported imports="+std::to_string(UnsupportedCount())+". Their first invocation terminates with a named failure; no fake success.");
  // Expected Win32 socket/HTTP imports have no network implementation and route
  // to fail-fast. Project HTTP remains in the host; no credentials enter the guest.
+ guestStarted=true;
  if(!InitializeDependencies())Fail("Dependency process initialization failed");
  if(!o.AddressOfEntryPoint)Fail("Main entry absent");Log("EXECUTE exact Fortnite main entry RVA="+std::to_string(o.AddressOfEntryPoint));
- auto entry=Rva(o.AddressOfEntryPoint,1);int result=((int(WINAPI*)())entry)();Log("RETURN main entry result="+std::to_string(result));return result;
+ auto entry=Rva(o.AddressOfEntryPoint,1);int result=((int(WINAPI*)())entry)();Log("RETURN main entry result="+std::to_string(result)+"; ending experimental process lifetime");RoFailFastWithErrorContext(E_ABORT);return result;
 }
-static int Body(const wchar_t* root){try{return Attempt(root);}catch(const std::exception& e){Log(std::string("STOP ")+e.what());return -1;}}
-static int Crash(EXCEPTION_POINTERS* p){Log("CRASH code="+std::to_string(p->ExceptionRecord->ExceptionCode)+" instruction="+std::to_string(p->ContextRecord->Rip));return EXCEPTION_EXECUTE_HANDLER;}
+static int Body(const wchar_t* root){try{return Attempt(root);}catch(const std::exception& e){Log(std::string("STOP ")+e.what());if(guestStarted)RoFailFastWithErrorContext(E_FAIL);return -1;}}
+static int Crash(EXCEPTION_POINTERS* p){Log("CRASH code="+std::to_string(p->ExceptionRecord->ExceptionCode)+" instruction="+std::to_string(p->ContextRecord->Rip));if(guestStarted)RoFailFastWithErrorContext(E_FAIL);return EXCEPTION_EXECUTE_HANDLER;}
 extern "C" __declspec(dllexport) int __cdecl HWAttempt(const wchar_t* root){__try{return Body(root);}__except(Crash(GetExceptionInformation())){return -2;}}
 
 extern "C" __declspec(dllexport) int __cdecl HWMemoryPolicy(const wchar_t* path){__try{return MemoryPolicy(path);}__except(Crash(GetExceptionInformation())){return -2;}}
