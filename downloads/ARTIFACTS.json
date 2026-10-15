@@ -1,0 +1,14 @@
+{
+  "Hollowwake-Updated-Source.zip": {
+    "bytes": 224427,
+    "sha256": "334857898701322ef2fddcf5f8579f537a4f46fee625f05b84c8b87aa835ddda"
+  },
+  "Hollowwake-Verification.zip": {
+    "bytes": 845490,
+    "sha256": "734601e9c627990b6d3420073602185a7d2355fd53850685aa3af035c08bb006"
+  },
+  "Hollowwake-Companion-0.2.0-x64.zip": {
+    "bytes": 7335340,
+    "sha256": "bbc0e8b126ae48b8dee1c58200e5b240cb56288d5b705c135e5fb946dd3d8d3e"
+  }
+}
