@@ -1,0 +1,18 @@
+{
+  "Hollowwake-Source-0.3.2.zip": {
+    "bytes": 1380237,
+    "sha256": "cf10cd974016c9eef201233e00d3ba34be4952f672aedde6c721286e23c46648"
+  },
+  "BUILD-RESULTS.md": {
+    "bytes": 2604,
+    "sha256": "d5763475e2ee25e58da46a2158edf27438cc320d76ea428b6bc535ed811cec08"
+  },
+  "Hollowwake-Runtime-Changes-0.3.2.zip": {
+    "bytes": 119039,
+    "sha256": "472495e48021756200ed5c9836cb4f542c18c241e2767faf24a8e5ac5cb995f4"
+  },
+  "STATUS.md": {
+    "bytes": 7797,
+    "sha256": "768135e47798fa5b0eb0c96c0cc41f7d075411579026974331025145558af4d9"
+  }
+}
