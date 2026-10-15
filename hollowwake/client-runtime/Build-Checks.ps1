@@ -12,8 +12,11 @@ Push-Location $OutputDirectory
 try {
  & cl.exe /nologo /c /MD /EHsc /std:c++17 /DWINAPI_FAMILY=WINAPI_FAMILY_APP /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'graphics\CoreWindowBridge.cpp') /Fo:CoreWindowBridge.obj 2>&1|Tee-Object graphics-build.log
  if($LASTEXITCODE){throw 'CoreWindow bridge UWP API-family compilation failed'}
+ & cl.exe /nologo /c /MD /EHsc /std:c++17 /DWINAPI_FAMILY=WINAPI_FAMILY_APP /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'graphics\GuestImports.cpp') /Fo:GuestImports.obj 2>&1|Tee-Object graphics-imports-build.log
+ if($LASTEXITCODE){throw 'Graphics exact-ABI hooks compilation failed'}
  # Link against Windows Store import library; not the desktop d3d11/dxgi libs.
- & link.exe /DLL /NOENTRY /APPCONTAINER CoreWindowBridge.obj windowsapp.lib /OPT:NOREF /OUT:CoreWindowBridge.dll 2>&1|Tee-Object graphics-link.log
+ & lib.exe /nologo /OUT:HollowwakeCoreWindowBridge.lib CoreWindowBridge.obj GuestImports.obj
+ & link.exe /DLL /APPCONTAINER CoreWindowBridge.obj GuestImports.obj windowsapp.lib vcruntime.lib ucrt.lib /OPT:NOREF "/LIBPATH:$vc\lib\x64\store" /OUT:CoreWindowBridge.dll 2>&1|Tee-Object graphics-link.log
  if($LASTEXITCODE){throw 'CoreWindow bridge UWP linkage failed'}
  & cl.exe /nologo /LD /GS- /Oi /Zl (Join-Path $source 'tls\Donor.cpp') kernel32.lib /link /NODEFAULTLIB /ENTRY:DonorEntry /INCLUDE:_tls_used /OUT:HollowwakeTlsDonor.dll 2>&1|Tee-Object donor-build.log
  if($LASTEXITCODE){throw 'Donor build failed'}
@@ -23,6 +26,6 @@ try {
  if($LASTEXITCODE){throw 'Mapped fixture harness build failed'}
  & .\MappedTls.exe 2>&1|Tee-Object mapped-test.log
  if($LASTEXITCODE){throw "Mapped fixture runtime failed: $LASTEXITCODE"}
- Get-ChildItem -File | Where-Object {$_.Extension -in @('.obj','.lib','.exp')} | Remove-Item -Force
+ Get-ChildItem -File | Where-Object {$_.Extension -in @('.obj','.exp')} | Remove-Item -Force
  Get-ChildItem -File | Where-Object {$_.Extension -in @('.dll','.exe')} | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content fixture-hashes.json
 }finally{Pop-Location}

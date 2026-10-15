@@ -12,3 +12,7 @@ namespace Hollowwake {
 // This factory intercepts IDXGIFactory::CreateSwapChain for that path.
 HRESULT CreateCoreFactory(IUnknown* window,REFIID iid,void** result);
 }
+namespace Hollowwake {
+HRESULT BindGraphicsWindow(IUnknown* window);
+void* ResolveGraphicsImport(const char* dll,const char* name);
+}
