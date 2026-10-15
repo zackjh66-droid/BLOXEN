@@ -6,6 +6,8 @@
 #include <future>
 #include <iostream>
 #include <cstring>
+#include <bcrypt.h>
+#include "GuestHash.generated.h"
 using Bind=BOOL(WINAPI*)(const void*,SIZE_T,SIZE_T,void*,const PIMAGE_TLS_CALLBACK*,unsigned);
 using Index=DWORD(WINAPI*)();using Init=BOOL(WINAPI*)();using Block=void*(WINAPI*)();
 static volatile LONG attaches=0,detaches=0;
@@ -28,7 +30,8 @@ int main(){
  unsigned long(*read)()=nullptr;void(*write)(unsigned long)=nullptr;
  std::promise<void> ready,release;auto readyWait=ready.get_future();auto releaseWait=release.get_future();bool existingGuard=false;unsigned long existingInitial=0;
  std::thread existing([&](){ready.set_value();releaseWait.wait();existingGuard=block()==nullptr&&init()!=0;existingInitial=read();write(30);});readyWait.wait();
- std::ifstream file("GuestTls.dll",std::ios::binary);std::vector<BYTE> raw((std::istreambuf_iterator<char>(file)),{});
+ std::ifstream file("GuestTls.dll",std::ios::binary|std::ios::ate);auto length=file.tellg();if(length<1024||length>1024*1024)return 3;file.seekg(0);std::vector<BYTE> raw((size_t)length);if(!file.read((char*)raw.data(),raw.size()))return 3;
+ BCRYPT_ALG_HANDLE alg=nullptr;BYTE digest[32];if(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)return 3;auto status=BCryptHash(alg,nullptr,0,raw.data(),(ULONG)raw.size(),digest,sizeof(digest));BCryptCloseAlgorithmProvider(alg,0);if(status<0||memcmp(digest,ExpectedGuestSha256,32)){std::cerr<<"Original fixture hash mismatch: refusing to map\n";return 3;}
  if(raw.size()<1024)return 3;auto dos=(IMAGE_DOS_HEADER*)raw.data();if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<=0||(size_t)dos->e_lfanew>raw.size()-sizeof(IMAGE_NT_HEADERS64))return 3;
  auto nt=(IMAGE_NT_HEADERS64*)(raw.data()+dos->e_lfanew);if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||nt->OptionalHeader.SizeOfImage>1024*1024||nt->FileHeader.NumberOfSections>32)return 3;
  // The private fixture is hash-recorded by the build. No arbitrary image accepted.

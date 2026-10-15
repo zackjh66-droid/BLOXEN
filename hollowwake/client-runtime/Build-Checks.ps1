@@ -22,7 +22,10 @@ try {
  if($LASTEXITCODE){throw 'Donor build failed'}
  & cl.exe /nologo /LD /GS- /Oi /Zl (Join-Path $source 'tests\GuestTls.cpp') /link /NODEFAULTLIB /NOENTRY /INCLUDE:_tls_used /OUT:GuestTls.dll 2>&1|Tee-Object guest-build.log
  if($LASTEXITCODE){throw 'Guest build failed'}
- & cl.exe /nologo /MD /EHsc /std:c++17 (Join-Path $source 'tests\MappedTls.cpp') /Fe:MappedTls.exe 2>&1|Tee-Object mapped-build.log
+ $guestHash=(Get-FileHash .\GuestTls.dll -Algorithm SHA256).Hash
+ $hashBytes=for($i=0;$i-lt 64;$i+=2){'0x'+$guestHash.Substring($i,2)}
+ [IO.File]::WriteAllText((Join-Path $OutputDirectory 'GuestHash.generated.h'),('static const unsigned char ExpectedGuestSha256[32]={'+($hashBytes -join ',')+'};'))
+ & cl.exe /nologo /MD /EHsc /std:c++17 "/I$OutputDirectory" (Join-Path $source 'tests\MappedTls.cpp') bcrypt.lib /Fe:MappedTls.exe 2>&1|Tee-Object mapped-build.log
  if($LASTEXITCODE){throw 'Mapped fixture harness build failed'}
  & .\MappedTls.exe 2>&1|Tee-Object mapped-test.log
  if($LASTEXITCODE){throw "Mapped fixture runtime failed: $LASTEXITCODE"}
