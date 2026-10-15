@@ -27,6 +27,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWWindowContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWControllerCount();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWGraphicsContract();
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWUnsupportedContract();
         private bool importBusy,loadBusy,policyReady;
         private string LaunchLog {get{return Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-launch.log");}}
         private readonly SessionStore store = new SessionStore();
@@ -56,6 +57,7 @@ namespace Hollowwake
             Show(SplashPanel); StatusText.Text = "Experimental native client loader. No working Fortnite lobby is claimed.";
             try {var bound=HWBindWindow(LaunchLog);var policy=HWMemoryPolicy(LaunchLog);var contract=HWWindowContract();var graphics=HWGraphicsContract();policyReady=bound>=0&&policy==621&&contract==621&&graphics==621;await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"windowBind="+bound+" memoryExecution="+policy+" windowMessageContract="+contract+" graphicsContract="+graphics+" controllerCount="+HWControllerCount()+" xboxUnverified=true");}
             catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
+            if(App.UnsupportedSelfTest){HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try
             {
@@ -198,7 +200,7 @@ namespace Hollowwake
         private async void Launch_Click(object sender,RoutedEventArgs e){
             if(loadBusy||importBusy)return;if(!policyReady||!GameImport.Ready){StatusText.Text="A successful executable-memory check and completed pinned archive import are required.";return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}loadBusy=true;
-            try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Mapping the real inspected image. No Epic credentials or production-service connection is permitted.";var result=await Task.Run(()=>HWAttempt(GameImport.Root));await ManagedLog("Native loading returned "+result+". No lobby success is inferred.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another mapping attempt.";}
+            try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED real client boot; no project credential is passed into guest code.");var result=await Task.Run(()=>HWAttempt(GameImport.Root));await ManagedLog("Native loading returned "+result+". No lobby success is inferred.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another mapping attempt.";}
             catch(Exception ex){await ManagedLog("Native call HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}finally{loadBusy=false;}
         }
         private async void Log_Click(object sender,RoutedEventArgs e){

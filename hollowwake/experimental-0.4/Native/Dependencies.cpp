@@ -12,7 +12,8 @@
 #include <stdexcept>
 #include "Dependencies.h"
 #include "KnownModules.h"
-struct Image {BYTE* base;SIZE_T size;IMAGE_NT_HEADERS64 header;bool importsReady=false;};
+struct Image {BYTE* base;SIZE_T size;IMAGE_NT_HEADERS64 header;bool importsReady=false,initialized=false;};
+static std::vector<std::pair<std::string,Image*>> initOrder;
 static std::map<std::string,std::unique_ptr<Image>> images;static std::wstring root;
 static void*(*resolve)(const char*,const char*);static void(*writeLog)(const std::string&);static unsigned failures=0,donorSlot=1,depth=0;
 static bool Fits(SIZE_T a,SIZE_T b,SIZE_T size){return a<=size&&b<=size-a;}
@@ -33,14 +34,14 @@ static Image* Load(const std::string& key,const KnownModule& known){
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;++i){auto& s=sections[i];if(!Fits(s.PointerToRawData,s.SizeOfRawData,bytes.size())||!Fits(s.VirtualAddress,s.SizeOfRawData,m->size)||!Fits(s.VirtualAddress,s.Misc.VirtualSize,m->size))Bad("invalid dependency section");memcpy(m->base+s.VirtualAddress,bytes.data()+s.PointerToRawData,s.SizeOfRawData);}
  INT64 delta=(INT64)m->base-(INT64)o.ImageBase;auto reloc=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];if(delta&&!reloc.Size)Bad("dependency cannot relocate");for(DWORD used=0;delta&&used<reloc.Size;){auto b=(IMAGE_BASE_RELOCATION*)At(*m,reloc.VirtualAddress+used,8);if(b->SizeOfBlock<8||b->SizeOfBlock>reloc.Size-used||b->SizeOfBlock%2)Bad("bad dependency relocation");auto entries=(WORD*)At(*m,reloc.VirtualAddress+used+8,b->SizeOfBlock-8);for(DWORD j=0;j<(b->SizeOfBlock-8)/2;++j){auto type=entries[j]>>12;if(type==IMAGE_REL_BASED_DIR64)*(ULONGLONG*)At(*m,b->VirtualAddress+(entries[j]&4095),8)+=delta;else if(type!=IMAGE_REL_BASED_ABSOLUTE)Bad("unknown dependency relocation");}used+=b->SizeOfBlock;}
  auto tls=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];if(tls.Size){if(tls.Size<40||donorSlot>=32)Bad("dependency TLS limits");auto t=(IMAGE_TLS_DIRECTORY64*)At(*m,tls.VirtualAddress,40);auto start=t->StartAddressOfRawData-(ULONGLONG)m->base;auto size=t->EndAddressOfRawData-t->StartAddressOfRawData;if(t->EndAddressOfRawData<t->StartAddressOfRawData||!Fits(start,size,m->size)||start>MAXDWORD)Bad("dependency TLS bounds");wchar_t donorName[64];swprintf_s(donorName,L"HollowwakeTlsSlot%02u.dll",donorSlot++);auto donor=LoadPackagedLibrary(donorName,0);if(!donor)Bad("packaged dependency TLS donor unavailable");auto bind=(BOOL(WINAPI*)(const void*,SIZE_T,SIZE_T,void*,const PIMAGE_TLS_CALLBACK*,unsigned))GetProcAddress(donor,"BindGuest");auto index=(DWORD(WINAPI*)())GetProcAddress(donor,"GuestTlsIndex");if(!bind||!index||!bind(At(*m,(DWORD)start,(SIZE_T)size),(SIZE_T)size,t->SizeOfZeroFill,m->base,nullptr,0))Bad("dependency TLS binding failed");auto idx=t->AddressOfIndex-(ULONGLONG)m->base;if(idx>MAXDWORD)Bad("dependency TLS index bounds");*(DWORD*)At(*m,(DWORD)idx,4)=index();
-  if(t->AddressOfCallBacks){auto cb=t->AddressOfCallBacks-(ULONGLONG)m->base;if(cb>MAXDWORD)Bad("dependency TLS callbacks bounds");if(*(ULONGLONG*)At(*m,(DWORD)cb,8)){++failures;writeLog("DEP TLS callbacks deferred; initialization graph incomplete: "+key);}}
+  if(t->AddressOfCallBacks){auto cb=t->AddressOfCallBacks-(ULONGLONG)m->base;if(cb>MAXDWORD)Bad("dependency TLS callbacks bounds");if(*(ULONGLONG*)At(*m,(DWORD)cb,8)){writeLog("DEP TLS callbacks deferred; initialization graph incomplete: "+key);}}
  }
  // Register exports before resolving imports so dependency cycles can be mapped.
  auto dir=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];bool end=!dir.Size;for(DWORD used=0;!end&&Fits(used,sizeof(IMAGE_IMPORT_DESCRIPTOR),dir.Size);used+=sizeof(IMAGE_IMPORT_DESCRIPTOR)){auto d=(IMAGE_IMPORT_DESCRIPTOR*)At(*m,dir.VirtualAddress+used,sizeof(IMAGE_IMPORT_DESCRIPTOR));if(!d->Name){end=true;break;}Thunks(*m,Text(*m,d->Name),d->OriginalFirstThunk?d->OriginalFirstThunk:d->FirstThunk,d->FirstThunk);}if(!end)Bad("unbounded dependency imports");
  struct Delay{DWORD flags,name,module,iat,intable,bound,unload,time;};dir=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT];end=!dir.Size;for(DWORD used=0;!end&&Fits(used,sizeof(Delay),dir.Size);used+=sizeof(Delay)){auto d=(Delay*)At(*m,dir.VirtualAddress+used,sizeof(Delay));if(!d->name){end=true;break;}if(d->flags!=1)Bad("dependency delay-import format");Thunks(*m,Text(*m,d->name),d->intable,d->iat);}if(!end)Bad("unbounded dependency delay imports");
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;++i){auto& s=sections[i];if(!s.Misc.VirtualSize)continue;bool x=(s.Characteristics&IMAGE_SCN_MEM_EXECUTE)!=0,w=(s.Characteristics&IMAGE_SCN_MEM_WRITE)!=0;if(x&&w)Bad("dependency W+X section denied");DWORD before;if(!VirtualProtectFromApp(At(*m,s.VirtualAddress,s.Misc.VirtualSize),s.Misc.VirtualSize,x?PAGE_EXECUTE_READ:(w?PAGE_READWRITE:PAGE_READONLY),&before))Bad("dependency protection failed");}FlushInstructionCache(GetCurrentProcess(),m->base,m->size);
  dir=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];if(dir.Size){if(dir.Size%sizeof(RUNTIME_FUNCTION))Bad("dependency unwind size");auto functions=(PRUNTIME_FUNCTION)At(*m,dir.VirtualAddress,dir.Size);for(DWORD i=0;i<dir.Size/sizeof(*functions);++i){if(functions[i].BeginAddress>=functions[i].EndAddress||!Fits(functions[i].BeginAddress,functions[i].EndAddress-functions[i].BeginAddress,m->size))Bad("dependency unwind range");At(*m,functions[i].UnwindData,1);}if(!RtlAddFunctionTable(functions,dir.Size/sizeof(*functions),(DWORD64)m->base))Bad("dependency unwind registration failed");}
- m->importsReady=true;writeLog("DEP mapped (initializers NOT executed): "+key);return m;
+ m->importsReady=true;initOrder.push_back({key,m});writeLog("DEP mapped (initializers NOT executed): "+key);return m;
 }
 void* ResolveDependency(const char* dll,const char* symbol){
  if(!dll||!symbol||depth>=64)return nullptr;std::string key=dll;std::transform(key.begin(),key.end(),key.begin(),[](char c){return (char)tolower((unsigned char)c);});if(key.find_first_of("/\\:")!=std::string::npos)return nullptr;
@@ -51,4 +52,11 @@ void* ResolveDependency(const char* dll,const char* symbol){
   if(ordinal>=e->NumberOfFunctions){--depth;return nullptr;}auto funcs=(DWORD*)At(*m,e->AddressOfFunctions,e->NumberOfFunctions*4);DWORD rva=funcs[ordinal];if(!rva){--depth;return nullptr;}void* result;
   if(rva>=d.VirtualAddress&&rva-d.VirtualAddress<d.Size){std::string f=Text(*m,rva);auto dot=f.find('.');if(dot==std::string::npos)Bad("invalid forwarded export");auto module=f.substr(0,dot)+".dll";result=resolve(module.c_str(),f.substr(dot+1).c_str());}else result=At(*m,rva,1);--depth;return result;
  }catch(const std::exception& e){--depth;++failures;writeLog("DEP blocked "+key+": "+e.what());return nullptr;}
+}
+
+bool InitializeDependencies(){
+ for(auto& pair:initOrder){auto& m=*pair.second;if(m.initialized)continue;if(!m.importsReady)return false;
+  auto td=m.header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];if(td.Size){auto t=(IMAGE_TLS_DIRECTORY64*)At(m,td.VirtualAddress,40);if(t->AddressOfCallBacks){ULONGLONG offset=t->AddressOfCallBacks-(ULONGLONG)m.base;if(offset>MAXDWORD)return false;bool ended=false;for(unsigned i=0;i<32;++i){auto callback=*(ULONGLONG*)At(m,(DWORD)offset+i*8,8);if(!callback){ended=true;break;}if(callback<(ULONGLONG)m.base||callback-(ULONGLONG)m.base>=m.size)return false;writeLog("EXECUTE dependency TLS callback: "+pair.first);((PIMAGE_TLS_CALLBACK)callback)(m.base,DLL_PROCESS_ATTACH,nullptr);}if(!ended)return false;}}
+  DWORD entry=m.header.OptionalHeader.AddressOfEntryPoint;if(entry){writeLog("EXECUTE dependency DLL_PROCESS_ATTACH: "+pair.first);if(!((BOOL(WINAPI*)(HINSTANCE,DWORD,LPVOID))At(m,entry,1))((HINSTANCE)m.base,DLL_PROCESS_ATTACH,nullptr))return false;}m.initialized=true;
+ }return true;
 }

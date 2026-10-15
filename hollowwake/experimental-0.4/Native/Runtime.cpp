@@ -16,6 +16,7 @@
 #include <windows.ui.xaml.media.dxinterop.h>
 #include <wrl/client.h>
 #include "Dependencies.h"
+#include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false;
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
@@ -43,11 +44,11 @@ static void* Import(const char* dll,const char* name){
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
  if(auto p=ResolveControllerImport(dll,name))return p;
- if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"api-ms-win-core-processthreads-l1-1-0.dll"))return ResolveDependency(dll,name);
+ if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"KERNELBASE.dll")&&_strnicmp(dll,"api-ms-win-core-",16)){if(auto p=ResolveDependency(dll,name))return p;return UnsupportedImport(dll,name);}
  #define REAL(api) if(!strcmp(name,#api))return reinterpret_cast<void*>(&api)
- REAL(GetCurrentThreadId);REAL(GetCurrentProcessId);REAL(QueryPerformanceCounter);REAL(QueryPerformanceFrequency);REAL(GetLastError);REAL(SetLastError);REAL(GetTickCount64);REAL(GetCurrentProcess);
+ REAL(InitializeCriticalSectionEx);REAL(EnterCriticalSection);REAL(TryEnterCriticalSection);REAL(LeaveCriticalSection);REAL(DeleteCriticalSection);REAL(EncodePointer);REAL(DecodePointer);REAL(FlsAlloc);REAL(FlsGetValue);REAL(FlsSetValue);REAL(FlsFree);REAL(TlsAlloc);REAL(TlsGetValue);REAL(TlsSetValue);REAL(TlsFree);REAL(GetCurrentThread);REAL(IsProcessorFeaturePresent);REAL(GetSystemTimeAsFileTime);REAL(GetProcessHeap);REAL(HeapAlloc);REAL(HeapFree);REAL(HeapReAlloc);REAL(HeapSize);REAL(GetCurrentThreadId);REAL(GetCurrentProcessId);REAL(QueryPerformanceCounter);REAL(QueryPerformanceFrequency);REAL(GetLastError);REAL(SetLastError);REAL(GetTickCount64);REAL(GetCurrentProcess);
  #undef REAL
- return nullptr;
+ return UnsupportedImport(dll,name);
 }
 static unsigned imports=0,missing=0;
 static void Thunks(const char* dll,DWORD source,DWORD target){
@@ -59,7 +60,7 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
  }Fail("Unbounded import thunk list");
 }
 extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
- logName=path;auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
+ logName=path;ConfigureUnsupported(Log);auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
  if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
@@ -106,8 +107,13 @@ static int Attempt(const wchar_t* root){
  auto unwind=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION];if(unwind.Size){if(unwind.Size%sizeof(RUNTIME_FUNCTION))Fail("Invalid unwind table size");auto table=(PRUNTIME_FUNCTION)Rva(unwind.VirtualAddress,unwind.Size);for(DWORD i=0;i<unwind.Size/sizeof(*table);++i){if(table[i].BeginAddress>=table[i].EndAddress||!Range(table[i].BeginAddress,table[i].EndAddress-table[i].BeginAddress,mappedSize))Fail("Invalid unwind function range");Rva(table[i].UnwindData,1);}if(!RtlAddFunctionTable(table,unwind.Size/sizeof(*table),(DWORD64)mapped))Fail("Unwind registration failed");Log("UNWIND registered="+std::to_string(unwind.Size/sizeof(*table)));}
  Log("DEPENDENCY unresolved/initialization blockers="+std::to_string(DependencyFailures()));
  if(missing||DependencyFailures())Fail("Client entry blocked by unresolved native imports; see UNRESOLVED records");
- Fail("Entry gate: dependency graph, window/input ABI and private client-network routing are not complete");
- return 0;
+ if(!SealUnsupported())Fail("Cannot make unsupported-import fail-fast thunks executable");
+ Log("BOOT unsupported imports="+std::to_string(UnsupportedCount())+". Their first invocation terminates with a named failure; no fake success.");
+ // Expected Win32 socket/HTTP imports have no network implementation and route
+ // to fail-fast. Project HTTP remains in the host; no credentials enter the guest.
+ if(!InitializeDependencies())Fail("Dependency process initialization failed");
+ if(!o.AddressOfEntryPoint)Fail("Main entry absent");Log("EXECUTE exact Fortnite main entry RVA="+std::to_string(o.AddressOfEntryPoint));
+ auto entry=Rva(o.AddressOfEntryPoint,1);int result=((int(WINAPI*)())entry)();Log("RETURN main entry result="+std::to_string(result));return result;
 }
 static int Body(const wchar_t* root){try{return Attempt(root);}catch(const std::exception& e){Log(std::string("STOP ")+e.what());return -1;}}
 static int Crash(EXCEPTION_POINTERS* p){Log("CRASH code="+std::to_string(p->ExceptionRecord->ExceptionCode)+" instruction="+std::to_string(p->ContextRecord->Rip));return EXCEPTION_EXECUTE_HANDLER;}
