@@ -13,6 +13,8 @@ Implemented paths:
 
 Exact remaining blockers:
 
+Xbox policy prerequisite: writable-to-executable memory and packaged TLS/graphics operations passed only on hosted Windows. If Xbox rejects the logged VirtualAllocFromApp/VirtualProtectFromApp operation or package capability, the manual-loader route stops before client code. An allowed console execution mechanism or a legitimate source/platform port would then be required; an APPX manifest cannot remove that policy. No bypass is implemented.
+
 1. Many required Win32 APIs have no compatible implementation. In particular, expected Win32 socket/HTTP APIs fail fast. The native client has no private HTTP/authentication transport or secure exchange handoff; it cannot currently log into the project backend. The next hardware failure is not known in advance. The console log will identify the first failing operation; it may be an earlier dependency or structural failure rather than a network call.
 2. This is not a full Windows loader. PEB/module identity and discovery, dynamic LoadLibrary/GetProcAddress semantics, complete thread creation/attach/detach and thread-pool behavior, loader-lock/callback ordering, CRT/load-config and exception edge cases remain incomplete. Registered unwind tables alone do not prove UE4 C++ exception compatibility. No unsupported DLL is silently treated as loaded.
 3. CoreWindow virtual window/message support is a subset; full User32, raw input, IME and multiwindow behavior are missing. Newer DXGI factory interfaces, adapter-parent paths and all engine presentation behavior are not proven. WinRT controller mapping has no physical-input evidence yet. Hosted graphics checks use original fixture calls, not Fortnite rendering.
