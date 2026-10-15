@@ -28,15 +28,19 @@ int main(){
  std::vector<unsigned char> image(4096);auto data=(IMAGE_TLS_DIRECTORY64*)(image.data()+256);*data=*real;DWORD marker=0xCCCCCCCC;data->AddressOfIndex=(ULONGLONG)&marker;data->AddressOfCallBacks=0;
  xwr::PeLoader candidate;bool returned=candidate.ProcessTls(image.data(),256,sizeof(*data),IMAGE_NT_OPTIONAL_HDR64_MAGIC);
  bool defect=returned&&marker==0xCCCCCCCC;ok&=require(defect,"Candidate negative finding reproduced: reports success but does not initialize even TLS index without callbacks");
- // Exercise the non-null ONE-callback branch too, matching the main client callback-count shape.
+ // Exercise the non-null one-callback branch too; the exact main client instead has a non-null empty callback list.
  uint64_t callbacks[]={reinterpret_cast<uint64_t>(&OriginalCallback),0};data->AddressOfCallBacks=reinterpret_cast<uint64_t>(callbacks);marker=0xCCCCCCCC;
  bool oneCallback=candidate.ProcessTls(image.data(),256,sizeof(*data),IMAGE_NT_OPTIONAL_HDR64_MAGIC);
  ok&=require(oneCallback&&marker==0&&callbackCount==1,"Candidate one-callback branch assigns index0 and invokes original callback");
  auto host=reinterpret_cast<unsigned char*>(GetModuleHandleW(nullptr));auto hd=reinterpret_cast<IMAGE_DOS_HEADER*>(host);auto hn=reinterpret_cast<IMAGE_NT_HEADERS64*>(host+hd->e_lfanew);auto ht=reinterpret_cast<IMAGE_TLS_DIRECTORY64*>(host+hn->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);DWORD hostIndex=*reinterpret_cast<DWORD*>(ht->AddressOfIndex);bool collision=marker==hostIndex;
  std::cout<<"Observed host static TLS index / candidate-assigned index: "<<hostIndex<<" / "<<marker<<"; collision="<<collision<<"\n";
  ok&=require(hostMarker==621&&collision,"Candidate index allocator collides with an actual host TLS slot in this Windows fixture process");
+ // Exact main-client metadata shape: 28 original test bytes, non-null EMPTY callback list.
+ unsigned char originalTemplate28[28]={0,0,0,0,0x69,0x52,0x14,0x62};uint64_t emptyCallbacks[]={0};data->StartAddressOfRawData=reinterpret_cast<uint64_t>(originalTemplate28);data->EndAddressOfRawData=data->StartAddressOfRawData+sizeof(originalTemplate28);data->AddressOfCallBacks=reinterpret_cast<uint64_t>(emptyCallbacks);marker=0xCCCCCCCC;xwr::PeLoader freshCandidate;
+ bool emptyResult=freshCandidate.ProcessTls(image.data(),256,sizeof(*data),IMAGE_NT_OPTIONAL_HDR64_MAGIC);bool emptyCollision=emptyResult&&marker==hostIndex&&callbackCount==1;
+ ok&=require(emptyCollision,"Exact-client-shaped static TLS case assigns occupied host index without template provisioning");
  // A useful guard rejects this unsupported contract instead of attempting the full game.
  bool failClosed=(data->EndAddressOfRawData>data->StartAddressOfRawData||data->SizeOfZeroFill>0);ok&=require(failClosed,"Original preflight rejects unsupported static TLS before launch");
- std::ofstream report("fixture-results.json");report<<"{\"originalWindowsBaselinesPassed\":"<<(ok?"true":"false")<<",\"scopedCandidateTLSRoutineTested\":true,\"candidateTLSDefectReproduced\":"<<(defect?"true":"false")<<",\"candidateOneCallbackIndexCollision\":"<<(collision?"true":"false")<<",\"fullCandidateLoaderExecuted\":false,\"fixtureEntryPointExecutedThroughCandidate\":false,\"candidateGraphicsProven\":false,\"xboxExecution\":false,\"fortniteExecuted\":false}";
+ std::ofstream report("fixture-results.json");report<<"{\"originalWindowsBaselinesPassed\":"<<(ok?"true":"false")<<",\"scopedCandidateTLSRoutineTested\":true,\"candidateTLSDefectReproduced\":"<<(defect?"true":"false")<<",\"candidateOneCallbackIndexCollision\":"<<(collision?"true":"false")<<",\"candidateEmptyCallbackIndexCollision\":"<<(emptyCollision?"true":"false")<<",\"fullCandidateLoaderExecuted\":false,\"fixtureEntryPointExecutedThroughCandidate\":false,\"candidateGraphicsProven\":false,\"xboxExecution\":false,\"fortniteExecuted\":false}";
  FreeLibrary(runtime);FreeLibrary(tls);return ok?0:4;
 }
