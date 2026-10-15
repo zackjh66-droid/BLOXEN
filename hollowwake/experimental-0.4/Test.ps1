@@ -20,6 +20,11 @@ public class HwActivation{public static uint Launch(string id,string args=""){va
  $trapLog=Get-Content (Join-Path $data 'native-launch.log') -Raw
  $r.unsupportedOriginalFixtureLogged=$trapLog.Contains('CALLED_UNSUPPORTED HOLLOWWAKE_ORIGINAL_FIXTURE!MissingFunction');$r.failFastProcessExited=!$trapAlive
  if(!$r.unsupportedOriginalFixtureLogged-or !$r.failFastProcessExited){throw 'Unsupported-import fail-fast/logging contract failed'}
+ [IO.File]::WriteAllText((Join-Path $data 'native-startup.pending'),'Simulated interrupted own native startup')
+ $rescueProcess=[HwActivation]::Launch($p.PackageFamilyName+'!App');Start-Sleep -Seconds 3
+ $r.startupRecovery=(Get-Content (Join-Path $data 'runtime-policy.txt') -Raw).Contains('nativeStartupSkipped=true');if(!$r.startupRecovery){throw 'Native startup recovery did not preserve managed log access'}
+ $rescue=Get-Process -Id $rescueProcess;Stop-Process -Id $rescueProcess -Force;$null=$rescue.WaitForExit(10000);Start-Sleep -Seconds 2
+ [IO.File]::Delete((Join-Path $data 'native-startup.pending'))
  $pidApp=[HwActivation]::Launch($p.PackageFamilyName+'!App')
  & (Join-Path $PSScriptRoot 'Test-Link.ps1') -BackendOrigin 'https://hollowwake.jihnjohn10.chatgpt.site' -PackageFamilyName $p.PackageFamilyName -AppProcessId $pidApp -OutputDirectory $OutputDirectory
  $link=Get-Content (Join-Path $OutputDirectory 'native-link-ui-test.json') -Raw|ConvertFrom-Json;$r.accountLink=$link.result;if($link.result-ne 'PASS'){throw 'Native project-account linking regression failed'}

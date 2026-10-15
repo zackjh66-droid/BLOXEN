@@ -42,7 +42,7 @@ namespace Hollowwake
         public MainPage()
         {
             InitializeComponent();
-            var core=CoreWindow.GetForCurrentThread();core.KeyDown+=(s,e)=>HWKey((uint)e.VirtualKey,1);core.KeyUp+=(s,e)=>HWKey((uint)e.VirtualKey,0);core.CharacterReceived+=(s,e)=>HWChar(e.KeyCode);
+            var core=CoreWindow.GetForCurrentThread();core.KeyDown+=(s,e)=>{if(policyReady)HWKey((uint)e.VirtualKey,1);};core.KeyUp+=(s,e)=>{if(policyReady)HWKey((uint)e.VirtualKey,0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWChar(e.KeyCode);};
             Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null)previous.ClearValue(Button.BackgroundProperty);previous=selected;if(selected!=null)selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,138,36));};
             Loaded += async (s, e) => { if (!ready) { ready = true; await InitializeAsync(); } };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
@@ -56,8 +56,15 @@ namespace Hollowwake
         private async Task InitializeAsync()
         {
             Show(SplashPanel); StatusText.Text = "Experimental native client loader. No working Fortnite lobby is claimed.";
-            try {var bound=HWBindWindow(LaunchLog);var policy=HWMemoryPolicy(LaunchLog);var contract=HWWindowContract();var graphics=HWGraphicsContract();var tls=HWTlsContract();policyReady=bound>=0&&policy==621&&contract==621&&graphics==621&&tls==621;await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"windowBind="+bound+" memoryExecution="+policy+" windowMessageContract="+contract+" tlsSlotsContract="+tls+" graphicsContract="+graphics+" controllerCount="+HWControllerCount()+" xboxUnverified=true");}
-            catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
+            var pending=Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-startup.pending");
+            if(File.Exists(pending)){
+                policyReady=false;await ManagedLog("Previous native startup did not complete. Checks skipped so logs remain accessible.");await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"nativeStartupSkipped=true; clear the pending marker from the log dialog, then restart");
+            }else{
+                await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("native-startup.pending",CreationCollisionOption.ReplaceExisting),"Native initialization in progress");
+                try {var bound=HWBindWindow(LaunchLog);var policy=HWMemoryPolicy(LaunchLog);var contract=HWWindowContract();var graphics=HWGraphicsContract();var tls=HWTlsContract();policyReady=bound>=0&&policy==621&&contract==621&&graphics==621&&tls==621;await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"windowBind="+bound+" memoryExecution="+policy+" windowMessageContract="+contract+" tlsSlotsContract="+tls+" graphicsContract="+graphics+" controllerCount="+HWControllerCount()+" xboxUnverified=true");}
+                catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
+                finally{if(File.Exists(pending))File.Delete(pending);}
+            }
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try
@@ -207,7 +214,7 @@ namespace Hollowwake
         private async void Log_Click(object sender,RoutedEventArgs e){
             string text="Logs are in this package's LocalState: runtime-policy.txt, native-launch.log, managed-launch.log and import-inventory.txt. They contain no project tokens.\n\n";
             foreach(var n in new[]{"runtime-policy.txt","native-launch.log","managed-launch.log"}){try{text+="\n"+n+"\n"+await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync(n));}catch{}}
-            var dialog=new ContentDialog{Title="Client loader diagnostics",CloseButtonText="Close",Content=new ScrollViewer{Content=new TextBlock{Text=text,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=true},MaxHeight=500}};await dialog.ShowAsync();
+            var dialog=new ContentDialog{Title="Client loader diagnostics",CloseButtonText="Close",SecondaryButtonText="Allow native checks next launch",Content=new ScrollViewer{Content=new TextBlock{Text=text,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=true},MaxHeight=500}};dialog.SecondaryButtonClick+=(s,args)=>{var marker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-startup.pending");if(File.Exists(marker))File.Delete(marker);};await dialog.ShowAsync();
         }
         private async Task RevokeTokenAsync(string token)
         {
