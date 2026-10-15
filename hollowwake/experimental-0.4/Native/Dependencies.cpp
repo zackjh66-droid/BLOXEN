@@ -60,3 +60,4 @@ bool InitializeDependencies(){
   DWORD entry=m.header.OptionalHeader.AddressOfEntryPoint;if(entry){writeLog("EXECUTE dependency DLL_PROCESS_ATTACH: "+pair.first);if(!((BOOL(WINAPI*)(HINSTANCE,DWORD,LPVOID))At(m,entry,1))((HINSTANCE)m.base,DLL_PROCESS_ATTACH,nullptr))return false;}m.initialized=true;
  }return true;
 }
+std::string DescribeDependencyAddress(unsigned long long address){for(auto& item:images){auto& m=*item.second;if(address>=(ULONGLONG)m.base&&address-(ULONGLONG)m.base<m.size)return item.first+" RVA="+std::to_string(address-(ULONGLONG)m.base);}return "native host/fixture or external module";}

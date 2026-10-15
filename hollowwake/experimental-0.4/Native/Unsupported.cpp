@@ -8,9 +8,10 @@
 #include <string>
 #include <cstring>
 #include "Unsupported.h"
+std::string DescribeGuestAddress(unsigned long long);
 static void(*logLine)(const std::string&);static std::map<std::string,unsigned> indexes;static std::vector<std::string> names;static BYTE* code=nullptr;static bool sealed=false;
 void ConfigureUnsupported(void(*log)(const std::string&)){logLine=log;}
-static __declspec(noreturn) void WINAPI Called(ULONG_PTR id){if(logLine){logLine("CALLED_UNSUPPORTED "+(id<names.size()?names[id]:"invalid slot"));logLine("Guest called an unimplemented API. Fail-fast preserves this log; no success value is returned.");}RoFailFastWithErrorContext(E_NOTIMPL);__fastfail(7);}
+static __declspec(noreturn) void WINAPI Called(ULONG_PTR id){if(logLine){logLine("CALLED_UNSUPPORTED "+(id<names.size()?names[id]:"invalid slot")+" caller="+DescribeGuestAddress((ULONGLONG)_ReturnAddress()));logLine("Guest called an unimplemented API. Fail-fast preserves this log; no success value is returned.");}RoFailFastWithErrorContext(E_NOTIMPL);__fastfail(7);}
 void* UnsupportedImport(const char* dll,const char* symbol){std::string name=std::string(dll)+"!"+symbol;auto old=indexes.find(name);if(old!=indexes.end())return code+old->second*32;if(sealed||names.size()>=16000)return nullptr;if(!code)code=(BYTE*)VirtualAllocFromApp(nullptr,512*1024,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!code)return nullptr;unsigned id=(unsigned)names.size();names.push_back(name);indexes[name]=id;BYTE* p=code+id*32;
  // x64 ABI: preserve the original call's stack/return address and shadow space.
  // Replace RCX with the slot id, then tail-jump to our non-returning native handler.

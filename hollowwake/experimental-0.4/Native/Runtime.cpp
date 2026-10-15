@@ -19,6 +19,7 @@
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false;
+std::string DescribeGuestAddress(unsigned long long address){if(mapped&&address>=(ULONGLONG)mapped&&address-(ULONGLONG)mapped<mappedSize)return "FortniteClient-Win64-Shipping.exe RVA="+std::to_string(address-(ULONGLONG)mapped);return DescribeDependencyAddress(address);}
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
 static bool testingGraphics=false;
 static Microsoft::WRL::ComPtr<ISwapChainPanelNative> gamePanel;

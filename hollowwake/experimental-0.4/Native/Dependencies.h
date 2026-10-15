@@ -4,3 +4,4 @@ void ConfigureDependencies(const std::wstring& root,void*(*imports)(const char*,
 void* ResolveDependency(const char* dll,const char* symbol);
 unsigned DependencyFailures();
 bool InitializeDependencies();
+std::string DescribeDependencyAddress(unsigned long long address);

@@ -177,7 +177,7 @@ namespace Hollowwake
                 UsernameText.Text = profile.GetNamedString("publicUsername");
                 await api.SendAsync("/api/device/renew", new JsonObject(), token, operation.Token);
                 StatusText.Text = policyReady?"Account verified. Import the inspected archive, then attempt native client loading. This is not a proven port.":"Native executable-memory policy or initialization failed. Show the launch log before downloading game files.";
-                heartbeat.Start(); if (focus) CheckButton.Focus(FocusState.Programmatic);
+                heartbeat.Start(); if (focus) ImportButton.Focus(FocusState.Programmatic);
             }
             catch (ApiException ex) when (ex.Status == HttpStatusCode.Unauthorized)
             {
