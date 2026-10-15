@@ -7,11 +7,11 @@ def api(path,data=None,method=None):
  r=subprocess.run(cmd,input=json.dumps(data) if data is not None else None,text=True,capture_output=True)
  if r.returncode:raise RuntimeError(r.stderr[:500])
  return json.loads(r.stdout) if r.stdout.strip() else {}
-head=api('git/ref/heads/main')['object']['sha'];base=api('git/commits/'+head)['tree']['sha']
+head=api('git/ref/heads/'+branch)['object']['sha'];base=api('git/commits/'+head)['tree']['sha']
 workflow=(root/'client-runtime/workflow.yml').read_text()
 # Register guarded manual-only workflow on main. No automatic jobs or paid runner.
 t=api('git/trees',{'base_tree':base,'tree':[{'path':'.github/workflows/hollowwake-client-runtime.yml','mode':'100644','type':'blob','content':workflow}]})
-c=api('git/commits',{'message':'Register guarded original client-runtime checks','tree':t['sha'],'parents':[head]});api('git/refs/heads/main',{'sha':c['sha'],'force':False},'PATCH')
+c=api('git/commits',{'message':'Register guarded original client-runtime checks','tree':t['sha'],'parents':[head]});api('git/refs/heads/'+branch,{'sha':c['sha'],'force':False},'PATCH')
 entries=[]
 for f in (root/'client-runtime').rglob('*'):
  if f.is_file() and not {'evidence','__pycache__'}&set(f.relative_to(root).parts):
