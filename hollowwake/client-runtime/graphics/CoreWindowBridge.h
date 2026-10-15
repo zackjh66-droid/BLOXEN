@@ -16,3 +16,8 @@ namespace Hollowwake {
 HRESULT BindGraphicsWindow(IUnknown* window);
 void* ResolveGraphicsImport(const char* dll,const char* name);
 }
+namespace Hollowwake {
+// XAML owns its CoreWindow swap chain. A XAML host must explicitly select a
+// composition attachment callback instead of creating a second CoreWindow chain.
+void SetCompositionAttachment(HRESULT(*attach)(IDXGISwapChain*));
+}

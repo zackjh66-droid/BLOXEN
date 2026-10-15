@@ -10,10 +10,24 @@
 #include <mutex>
 #include <stdexcept>
 #include <cstring>
+#include <future>
+#include <chrono>
+#include <atomic>
+#include <windows.ui.xaml.media.dxinterop.h>
+#include <wrl/client.h>
 #include "Dependencies.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false;
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
+static Microsoft::WRL::ComPtr<ISwapChainPanelNative> gamePanel;
+static Platform::Agile<Windows::UI::Core::CoreDispatcher> gameDispatcher;
+static Microsoft::WRL::ComPtr<IUnknown> boundCoreWindow;
+static HRESULT AttachComposition(IDXGISwapChain* value){
+ auto dispatcher=gameDispatcher.Get();if(!dispatcher||!gamePanel)return E_UNEXPECTED;if(dispatcher->HasThreadAccess)return gamePanel->SetSwapChain(value);
+ struct Pending{std::promise<HRESULT> result;std::atomic<bool> active{true};};auto pending=std::make_shared<Pending>();auto future=pending->result.get_future();Microsoft::WRL::ComPtr<IDXGISwapChain> chain=value;
+ try{dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,ref new Windows::UI::Core::DispatchedHandler([pending,chain](){pending->result.set_value(pending->active.load()?gamePanel->SetSwapChain(chain.Get()):E_ABORT);}));}catch(Platform::Exception^ e){return e->HResult;}
+ if(future.wait_for(std::chrono::seconds(5))!=std::future_status::ready){pending->active=false;return HRESULT_FROM_WIN32(WAIT_TIMEOUT);}return future.get();
+}
 static void Fail(const char* message){throw std::runtime_error(message);}
 static bool Range(SIZE_T start,SIZE_T count,SIZE_T size){return start<=size&&count<=size-start;}
 static BYTE* Rva(DWORD address,SIZE_T count){if(!Range(address,count,mappedSize))Fail("PE RVA outside image");return mapped+address;}
@@ -46,7 +60,10 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 }
 extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  logName=path;auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
- HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);return Hollowwake::BindGraphicsWindow(reinterpret_cast<IUnknown*>(w));
+ HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
+ auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
+ if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
+ return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
 static int MemoryPolicy(const wchar_t* path){
  logName=path;Log("POLICY allocate RW -> protect RX -> execute ORIGINAL return-621 fixture");
@@ -97,3 +114,11 @@ static int Crash(EXCEPTION_POINTERS* p){Log("CRASH code="+std::to_string(p->Exce
 extern "C" __declspec(dllexport) int __cdecl HWAttempt(const wchar_t* root){__try{return Body(root);}__except(Crash(GetExceptionInformation())){return -2;}}
 
 extern "C" __declspec(dllexport) int __cdecl HWMemoryPolicy(const wchar_t* path){__try{return MemoryPolicy(path);}__except(Crash(GetExceptionInformation())){return -2;}}
+
+extern "C" __declspec(dllexport) int __cdecl HWGraphicsContract(){
+ Microsoft::WRL::ComPtr<ID3D11Device> device;Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;D3D_FEATURE_LEVEL level;D3D_FEATURE_LEVEL requested[]={D3D_FEATURE_LEVEL_11_1,D3D_FEATURE_LEVEL_11_0};
+ HRESULT hr=D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,requested,2,D3D11_SDK_VERSION,&device,&level,&context);if(FAILED(hr)){Log("GRAPHICS device HRESULT="+std::to_string(hr));return hr;}
+ Microsoft::WRL::ComPtr<IDXGIFactory1> factory;hr=Hollowwake::CreateCoreFactory(boundCoreWindow.Get(),IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;DXGI_SWAP_CHAIN_DESC desc={};desc.BufferDesc.Width=640;desc.BufferDesc.Height=360;desc.BufferDesc.Format=DXGI_FORMAT_B8G8R8A8_UNORM;desc.SampleDesc.Count=1;desc.BufferUsage=DXGI_USAGE_RENDER_TARGET_OUTPUT;desc.BufferCount=2;desc.Windowed=TRUE;
+ Microsoft::WRL::ComPtr<IDXGISwapChain> swap;hr=factory->CreateSwapChain(device.Get(),&desc,&swap);if(FAILED(hr)){Log("GRAPHICS composition bridge HRESULT="+std::to_string(hr));return hr;}
+ Microsoft::WRL::ComPtr<ID3D11Texture2D> buffer;hr=swap->GetBuffer(0,IID_PPV_ARGS(&buffer));if(FAILED(hr))return hr;Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view;hr=device->CreateRenderTargetView(buffer.Get(),nullptr,&view);if(FAILED(hr))return hr;float color[]={0.02f,0.02f,0.02f,1};context->ClearRenderTargetView(view.Get(),color);hr=swap->Present(1,0);Log("GRAPHICS real factory/composition Present HRESULT="+std::to_string(hr));if(gamePanel)gamePanel->SetSwapChain(nullptr);return SUCCEEDED(hr)?621:hr;
+}

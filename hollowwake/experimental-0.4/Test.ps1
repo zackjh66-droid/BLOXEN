@@ -11,10 +11,10 @@ public class HwActivation{public static uint Launch(string id){var m=(IHwActivat
  $pidApp=[HwActivation]::Launch($p.PackageFamilyName+'!App');$r.activated=$true;$data=Join-Path $env:LOCALAPPDATA ('Packages\'+$p.PackageFamilyName+'\LocalState');$deadline=[DateTime]::UtcNow.AddSeconds(45)
  while(!(Test-Path (Join-Path $data 'runtime-policy.txt'))-and[DateTime]::UtcNow-lt $deadline){Start-Sleep -Seconds 1}
  if(!(Test-Path (Join-Path $data 'runtime-policy.txt'))){throw 'Runtime policy log was not created'}
- $r.policy=Get-Content (Join-Path $data 'runtime-policy.txt') -Raw
+ $r.policy=([string](Get-Content (Join-Path $data 'runtime-policy.txt') -Raw)).Trim()
  foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}
  # Record a denied policy as an observed blocker, not as successful native execution.
- $r.originalDynamicCodeExecuted=$r.policy.Contains('memoryExecution=621');$r.result='PASS: installed, activated, policy outcome recorded';Stop-Process -Id $pidApp -Force
+ $r.originalDynamicCodeExecuted=$r.policy.Contains('memoryExecution=621');$r.windowMessageContract=$r.policy.Contains('windowMessageContract=621');$r.graphicsContract=$r.policy.Contains('graphicsContract=621');if(!$r.originalDynamicCodeExecuted-or !$r.windowMessageContract-or !$r.graphicsContract){throw 'Native memory/window/graphics contract failed; inspect runtime-policy.txt'};$r.result='PASS: installed, activated, policy outcome recorded';Stop-Process -Id $pidApp -Force
 }catch{$r.error=$_.Exception.Message;throw}finally{
  if($data-and(Test-Path $data)){foreach($n in @('runtime-policy.txt','native-launch.log','managed-launch.log')){if(Test-Path (Join-Path $data $n)){Copy-Item (Join-Path $data $n) (Join-Path $OutputDirectory $n)}}}
  $r|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'windows-test.json')}

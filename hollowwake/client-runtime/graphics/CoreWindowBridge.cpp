@@ -4,6 +4,8 @@
 #include <new>
 using Microsoft::WRL::ComPtr;
 namespace Hollowwake {
+static HRESULT(*compositionAttach)(IDXGISwapChain*)=nullptr;
+void SetCompositionAttachment(HRESULT(*attach)(IDXGISwapChain*)){compositionAttach=attach;}
 HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CHAIN_DESC& d,IDXGISwapChain** result){
  if(!result)return E_POINTER;*result=nullptr;
  if(!window||!device)return E_INVALIDARG;
@@ -15,7 +17,8 @@ HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CH
  ComPtr<IDXGIFactory2> factory;hr=adapter->GetParent(IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;
  DXGI_SWAP_CHAIN_DESC1 s={};s.Width=d.BufferDesc.Width;s.Height=d.BufferDesc.Height;s.Format=d.BufferDesc.Format;s.SampleDesc.Count=1;s.BufferUsage=d.BufferUsage;
  s.BufferCount=d.BufferCount<2?2:d.BufferCount;s.Scaling=DXGI_SCALING_STRETCH;s.SwapEffect=DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;s.AlphaMode=DXGI_ALPHA_MODE_IGNORE;
- ComPtr<IDXGISwapChain1> chain;hr=factory->CreateSwapChainForCoreWindow(device,window,&s,nullptr,&chain);if(FAILED(hr))return hr;
+ ComPtr<IDXGISwapChain1> chain;hr=compositionAttach?factory->CreateSwapChainForComposition(device,&s,nullptr,&chain):factory->CreateSwapChainForCoreWindow(device,window,&s,nullptr,&chain);if(FAILED(hr))return hr;
+ if(compositionAttach){hr=compositionAttach(chain.Get());if(FAILED(hr))return hr;}
  return chain.CopyTo(result);
 }
 HRESULT CreateCoreDeviceAndSwapChain(IUnknown* window,IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,const DXGI_SWAP_CHAIN_DESC* desc,IDXGISwapChain** swap,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context){
