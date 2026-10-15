@@ -21,6 +21,7 @@ int main(){
  std::cout<<std::unitbuf;SetErrorMode(SEM_FAILCRITICALERRORS|SEM_NOGPFAULTERRORBOX);AddVectoredExceptionHandler(1,Crash);
  bool ok=true;HMODULE donor=LoadLibraryW(L"HollowwakeTlsDonor.dll");if(!Check(donor!=nullptr,"OS loads original donor"))return 1;
  std::cout<<"Host TLS marker before bind="<<std::hex<<hostTlsMarker<<std::dec<<"\n";
+ auto attach=(Index)GetProcAddress(donor,"DonorAttachThread");std::cout<<"Donor PROCESS_ATTACH observed thread="<<(attach?attach():0)<<"\n";
  auto bind=(Bind)GetProcAddress(donor,"BindGuest");auto index=(Index)GetProcAddress(donor,"GuestTlsIndex");auto init=(Init)GetProcAddress(donor,"InitializeGuestThread");if(!bind||!index||!init)return 2;
  std::ifstream file("GuestTls.dll",std::ios::binary);std::vector<BYTE> raw((std::istreambuf_iterator<char>(file)),{});
  if(raw.size()<1024)return 3;auto dos=(IMAGE_DOS_HEADER*)raw.data();if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<=0||(size_t)dos->e_lfanew>raw.size()-sizeof(IMAGE_NT_HEADERS64))return 3;
@@ -36,7 +37,8 @@ int main(){
  std::cout<<"Mapped image base="<<(void*)base<<"\n";auto tls=(IMAGE_TLS_DIRECTORY64*)(base+nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
  SIZE_T tlsSize=tls->EndAddressOfRawData-tls->StartAddressOfRawData;
  ok&=Check(tlsSize>=4&&tlsSize<=32,"Mapped fixture has initialized static TLS");
- std::cout<<"Donor index="<<index()<<"\n";ok&=Check(bind((void*)tls->StartAddressOfRawData,tlsSize,0,base,nullptr,0)!=0,"Donor binds template");
+ auto host=(BYTE*)GetModuleHandleW(nullptr);auto hn=(IMAGE_NT_HEADERS64*)(host+((IMAGE_DOS_HEADER*)host)->e_lfanew);auto ht=(IMAGE_TLS_DIRECTORY64*)(host+hn->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);DWORD hostIndex=*(DWORD*)ht->AddressOfIndex;
+ std::cout<<"Donor index="<<index()<<"; host index="<<hostIndex<<"\n";if(!Check(index()!=hostIndex,"OS assigns a noncolliding donor TLS index"))return 13;ok&=Check(bind((void*)tls->StartAddressOfRawData,tlsSize,0,base,nullptr,0)!=0,"Donor binds template");
  *(DWORD*)tls->AddressOfIndex=index();
  ok&=Check(!bind((void*)tls->StartAddressOfRawData,tlsSize,0,base,nullptr,0),"Donor rejects unsafe rebinding");
  DWORD old;VirtualProtect(base,nt->OptionalHeader.SizeOfHeaders,PAGE_READONLY,&old);

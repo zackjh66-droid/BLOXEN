@@ -10,6 +10,11 @@ $env:INCLUDE=(Join-Path $vc 'include')+';'+(Join-Path $sdk "Include\$v\ucrt")+';
 $env:LIB=(Join-Path $vc 'lib\x64')+';'+(Join-Path $sdk "Lib\$v\ucrt\x64")+';'+(Join-Path $sdk "Lib\$v\um\x64")
 Push-Location $OutputDirectory
 try {
+ & cl.exe /nologo /c /MD /EHsc /std:c++17 /DWINAPI_FAMILY=WINAPI_FAMILY_APP /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'graphics\CoreWindowBridge.cpp') /Fo:CoreWindowBridge.obj 2>&1|Tee-Object graphics-build.log
+ if($LASTEXITCODE){throw 'CoreWindow bridge UWP API-family compilation failed'}
+ # Link against Windows Store import library; not the desktop d3d11/dxgi libs.
+ & link.exe /DLL /NOENTRY /APPCONTAINER CoreWindowBridge.obj windowsapp.lib /OPT:NOREF /OUT:CoreWindowBridge.dll 2>&1|Tee-Object graphics-link.log
+ if($LASTEXITCODE){throw 'CoreWindow bridge UWP linkage failed'}
  & cl.exe /nologo /LD /GS- /Oi /Zl (Join-Path $source 'tls\Donor.cpp') kernel32.lib /link /NODEFAULTLIB /ENTRY:DonorEntry /INCLUDE:_tls_used /OUT:HollowwakeTlsDonor.dll 2>&1|Tee-Object donor-build.log
  if($LASTEXITCODE){throw 'Donor build failed'}
  & cl.exe /nologo /LD /GS- /Oi /Zl (Join-Path $source 'tests\GuestTls.cpp') /link /NODEFAULTLIB /NOENTRY /INCLUDE:_tls_used /OUT:GuestTls.dll 2>&1|Tee-Object guest-build.log
@@ -18,11 +23,6 @@ try {
  if($LASTEXITCODE){throw 'Mapped fixture harness build failed'}
  & .\MappedTls.exe 2>&1|Tee-Object mapped-test.log
  if($LASTEXITCODE){throw "Mapped fixture runtime failed: $LASTEXITCODE"}
- & cl.exe /nologo /c /MD /EHsc /std:c++17 /DWINAPI_FAMILY=WINAPI_FAMILY_APP /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'graphics\CoreWindowBridge.cpp') /Fo:CoreWindowBridge.obj 2>&1|Tee-Object graphics-build.log
- if($LASTEXITCODE){throw 'CoreWindow bridge UWP API-family compilation failed'}
- # Link against Windows Store import library; not the desktop d3d11/dxgi libs.
- & link.exe /DLL /NOENTRY /APPCONTAINER CoreWindowBridge.obj windowsapp.lib /OUT:CoreWindowBridge.dll 2>&1|Tee-Object graphics-link.log
- if($LASTEXITCODE){throw 'CoreWindow bridge UWP linkage failed'}
  Get-ChildItem -File | Where-Object {$_.Extension -in @('.obj','.lib','.exp')} | Remove-Item -Force
  Get-ChildItem -File | Where-Object {$_.Extension -in @('.dll','.exe')} | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content fixture-hashes.json
 }finally{Pop-Location}

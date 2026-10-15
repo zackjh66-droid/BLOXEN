@@ -14,6 +14,8 @@ extern "C" __declspec(allocate(".rdata$T")) const IMAGE_TLS_DIRECTORY64 _tls_use
  (ULONGLONG)donorTemplate,(ULONGLONG)(donorTemplate+sizeof(donorTemplate)),(ULONGLONG)&_tls_index,(ULONGLONG)callbacks,0,0};
 static unsigned char initial[65536];static SIZE_T initialSize,zeroSize;static void* guestBase;
 static PIMAGE_TLS_CALLBACK guestCallbacks[16];static unsigned guestCallbackCount;
+static DWORD processAttachThread=0;
+extern "C" __declspec(dllexport) DWORD WINAPI DonorAttachThread(){return processAttachThread;}
 static volatile LONG state=0; // 0 unbound, 1 configuring, 2 bound; process-lifetime binding
 // x64 Windows compiler ABI: GS:[0x58] points to the static TLS vector.
 // Xbox ABI/policy still requires hardware validation; no arbitrary TEB writes.
@@ -43,6 +45,7 @@ extern "C" __declspec(dllexport) BOOL WINAPI BindGuest(const void* bytes,SIZE_T 
 extern "C" __declspec(dllexport) DWORD WINAPI GuestTlsIndex(){return _tls_index;}
 extern "C" __declspec(dllexport) void* WINAPI GuestThreadBlock(){return state==2&&CurrentBlock()[65536]?CurrentBlock():nullptr;}
 extern "C" BOOL WINAPI DonorEntry(HINSTANCE,DWORD reason,LPVOID){
+ if(reason==DLL_PROCESS_ATTACH)processAttachThread=GetCurrentThreadId();
  if(state==2){
   if(reason==DLL_THREAD_ATTACH)InitializeGuestThread();
   else if(reason==DLL_THREAD_DETACH&&CurrentBlock()[65536])
