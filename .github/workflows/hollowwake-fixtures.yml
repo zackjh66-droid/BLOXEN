@@ -1,0 +1,27 @@
+name: Hollowwake original loader contract fixtures
+on:
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  fixtures:
+    if: ${{ inputs.run_tests }}
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Original Windows fixtures and scoped reviewed TLS routine only
+        shell: powershell
+        run: .\hollowwake\tools\Test-OriginalFixtures.ps1 -OutputDirectory "$env:GITHUB_WORKSPACE\artifacts\fixtures"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hollowwake-original-fixture-tests
+          path: artifacts/fixtures/
+          retention-days: 1
