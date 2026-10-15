@@ -1,0 +1,1 @@
+<Application x:Class="Hollowwake.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" RequestedTheme="Dark"><Application.Resources><SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="#D5FB80"/></Application.Resources></Application>
