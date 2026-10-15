@@ -1,6 +1,6 @@
 # Tests only our independently authored companion, never the Fortnite archive.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackagePath,[Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$PackagePath,[Parameter(Mandatory=$true)][string]$OutputDirectory,[string]$BackendOrigin)
 $ErrorActionPreference='Stop'
 $result=[ordered]@{platform='GitHub Windows Server 2022';xboxExecution=$false;packageDeployment='not_attempted';activation='not_attempted';lobbyIncluded=$false}
 try {
@@ -28,6 +28,7 @@ public class HollowwakeActivation {
   $result.activation='succeeded';$result.processId=$appProcessId
   Start-Sleep -Seconds 4
   $result.processStillRunning=[bool](Get-Process -Id $appProcessId -ErrorAction SilentlyContinue)
+  if ($BackendOrigin -and $result.processStillRunning) { & (Join-Path $PSScriptRoot 'Test-NativeLink.ps1') -BackendOrigin $BackendOrigin -PackageFamilyName $installed.PackageFamilyName -AppProcessId $appProcessId -OutputDirectory $OutputDirectory }
   # Activation alone does not prove rendering, focus, account linking or Xbox behavior.
 } catch {
   $result.error=$_.Exception.Message

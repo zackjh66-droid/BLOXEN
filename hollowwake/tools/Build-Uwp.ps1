@@ -40,7 +40,7 @@ try {
         & $signtool verify /pa /v $package.FullName 2>&1 | Tee-Object (Join-Path $OutputDirectory 'signature-verification.log')
         if ($LASTEXITCODE -ne 0) { throw 'Package signature verification failed.' }
     }
-    foreach ($package in $packages) { & (Join-Path $PSScriptRoot 'Test-Uwp.ps1') -PackagePath $package.FullName -OutputDirectory $OutputDirectory }
+    foreach ($package in $packages) { & (Join-Path $PSScriptRoot 'Test-Uwp.ps1') -PackagePath $package.FullName -OutputDirectory $OutputDirectory -BackendOrigin $BackendOrigin }
     $packages | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'package-hashes.json')
     Write-Host 'Companion APPX build completed. Fortnite is not included. Xbox runtime validation is still required.'
 } finally { [System.IO.File]::WriteAllText($configPath, $originalConfig) }
