@@ -28,9 +28,18 @@ try {
     $project = Join-Path $repo 'uwp\Hollowwake\Hollowwake.csproj'
     & $msbuild $project /t:Restore /p:Configuration=Release /p:Platform=x64 /nologo 2>&1 | Tee-Object (Join-Path $OutputDirectory 'restore.log')
     if ($LASTEXITCODE -ne 0) { throw 'NuGet restore failed. See restore.log.' }
-    & $msbuild $project /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never /p:AppxPackageSigningEnabled=true "/p:PackageCertificateThumbprint=$CertificateThumbprint" "/p:AppxPackageDir=$OutputDirectory\" /nologo 2>&1 | Tee-Object (Join-Path $OutputDirectory 'build.log')
+    & $msbuild $project /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never /p:AppxPackageExtension=.appx /p:AppxPackageSigningEnabled=true "/p:PackageCertificateThumbprint=$CertificateThumbprint" "/p:AppxPackageDir=$OutputDirectory\" /nologo 2>&1 | Tee-Object (Join-Path $OutputDirectory 'build.log')
     if ($LASTEXITCODE -ne 0) { throw 'UWP build failed. See build.log. No working package is implied.' }
-    $packages = Get-ChildItem -Recurse $OutputDirectory -Filter '*.appx'
+    $packages = Get-ChildItem -Recurse $OutputDirectory -Filter 'Hollowwake_*.appx'
     if (!$packages) { throw 'Build completed without an APPX; inspect output.' }
+    $sdkBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin\10.0.19041.0\x64'
+    $signtool = Join-Path $sdkBin 'signtool.exe'
+    # Trust only this ephemeral development certificate on the disposable build runner.
+    Import-Certificate -FilePath (Join-Path $OutputDirectory 'HollowwakeDevelopment.cer') -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+    foreach ($package in $packages) {
+        & $signtool verify /pa /v $package.FullName 2>&1 | Tee-Object (Join-Path $OutputDirectory 'signature-verification.log')
+        if ($LASTEXITCODE -ne 0) { throw 'Package signature verification failed.' }
+    }
+    $packages | Get-FileHash -Algorithm SHA256 | Select-Object Path,Hash | ConvertTo-Json | Set-Content (Join-Path $OutputDirectory 'package-hashes.json')
     Write-Host 'Companion APPX build completed. Fortnite is not included. Xbox runtime validation is still required.'
 } finally { [System.IO.File]::WriteAllText($configPath, $originalConfig) }
