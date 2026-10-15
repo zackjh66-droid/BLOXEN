@@ -1,0 +1,30 @@
+{
+  "RuntimeDiagnostic_0.1.0.0_x64.appx": {
+    "bytes": 57138,
+    "sha256": "51a3359d3b776f4cfa0bdc8b8dc404164a7948be909522dd8492d152922e4f3b"
+  },
+  "Microsoft.VCLibs.x64.14.00.appx": {
+    "bytes": 896581,
+    "sha256": "9c17b521f9d690a1f504da5108ed6eec5669eb3a8fd1331eef43e40d84e74283"
+  },
+  "Hollowwake-Research-Source.zip": {
+    "bytes": 1360042,
+    "sha256": "1c18e9ad46d28536a6d0fa263ed6bff23e714d1c258193af2084f0724536fdc7"
+  },
+  "Hollowwake-Runtime-Diagnostic-x64.zip": {
+    "bytes": 954106,
+    "sha256": "881dafe0702866d86996bfd8bb2a285a6fc925d22a977f511175ee77ed8f9df1"
+  },
+  "Hollowwake-Research-Report.zip": {
+    "bytes": 92888,
+    "sha256": "cecf75b071ef13979ff6be2863397dec7ef85932b2f504e9ff73a3be1a4abfe4"
+  },
+  "HollowwakeDiagnostic.cer": {
+    "bytes": 802,
+    "sha256": "f0c2263b8586383aa064514a6fa8e3afb6f6f80aa3cba37dbb23566623ce97b9"
+  },
+  "Hollowwake-Original-Windows-Fixtures.zip": {
+    "bytes": 16067,
+    "sha256": "bff62a4568791af001cfe294728a1f3b8f64b859211ca26b20d386d45f64d622"
+  }
+}
