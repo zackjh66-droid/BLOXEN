@@ -197,16 +197,18 @@ namespace Hollowwake
             catch { if (ticket == generation) { UsernameText.Text = "Connection unavailable"; StatusText.Text = "Cannot verify this session offline. Choose Check connection to retry. No game session has started."; } }
         }
         private async Task ManagedLog(string text){await FileIO.AppendTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("managed-launch.log",CreationCollisionOption.OpenIfExists),DateTimeOffset.UtcNow.ToString("o")+" "+text+"\n");}
-        private async void Import_Click(object sender,RoutedEventArgs e){
+        private async void Import_Click(object sender,RoutedEventArgs e){await ImportFiles(false);}
+        private async void BootImport_Click(object sender,RoutedEventArgs e){await ImportFiles(true);}
+        private async Task ImportFiles(bool minimum){
             if(importBusy||loadBusy)return;if(!policyReady){StatusText.Text="Executable-memory policy failed. Show the log; import is paused to avoid an unnecessary 39 GB download.";return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}importBusy=true;
-            try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await Task.Run(()=>GameImport.Run(new Progress<string>(text=>{var ignored=Dispatcher.RunAsync(CoreDispatcherPriority.Normal,()=>StatusText.Text=text);}),operation.Token));StatusText.Text="Import complete. Choose Attempt client loading.";await ManagedLog("Immutable archive verified; clean copy and quarantine inventory complete.");
+            try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);var progress=new Progress<string>(text=>{var ignored=Dispatcher.RunAsync(CoreDispatcherPriority.Normal,()=>StatusText.Text=text);});await Task.Run(()=>minimum?BootImport.Run(progress,operation.Token):GameImport.Run(progress,operation.Token));StatusText.Text="Import complete. Choose Attempt client loading.";await ManagedLog("Immutable archive verified; clean copy and quarantine inventory complete.");
                 var splash=Path.Combine(GameImport.Root,"6.21","FortniteGame","Content","Splash","Splash.bmp");if(File.Exists(splash)){var f=await StorageFile.GetFileFromPathAsync(splash);using(var input=await f.OpenReadAsync()){var image=new BitmapImage();await image.SetSourceAsync(input);BackgroundImage.Source=image;}}
             }catch(OperationCanceledException){StatusText.Text="Import paused. Download bytes are retained; retry resumes. Incomplete extraction is never marked ready.";}
             catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8")+(ex is IOException?" "+ex.Message:""));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
         }
         private async void Launch_Click(object sender,RoutedEventArgs e){
-            if(loadBusy||importBusy)return;if(!policyReady||!GameImport.Ready){StatusText.Text="A successful executable-memory check and completed pinned archive import are required.";return;}
+            if(loadBusy||importBusy)return;if(!policyReady||(!GameImport.Ready&&!BootImport.Ready)){StatusText.Text="A successful executable-memory check and completed pinned archive import are required.";return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}loadBusy=true;
             try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED real client boot; no project credential is passed into guest code.");var result=await Task.Run(()=>HWAttempt(GameImport.Root));await ManagedLog("Native loading returned "+result+". No lobby success is inferred.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another mapping attempt.";}
             catch(Exception ex){await ManagedLog("Native call HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}finally{loadBusy=false;}
