@@ -9,6 +9,7 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <array>
 namespace {
 struct Endpoint{sockaddr_storage address;int length;ULONGLONG expiry;};
 std::mutex gate;std::string hostname;unsigned short allowedPort=443;std::vector<Endpoint> permitted;
@@ -32,7 +33,11 @@ int WSAAPI ConnectExtended(SOCKET socket,const sockaddr* address,int size,LPWSAB
 int WSAAPI Bind(SOCKET socket,const sockaddr* address,int size){bool local=false;if(address&&address->sa_family==AF_INET&&size==sizeof(sockaddr_in)){auto p=(const sockaddr_in*)address;local=p->sin_port==0&&(p->sin_addr.s_addr==htonl(INADDR_ANY)||p->sin_addr.s_addr==htonl(INADDR_LOOPBACK));}if(address&&address->sa_family==AF_INET6&&size==sizeof(sockaddr_in6)){auto p=(const sockaddr_in6*)address;local=p->sin6_port==0&&(IN6_IS_ADDR_UNSPECIFIED(&p->sin6_addr)||IN6_IS_ADDR_LOOPBACK(&p->sin6_addr));}if(!local){WSASetLastError(WSAEACCES);return SOCKET_ERROR;}return ::bind(socket,address,size);}
 SOCKET WSAAPI SocketExtended(int family,int type,int protocol,LPWSAPROTOCOL_INFOW info,GROUP group,DWORD flags){if((family!=AF_INET&&family!=AF_INET6)||type!=SOCK_STREAM||(protocol&&protocol!=IPPROTO_TCP)||info||group||flags&~0x81){WSASetLastError(WSAEACCES);return INVALID_SOCKET;}return ::WSASocketW(family,type,protocol,nullptr,0,flags);}
 int WSAAPI SendBuffers(SOCKET socket,LPWSABUF buffers,DWORD count,LPDWORD sent,DWORD flags,const sockaddr* address,int size,LPWSAOVERLAPPED overlapped,LPWSAOVERLAPPED_COMPLETION_ROUTINE callback){if(address&&!Allowed(address,size)){WSASetLastError(WSAEACCES);return SOCKET_ERROR;}return ::WSASendTo(socket,buffers,count,sent,flags,address,size,overlapped,callback);}
-hostent* WSAAPI LegacyHost(const char* node){std::string service;{std::lock_guard<std::mutex> lock(gate);service=std::to_string(allowedPort);}ADDRINFOA* output=nullptr;if(Resolve(node,service.c_str(),nullptr,&output))return nullptr;::freeaddrinfo(output);return ::gethostbyname(node);}
+hostent* WSAAPI LegacyHost(const char* node){
+ struct LegacyResult{hostent host={};std::string name;char* aliases[1]={nullptr};std::vector<std::array<char,4>> addresses;std::vector<char*> pointers;};static thread_local LegacyResult result;
+ std::string service;{std::lock_guard<std::mutex> lock(gate);service=std::to_string(allowedPort);}ADDRINFOA hint={};hint.ai_family=AF_INET;ADDRINFOA* output=nullptr;if(Resolve(node,service.c_str(),&hint,&output))return nullptr;
+ result.name=node;result.addresses.clear();result.pointers.clear();for(auto p=output;p;p=p->ai_next)if(p->ai_family==AF_INET&&p->ai_addrlen>=sizeof(sockaddr_in)){std::array<char,4> address;memcpy(address.data(),&((sockaddr_in*)p->ai_addr)->sin_addr,4);result.addresses.push_back(address);}::freeaddrinfo(output);if(result.addresses.empty()){WSASetLastError(WSANO_DATA);return nullptr;}for(auto& address:result.addresses)result.pointers.push_back(address.data());result.pointers.push_back(nullptr);result.host.h_name=&result.name[0];result.host.h_aliases=result.aliases;result.host.h_addrtype=AF_INET;result.host.h_length=4;result.host.h_addr_list=result.pointers.data();return &result.host;
+}
 int WSAAPI ReverseName(const sockaddr* address,socklen_t size,char* host,DWORD hostSize,char* service,DWORD serviceSize,int flags){if(!Allowed(address,size)){WSASetLastError(WSAEACCES);return EAI_FAIL;}return ::getnameinfo(address,size,host,hostSize,service,serviceSize,flags);}
 int WSAAPI SendTo(SOCKET socket,const char* data,int size,int flags,const sockaddr* address,int length){if(address&&!Allowed(address,length)){WSASetLastError(WSAEACCES);return SOCKET_ERROR;}return ::sendto(socket,data,size,flags,address,length);}
 int WSAAPI Ioctl(SOCKET socket,DWORD code,void* input,DWORD inputSize,void* output,DWORD outputSize,DWORD* returned,LPWSAOVERLAPPED overlapped,LPWSAOVERLAPPED_COMPLETION_ROUTINE callback){

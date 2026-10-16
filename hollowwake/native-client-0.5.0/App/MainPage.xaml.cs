@@ -243,18 +243,20 @@ namespace Hollowwake
                 if(previous.Count>0)summary+="\n\nPREVIOUS RECORDED FAILURE (earlier attempt)\n"+previous[previous.Count-1];
             }
             if(phases.Count>0)summary+="\n\nLAST STAGE\n"+phases[phases.Count-1];
-            summary+="\n\nUse Full log for native checks and import details. Existing boot files are enough for this test. The original lobby has not been reached.";
+            summary+="\n\nNative route: game DLLs must be installed in the private client package. A LocalState boot import cannot provide them. The original lobby has not been reached.";
 
             string full="runtime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
-            bool expanded=false;var block=new TextBlock{Text=summary,FontSize=18,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
+            var block=new TextBlock{Text=summary,FontSize=16,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(block,"FailureSummary");
-            var scroll=new ScrollViewer{MaxHeight=Math.Max(160,Window.Current.Bounds.Height-210),IsTabStop=true,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
-            var dialog=new ContentDialog{Title="Client stopped — 0.4.7",CloseButtonText="Close",PrimaryButtonText="Full log",SecondaryButtonText="Enable checks",Content=block};
+            var dialog=new ContentDialog{Title="Native client diagnostics — 0.5.0",CloseButtonText="Close",PrimaryButtonText="Missing imports",SecondaryButtonText="Full log",Content=block};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(dialog,"ClientDiagnostics");
-            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;expanded=!expanded;dialog.Content=null;scroll.Content=null;block.Text=expanded?full:summary;block.IsTextSelectionEnabled=expanded;if(expanded){scroll.Content=block;dialog.Content=scroll;scroll.ChangeView(null,0,null);}else dialog.Content=block;dialog.PrimaryButtonText=expanded?"Summary":"Full log";};
-            dialog.SecondaryButtonClick+=(d,args)=>{var marker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-startup.pending");if(File.Exists(marker))File.Delete(marker);};await dialog.ShowAsync();
+            string[] lines=null;int page=0;const int pageSize=6;
+            Action render=()=>{int count=Math.Max(1,(lines.Length+pageSize-1)/pageSize);block.Text="PAGE "+(page+1)+" / "+count+"\n\n"+String.Join("\n",lines,page*pageSize,Math.Min(pageSize,lines.Length-page*pageSize));dialog.PrimaryButtonText="Next page";dialog.SecondaryButtonText="Previous page";};
+            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){var report=managed;int marker=report.IndexOf("native-imports-unresolved.txt",StringComparison.Ordinal);report=marker>=0?report.Substring(marker):"No missing-import report. Choose Full log after reopening diagnostics.";lines=report.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries);page=0;}else page=(page+1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
+            dialog.SecondaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){lines=full.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries);page=0;}else page=(page+Math.Max(1,(lines.Length+pageSize-1)/pageSize)-1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
+            await dialog.ShowAsync();
         }
-        private static bool IsFailureLine(string line){return line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED ");}
+        private static bool IsFailureLine(string line){return line.StartsWith("NATIVE_PROXY_BLOCKED ")||line.StartsWith("NATIVE_LOAD_BLOCKED ")||line.StartsWith("NATIVE_LOAD_FAILED ")||line.StartsWith("NATIVE_LOAD_EXCEPTION ")||line.StartsWith("NATIVE_CRASH ")||line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED ");}
         private async Task RevokeTokenAsync(string token)
         {
             try { using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5))) await api.SendAsync("/api/device/logout", new JsonObject(), token, timeout.Token); } catch { }

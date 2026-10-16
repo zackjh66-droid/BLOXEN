@@ -18,7 +18,8 @@ while([DateTime]::UtcNow-lt $deadline){
 if(!(Test-Path (Join-Path $data 'native-imports-unresolved.txt'))){throw 'Integrated AppContainer native preflight did not produce exact-name report'}
 foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
 $native=Get-Content (Join-Path $data 'native-launch.log') -Raw
-if(!$native.Contains('NATIVE_PREFLIGHT total=852')){throw 'Unexpected dependency import inventory'}
+$expected=@(Get-Content (Join-Path $PSScriptRoot 'Native\ClientDependencyImports.generated.h')|Where-Object {$_-match '^ \{'}).Count
+if(!$native.Contains('NATIVE_PREFLIGHT total='+$expected)){throw 'Unexpected dependency import inventory'}
 if($native.Contains('NATIVE_ENTRY calling')){throw 'Forbidden game execution in hosted preflight'}
 if(!(Get-Process -Id $id -ErrorAction SilentlyContinue)){throw 'Own preflight app unexpectedly exited'}
 Stop-Process -Id $id -Force

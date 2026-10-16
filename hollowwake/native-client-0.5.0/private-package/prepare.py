@@ -7,7 +7,8 @@ import pefile
 ROOT=Path(__file__).resolve().parents[2]/'runtime-native-route'
 sys.path.insert(0,str(ROOT/'native-image'));sys.path.insert(0,str(ROOT/'native-proxy'))
 from convert_image import convert
-from redirect_imports import redirect
+from redirect_imports import redirect,SHORT
+SHORT.update({"xinput1_3.dll":"HWXI13.dll","xinput1_4.dll":"HWXI14.dll","xinput9_1_0.dll":"HWXI91.dll"})
 from generate_proxy import emit
 PIN='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
@@ -39,7 +40,7 @@ def prepare(source,out):
   seen.add(p);images.append(p)
   for name in metadata(p):
    # API-set forwarders are provided by Windows, not the archive's nonrelocatable shims.
-   if name.startswith(('api-ms-','ext-ms-')):external.add(name);continue
+   if name.startswith(('api-ms-','ext-ms-','xinput')):external.add(name);continue
    candidates=index.get(name,[])
    if not candidates:external.add(name);continue
    hashes={sha(q) for q in candidates}

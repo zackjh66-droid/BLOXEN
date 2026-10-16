@@ -7,6 +7,8 @@ $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\v
 if($LASTEXITCODE){throw 'Native client integration compilation failed'}
 $native=Join-Path $source 'App';New-Item -ItemType Directory -Force $native|Out-Null
 Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll') $native
+& dumpbin.exe /nologo /exports (Join-Path $env:SystemRoot 'System32\wldap32.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'windows-wldap-ordinal-reference.log')
+if($LASTEXITCODE){throw 'OS ordinal reference read failed'}
 # Focused production window/network checks; no game code or repeated graphics demos.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
 if($LASTEXITCODE){throw 'Window state test build failed'}
