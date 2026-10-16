@@ -28,3 +28,13 @@ The user supplied photographs after the 0.4.1 update. They show zero dependency 
 0.4.2 supplies the actual DWORD/WINAPI ABI through the production clock resolver. It reads OS GetTickCount64 uptime and returns the low32 bits, including the documented49.7-day wrap. It does not return a fixed value or time since application startup. The focused test maps an original DLL whose own process-attach entry calls that import, checks attachment occurred, samples advancing boot-relative time and exercises wrap boundaries. The installed UWP package separately calls the same resolver and checks its result against the OS uptime bracket. Unsupported unrelated APIs continue to fail fast.
 
 Reference: Microsoft GetTickCount documentation, https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount .
+
+## 0.4.3 — legacy C allocator call in dbghelp startup
+
+The user photographed 0.4.2 on Xbox with zero dependency blockers, a passing clock contract and original dbghelp process-attach execution stopping at `msvcrt.dll!malloc`, caller RVA703563. This confirms progress past the previous GetTickCount stop; the main Fortnite entry and lobby were not reached.
+
+The new resolver maps only the legacy C allocation/memory family to one maintained UWP CRT: malloc/calloc/realloc/free/_msize/_errno, strdup/wcsdup and byte copy/move/set/compare. This keeps allocation/free ownership together and uses the actual runtime's alignment, zeroing and error behavior. It does not alias old FILE arrays, file-descriptor internals, C++ RTTI or exception handlers to incompatible modern structures. General MSVCRT compatibility remains unfinished.
+
+An original mapped DLL imports `msvcrt.dll!malloc` through an explicit import library and calls it from its process-attach entry. Its subsequent checks exercise resizing/data preservation, zero allocation, overlapping memory movement, string duplication/free, overflow and errno, allocation-failure preservation, free(NULL), realloc(NULL,n), zero-size realloc and zero-size malloc. The UWP package separately checks the shared production resolver on its real CRT. Downloaded game code is not executed by hosted tests.
+
+The diagnostic viewer defaults to a compact named-failure summary and recent phases, with Show full log retaining all details. If an in-progress newer attempt has no failure yet, the previous named stop is shown with an explicit earlier-attempt label.

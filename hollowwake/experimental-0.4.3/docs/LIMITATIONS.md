@@ -1,6 +1,6 @@
 # What this build establishes and what remains missing
 
-This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. The user reported and photographed 0.4.0.0 importing boot files, mapping the original main image and dependencies, applying section protections and registering the main unwind table on a physical Xbox. That run stopped at 13 CRT-forwarder relocation rejections before original dependency initialization or main entry. 0.4.2.0 fixes that specific parser/loader case, but the update has not been tested on Xbox.
+This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. The user reported and photographed 0.4.0.0 importing boot files, mapping the original main image and dependencies, applying section protections and registering the main unwind table on a physical Xbox. That run stopped at 13 CRT-forwarder relocation rejections before original dependency initialization or main entry. 0.4.3.0 fixes that specific parser/loader case, but the update has not been tested on Xbox.
 
 Implemented paths:
 
@@ -29,3 +29,5 @@ The runtime is not a secure malware-analysis sandbox. No archive-provided execut
 Branding: orange HW mark, italic HOLLOWWAKE wordmark, orange focused controls and subtle purple bottom tint. The bundled floating-island landscape is project-owned fan artwork. A genuine supplied Season 6 splash image is displayed only after private import; no proprietary art or game code is redistributed in the package.
 
 0.4.1 hardware update: user photos confirm the CRT-forwarder blockers were removed and original dbghelp dependency initialization began. It stopped on GetTickCount. 0.4.2 addresses that observed clock call; original Fortnite main entry, main-window/scene rendering, in-game controller input and all lobby/backend functionality remain unverified.
+
+0.4.2 hardware update: the user reported GetTickCount passing on Xbox, followed by an actual `msvcrt.dll!malloc` call from dbghelp. Version0.4.3 addresses the compatible C allocator/memory functions and improves log presentation. This is not a full replacement for MSVCRT: legacy I/O objects, exception handling, C++ object ownership across runtimes and module lifetime semantics remain unfinished. All allocations handled by this bridge must be released through the same legacy allocation family; arbitrary cross-CRT ownership is not established. The new update has not been tested on Xbox.
