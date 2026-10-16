@@ -1,0 +1,30 @@
+{
+  "Hollowwake-Client-Experiment-0.4.7-x64.zip": {
+    "bytes": 10651708,
+    "sha256": "13e32dfe6d2d0133f6a3f5feb6a26932aba5cd7addd2a29adeb8fc4b8e944326"
+  },
+  "Hollowwake-Dependencies-x64.zip": {
+    "bytes": 6311882,
+    "sha256": "d53dee9bb3c0bf3927142643dac1a23ea7eb07a58ef6f0f7adfa6e113c751632"
+  },
+  "Hollowwake-Source-0.4.7.zip": {
+    "bytes": 6753397,
+    "sha256": "dfb6aabcb02bf96e90c252322955955193dba7d509dfdab15ca5ffcf60bf7382"
+  },
+  "Hollowwake-Verification-0.4.7.zip": {
+    "bytes": 2112804,
+    "sha256": "5f2e8fb05311e454bb6d826055def6b1ea537aa82ed314c5519ecae72640582f"
+  },
+  "HollowwakeExperiment.cer": {
+    "bytes": 802,
+    "sha256": "bbf093f4c4804ba096794aacc25eee036b2787dc75f527464ac68832d048abd0"
+  },
+  "Hollowwake_0.4.7.0_x64.appx": {
+    "bytes": 2271747,
+    "sha256": "c3c502e3cd670e28b6254b8d7e473245274f9e43ad65bf351629725614cf7a9c"
+  },
+  "RELEASE-NOTES.md": {
+    "bytes": 3260,
+    "sha256": "d20c6d663afb205ce6236c39129d0c346ef495f01bb75106a6c5e826d900a229"
+  }
+}
