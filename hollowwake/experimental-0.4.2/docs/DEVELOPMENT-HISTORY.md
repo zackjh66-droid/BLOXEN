@@ -20,3 +20,11 @@ The supplied Xbox photos show thirteen `api-ms-win-crt-*` modules rejected with 
 The log viewer now puts named failures from the latest attempt first, and allocation/protection/load failures include Windows error numbers where supported. Earlier `UNIMPLEMENTED` import records still describe real gaps; a forwarder fix is not a complete Windows runtime or lobby.
 
 The first 0.4.1 hosted run (38857148476) compiled the production UWP runtime, then failed to compile the separate resolver fixture harness because Windows' `min` macro expanded `std::min`. Adding `/DNOMINMAX /DWIN32_LEAN_AND_MEAN` to the harness compiler flags corrected that build configuration; no assertion or relocation guard was removed. Run 38857287671 passed the focused fixture and installed-package regressions.
+
+## 0.4.2 — first original dependency startup call on Xbox
+
+The user supplied photographs after the 0.4.1 update. They show zero dependency blockers, followed by actual `DLL_PROCESS_ATTACH` execution of the archive's `dbghelp.dll`. Its call to `KERNEL32.dll!GetTickCount`, caller RVA709844, reached the named unsupported-import handler and deliberately terminated the process. Original main-client entry and lobby rendering were not reached. The same photographs show the host's own executable-memory fixture returning621, graphics-contract Present HRESULT0 and packaged TLS indices52/53 after restart; those are host checks, not Fortnite rendering.
+
+0.4.2 supplies the actual DWORD/WINAPI ABI through the production clock resolver. It reads OS GetTickCount64 uptime and returns the low32 bits, including the documented49.7-day wrap. It does not return a fixed value or time since application startup. The focused test maps an original DLL whose own process-attach entry calls that import, checks attachment occurred, samples advancing boot-relative time and exercises wrap boundaries. The installed UWP package separately calls the same resolver and checks its result against the OS uptime bracket. Unsupported unrelated APIs continue to fail fast.
+
+Reference: Microsoft GetTickCount documentation, https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount .

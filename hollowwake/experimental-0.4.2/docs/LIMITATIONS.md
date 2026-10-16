@@ -1,6 +1,6 @@
 # What this build establishes and what remains missing
 
-This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. The user reported and photographed 0.4.0.0 importing boot files, mapping the original main image and dependencies, applying section protections and registering the main unwind table on a physical Xbox. That run stopped at 13 CRT-forwarder relocation rejections before original dependency initialization or main entry. 0.4.1.0 fixes that specific parser/loader case, but the update has not been tested on Xbox.
+This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. The user reported and photographed 0.4.0.0 importing boot files, mapping the original main image and dependencies, applying section protections and registering the main unwind table on a physical Xbox. That run stopped at 13 CRT-forwarder relocation rejections before original dependency initialization or main entry. 0.4.2.0 fixes that specific parser/loader case, but the update has not been tested on Xbox.
 
 Implemented paths:
 
@@ -27,3 +27,5 @@ Minimum next evidence: Xbox logs showing whether writable-to-executable memory a
 The runtime is not a secure malware-analysis sandbox. No archive-provided executable, DLL, script or launcher was run in hosted CI. The explicit console boot action is an experimental native execution attempt; it may terminate the application. No Epic credentials are requested.
 
 Branding: orange HW mark, italic HOLLOWWAKE wordmark, orange focused controls and subtle purple bottom tint. The bundled floating-island landscape is project-owned fan artwork. A genuine supplied Season 6 splash image is displayed only after private import; no proprietary art or game code is redistributed in the package.
+
+0.4.1 hardware update: user photos confirm the CRT-forwarder blockers were removed and original dbghelp dependency initialization began. It stopped on GetTickCount. 0.4.2 addresses that observed clock call; original Fortnite main entry, main-window/scene rendering, in-game controller input and all lobby/backend functionality remain unverified.
