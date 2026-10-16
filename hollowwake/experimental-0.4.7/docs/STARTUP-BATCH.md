@@ -1,0 +1,15 @@
+#0.4.7 connected startup work
+
+Physical Xbox0.4.5 photo confirms CALLED_UNSUPPORTED msvcrt.dll!??2@YAPEAX_K@Z, caller dbghelp.dll, return RVA1221957 (0x12a545). Static disassembly confirms this is scalar operator new(16), called by the next global constructor after GetSystemInfo/GetVersion.
+
+A bounded direct-call trace now covers the entry point, C initializer and all16 non-null C++ initializer roots. Every directly traced import in those C++ constructor roots is covered. The report lists remaining entry/error/cleanup-path imports and unresolved indirect calls; static coverage does NOT prove original module execution. No downloaded DLL was executed on hosted Windows.
+
+LegacyStartup.h adds scalar/array allocation and deletion on the same maintained allocator family; shared recursive CRT locks; DLL-owned callback-table growth and registration; process callback registration and explicit LIFO draining on a normal main return. Existing original DLL cleanup remains responsible for its private exit table. Out-of-memory new-handler/old C++ exception propagation is explicitly unsupported and fails fast with a named log rather than returning fake success. No old FILE, RTTI or C++ exception metadata is aliased to modern incompatible structures.
+
+KernelStartup.h adds critical-section initialization using public InitializeCriticalSectionEx; real Sleep waiting/yielding; compiler-runtime x64 stack-probe binding with its original register ABI; public version, private-heap, TLS, conversion, file-handle and debug-output APIs used by the traced startup graph. A native Windows structured-exception handler is bound for the stable x64 SEH ABI; it is not a replacement for old C++ exception handlers.
+
+The combined original fixture imports the same decorated legacy new/delete names and CRT registration/lock operations. It constructs16 scalar objects, registers/grows a64-callback private table and drains it in reverse order, checks raw array allocation/delete, recursive locks and8000 concurrent updates, private heap growth, TLS state, real sleeping,24KB stack probing and a caught structured exception using registered unwind information. No game constructors or source were copied into that fixture. Compiler-generated modern C++ array exception helpers were deliberately excluded from the legacy-ABI fixture rather than incorrectly aliased into the runtime.
+
+The launcher menu remains non-scrolling and directional. Diagnostics now show the latest failure and last stage immediately, with short buttons and Full log for details. The Windows UI test uses a real persisted own-fixture fail-fast error to verify that the short diagnostic and Close button are accessible.
+
+Original Fortnite main entry/lobby, full Windows ABI/thread/module behavior, native Fortnite login/transport and full client backend integration remain unfinished. No matches are available.0.4.7 requires user Xbox testing. Existing website, accounts, owner-only admin, original archive and prior packages are preserved.
