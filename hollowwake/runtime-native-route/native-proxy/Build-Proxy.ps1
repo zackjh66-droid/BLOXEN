@@ -32,6 +32,10 @@ try {
  }
  & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN (Join-Path $PSScriptRoot 'ProxyTest.cpp') kernel32.lib /Fe:ProxyTest.exe 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-test-build.log')
  if($LASTEXITCODE){throw 'Proxy host test compilation failed'}
+ foreach($image in @('HollowwakeClientRuntime.dll','HWK32.dll','ProxyConvertedFixture.dll')){
+  & dumpbin.exe /nologo /imports /exports $image 2>&1|Tee-Object -Append (Join-Path $OutputDirectory 'proxy-pe-diagnostics.log')
+  if($LASTEXITCODE){throw "Proxy PE inspection failed: $image"}
+ }
  & .\ProxyTest.exe (Get-Location).Path 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-test.log')
  if($LASTEXITCODE){throw 'Native redirected executable integration failed'}
 }finally{Pop-Location}
