@@ -1,0 +1,44 @@
+{
+  "sourceCommit": "391281d63818a4c5d0aa2b7492d901ba6e05b538",
+  "buildRun": 38964032207,
+  "workingFortniteClient": false,
+  "xboxVerified": false,
+  "artifacts": {
+    "native-imports-unresolved.txt": {
+      "bytes": 5785,
+      "sha256": "74432bc5c219582a8c3a989781c3d767173eb9ffb54131670328b0a163243db6"
+    },
+    "HollowwakeExperiment.cer": {
+      "bytes": 802,
+      "sha256": "ee08c4aaca2c40d6b12665a2c2934d860595433e4434896f57c311737569fe98"
+    },
+    "INSTALL.md": {
+      "bytes": 2769,
+      "sha256": "a2e508023efe8b2206231cccb8e5624c212affdb082bb08d2448770b8c0d1e83"
+    },
+    "Hollowwake-Native-Client-Source.zip": {
+      "bytes": 1227767,
+      "sha256": "6f4945265a116fa6146ebfd32f144c870a98d68869acd0f573692926c8c9d288"
+    },
+    "Hollowwake-Native-Preflight-0.5.0-x64.appx": {
+      "bytes": 2270534,
+      "sha256": "2f2d95cb903ac3ee3c26ae1096bf5c6f139643f66fc592f424c9bf4743dfba40"
+    },
+    "TEST-REPORT.md": {
+      "bytes": 6289,
+      "sha256": "69829edcf17ca41645c5591acdbc9a44794a0b333b62825eca9cf35130bf771c"
+    },
+    "unresolved-imports-by-module.json": {
+      "bytes": 37739,
+      "sha256": "3c38213e7dd192a20df1361f356cccfd615652a90c831060a46754272c3cfd43"
+    },
+    "final-build-results.json": {
+      "bytes": 1317,
+      "sha256": "b2ad82e0cd61ba28aab5484a9492bdc2e3080a2d172e16c8ec7c6757753f26fa"
+    },
+    "Hollowwake-Native-Preflight-0.5.0-x64.zip": {
+      "bytes": 8781067,
+      "sha256": "0fc972cdcc41c65075a9216afa74a2a29b4f257984f940219d1e5695610f1124"
+    }
+  }
+}
