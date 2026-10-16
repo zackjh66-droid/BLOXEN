@@ -1,0 +1,27 @@
+name: Hollowwake actual client loading experiment
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  build:
+    if: ${{ inputs.build }}
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build native integration and signed UWP experiment; original code tests only
+        shell: powershell
+        run: .\hollowwake\experimental-0.4.5\Build.ps1 -OutputDirectory "$env:GITHUB_WORKSPACE\artifacts\experiment"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hollowwake-client-experiment-x64
+          path: artifacts/experiment/
+          retention-days: 1
