@@ -2,7 +2,7 @@ param([string]$OutputDirectory)
 $ErrorActionPreference='Stop';New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 Push-Location $OutputDirectory
 try {
- & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot 'NativeSystem.cpp') (Join-Path $PSScriptRoot 'tests\NativeSystemTest.cpp') kernel32.lib /Fe:NativeSystemTest.exe 2>&1|Tee-Object build.log
+ & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot 'NativeSystem.cpp') (Join-Path $PSScriptRoot 'tests\NativeSystemTest.cpp') kernel32.lib runtimeobject.lib /Fe:NativeSystemTest.exe 2>&1|Tee-Object build.log
  if($LASTEXITCODE){throw 'Native-system test compilation failed'}
  & .\NativeSystemTest.exe 2>&1|Tee-Object test.log
  if($LASTEXITCODE){throw 'Native-system functionality failed'}

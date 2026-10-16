@@ -4,6 +4,7 @@
 #include <winternl.h>
 #endif
 #include <intrin.h>
+#include <roapi.h>
 #include <cstring>
 #include <mutex>
 #if !defined(_M_X64)
@@ -37,9 +38,9 @@ HMODULE Loaded(const wchar_t* name){
  }return nullptr;
 }
 struct NativeModules {
- HMODULE kernel=nullptr,base=nullptr,ntdll=nullptr,crt=nullptr;bool legacyComplete=false;
+ HMODULE kernel=nullptr,base=nullptr,ntdll=nullptr,crt=nullptr,combase=nullptr;bool legacyComplete=false;
  NativeModules(){
-  kernel=Loaded(L"kernel32.dll");base=Loaded(L"kernelbase.dll");ntdll=Loaded(L"ntdll.dll");
+  kernel=Loaded(L"kernel32.dll");base=Loaded(L"kernelbase.dll");ntdll=Loaded(L"ntdll.dll");combase=Loaded(L"combase.dll");
   // Pin through the actual documented OS operation. If unavailable or refused,
   // do not retain an unowned module reference or pretend that pinning worked.
   using Pin=BOOL(WINAPI*)(DWORD,LPCWSTR,HMODULE*);
@@ -59,11 +60,15 @@ NativeModules& Modules(){static NativeModules value;return value;}
 bool NativeLegacyCrtAvailable(){return Modules().legacyComplete;}
 void* ResolveNativeSystemImport(const char* dll,const char* name){
  if(!dll||!name||!name[0])return nullptr;
+ // A public WinRT SDK import establishes the OS provider dependency. It is
+ // not an AppContainer bypass and performs no activation during lookup.
+ if(!_strnicmp(dll,"api-ms-win-core-winrt-",sizeof("api-ms-win-core-winrt-")-1)&&!strcmp(name,"RoInitialize"))return reinterpret_cast<void*>(&::RoInitialize);
  auto& m=Modules();HMODULE selected=nullptr;
  if(!_stricmp(dll,"msvcrt.dll")){if(!m.legacyComplete)return nullptr;selected=m.crt;}
  else if(!_stricmp(dll,"ntdll.dll"))selected=m.ntdll;
  else if(!_stricmp(dll,"kernel32.dll"))selected=m.kernel;
  else if(!_stricmp(dll,"kernelbase.dll"))selected=m.base;
+ else if(!_strnicmp(dll,"api-ms-win-core-winrt-",sizeof("api-ms-win-core-winrt-")-1))selected=m.combase;
  else if(!_strnicmp(dll,"api-ms-win-core-",16))selected=m.kernel?m.kernel:m.base;
  else return nullptr; // Network, graphics and guest module handles stay with explicit adapters.
  if(!selected)return nullptr;
