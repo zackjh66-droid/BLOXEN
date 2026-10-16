@@ -19,6 +19,17 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
+      - name: Private game-input packaging check; never upload its files
+        continue-on-error: true
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          python -m pip install --disable-pip-version-check pefile==2024.8.26
+          python hollowwake\native-client-0.5.0\private-package\fetch_boot.py hollowwake\native-client-0.5.0\App\boot-inputs.json "%RUNNER_TEMP%\HollowwakePrivateInputs"
+          if errorlevel 1 exit /b 1
+          python hollowwake\native-client-0.5.0\private-package\prepare.py "%RUNNER_TEMP%\HollowwakePrivateInputs\6.21" "%RUNNER_TEMP%\HollowwakePrivatePrepared"
+          if errorlevel 1 exit /b 1
+          powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%RUNNER_TEMP%\HollowwakePrivatePackage" -PrivatePreparedDirectory "%RUNNER_TEMP%\HollowwakePrivatePrepared"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -28,4 +39,5 @@ jobs:
             artifacts/native-client-050/**/*.cer
             artifacts/native-client-050/**/*.json
             artifacts/native-client-050/**/*.log
+            artifacts/native-client-050/native-imports-unresolved.txt
           retention-days: 3

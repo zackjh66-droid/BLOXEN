@@ -22,6 +22,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWBindWindow(string path);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWMemoryPolicy(string path);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWAttemptPackagedClient();
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWPreflightClient();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern bool HWConfigureNetwork(string hostname,ushort port);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWClockContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWSystemInfoContract();
@@ -71,6 +72,7 @@ namespace Hollowwake
                 catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
                 finally{if(File.Exists(pending))File.Delete(pending);}
             }
+            if(App.NativePreflight){await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";return;}
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try

@@ -26,8 +26,8 @@
 #include "NetworkBridge.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include "../../runtime-native-route/NativeProxyDispatch.h"
-#include "../../runtime-native-route/PackagedNamespace.h"
-#include "../../runtime-native-route/Season621NativeImports.generated.h"
+#include "PackagedNamespace.h"
+#include "ClientDependencyImports.generated.h"
 #include "../../runtime-native-route/GuestThreads.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
@@ -105,6 +105,13 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
+extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
+ Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);
+ {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
+ unsigned unavailable=0;for(auto& item:clientDependencyImports)if(!HWResolvePackagedImport(item.dll,item.symbol))++unavailable;
+ Log("NATIVE_PREFLIGHT total="+std::to_string(sizeof(clientDependencyImports)/sizeof(clientDependencyImports[0]))+" unresolved="+std::to_string(unavailable));return unavailable?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
+}
+
 // Explicit native-loader experiment. It accepts no download URL, credentials,
 // arbitrary DLL path or user command line. The UI's existing mapper is unchanged.
 extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
@@ -113,17 +120,20 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
   Log("ATTEMPT_BEGIN runtime=0.5.0.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
-  unsigned unavailable=0;for(auto& item:season621NativeImports)if(!HWResolvePackagedImport(item.dll,item.symbol))++unavailable;
-  if(unavailable){Log("NATIVE_LOAD_BLOCKED unresolved main-image proxy operations="+std::to_string(unavailable)+"; no client code executed");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
+  auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
-  std::wstring file=std::wstring(location->Data())+L"\\Fortnite621.imports.private.dll";
+  std::wstring file=std::wstring(location->Data())+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
   auto size=in.tellg();if(size!=100733440){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
   static const BYTE expected[32]={0xe5,0x20,0x7f,0x54,0x27,0xb4,0x02,0x8a,0x29,0xa8,0xfe,0xa9,0xfa,0xa4,0x4b,0x51,0xeb,0x24,0xaa,0x9e,0x7c,0xab,0x7f,0x02,0x3b,0xcc,0x7a,0x73,0x89,0xe3,0x94,0x85};
   if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}bytes.clear();
   if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",L"Fortnite621.imports.private.dll")){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
   Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
-  auto module=LoadPackagedLibrary(L"Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
+  std::wstring manifestPath=std::wstring(location->Data())+L"\\native-package-manifest.json";std::ifstream metadata(manifestPath,std::ios::binary);if(!metadata){Log("NATIVE_LOAD_BLOCKED private dependency manifest missing");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
+  std::string text((std::istreambuf_iterator<char>(metadata)),std::istreambuf_iterator<char>());if(text.size()>1024*1024)return E_INVALIDARG;std::wstring wide(text.begin(),text.end());auto manifest=Windows::Data::Json::JsonObject::Parse(ref new Platform::String(wide.c_str()));auto files=manifest->GetNamedArray(L"files");if(files->Size>200)return E_INVALIDARG;
+  if(!Hollowwake::ConfigurePackagedRoot(location->Data()))return E_INVALIDARG;
+  for(unsigned fileIndex=0;fileIndex<files->Size;++fileIndex){auto item=files->GetAt(fileIndex)->GetObject();auto relative=item->GetNamedString(L"packageRelativePath");std::wstring path(relative->Data());if(path.empty()||path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return E_INVALIDARG;auto slash=path.find_last_of(L"/\\");auto name=path.substr(slash==std::wstring::npos?0:slash+1);std::wstring disk=std::wstring(location->Data())+L"\\"+path;std::ifstream dependency(disk,std::ios::binary|std::ios::ate);if(!dependency)return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);auto length=dependency.tellg();if(length<1024||length>512*1024*1024)return E_INVALIDARG;dependency.seekg(0);std::vector<BYTE> image((SIZE_T)length);if(!dependency.read((char*)image.data(),length))return E_FAIL;auto hash=item->GetNamedString(L"sha256");if(hash->Length()!=64)return E_INVALIDARG;BYTE expectedDependency[32];for(unsigned i=0;i<32;++i){auto nibble=[](wchar_t c)->int{return c>=L'0'&&c<=L'9'?c-L'0':c>=L'a'&&c<=L'f'?c-L'a'+10:-1;};int a=nibble(hash->Data()[i*2]),b=nibble(hash->Data()[i*2+1]);if(a<0||b<0)return E_INVALIDARG;expectedDependency[i]=(BYTE)(a*16+b);}if(!HashPinned(image,expectedDependency)){Log("NATIVE_LOAD_BLOCKED packaged dependency hash mismatch");return E_INVALIDARG;}if(!item->GetNamedBoolean(L"mainImage")&&!Hollowwake::RegisterPackagedDependency(name.c_str(),path.c_str(),item->GetNamedString(L"originalRelativePath")->Data()))return E_INVALIDARG;}
+  auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
   Log("NATIVE_ENTRY calling original client entry; no lobby success is inferred");auto result=entry();Log("NATIVE_ENTRY_RETURN value="+std::to_string(result));return result;
  }catch(Platform::Exception^ e){Log("NATIVE_LOAD_EXCEPTION HRESULT="+std::to_string(e->HResult));return e->HResult;}

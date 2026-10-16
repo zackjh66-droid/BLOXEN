@@ -1,4 +1,4 @@
-param([string]$OutputDirectory)
+param([string]$OutputDirectory,[string]$PrivatePreparedDirectory)
 $ErrorActionPreference='Stop';$source=$PSScriptRoot;$repo=Split-Path $source -Parent
 if(!$OutputDirectory){$OutputDirectory=Join-Path $source 'artifacts'}
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
@@ -14,6 +14,10 @@ if($LASTEXITCODE){throw 'Window state test build failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NetworkBridge.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\NetworkTest.cpp') kernel32.lib ws2_32.lib runtimeobject.lib /Fe:"$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test-build.log')
 if($LASTEXITCODE){throw 'Network test build failed'}
 & "$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test.log');if($LASTEXITCODE){throw 'Network behavior failed'}
+if($PrivatePreparedDirectory){
+ & (Join-Path $source 'private-package\Build-Proxies.ps1') -PreparedDirectory $PrivatePreparedDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib')
+ Copy-Item (Join-Path $PrivatePreparedDirectory 'GamePayload\*') (Join-Path $source 'App') -Recurse -Force
+}
 $cert=New-SelfSignedCertificate -Type Custom -Subject 'CN=HollowwakeDevelopment' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -KeyUsage DigitalSignature -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
 Export-Certificate -Cert $cert -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer')|Out-Null
 $project=Join-Path $source 'App\Hollowwake.csproj'
@@ -26,5 +30,6 @@ $sdk=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin\10.0.19041.0\x64'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $package=[IO.Compression.ZipFile]::OpenRead($appx.FullName)
 try {if(!($package.Entries|Where-Object FullName -eq 'HollowwakeClientRuntime.dll')){throw 'Native runtime absent from package'};if(!($package.Entries|Where-Object FullName -eq 'AppxSignature.p7x')){throw 'Package signature missing'}}finally{$package.Dispose()}
-@{result='PASS compiled and development signature verified';xboxTested=$false;fortniteExecuted=$false;gamePayloadIncluded=$false;route='HWAttemptPackagedClient';nativePathWired=$true}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-results.json')
+@{result='PASS compiled and development signature verified';xboxTested=$false;fortniteExecuted=$false;gamePayloadIncluded=[bool]$PrivatePreparedDirectory;route='HWAttemptPackagedClient';nativePathWired=$true}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-results.json')
+if(!$PrivatePreparedDirectory){& (Join-Path $source 'Test-NativePreflight.ps1') -PackagePath $appx.FullName -OutputDirectory $OutputDirectory}
 Get-FileHash $appx.FullName -Algorithm SHA256|Select-Object Path,Hash|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-hash.json')
