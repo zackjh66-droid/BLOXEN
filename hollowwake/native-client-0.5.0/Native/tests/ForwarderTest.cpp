@@ -1,0 +1,81 @@
+#include <windows.h>
+#pragma warning(disable:4996)
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <cstring>
+#include <stdexcept>
+#include <thread>
+#include "../Dependencies.h"
+#include "../ModuleLoader.h"
+#include "../ForwardOnly.h"
+#include "../KernelClock.h"
+#include "../SystemInfo.h"
+#include "../LegacyCrt.h"
+#include "../LegacyStartup.h"
+#include "../KernelStartup.h"
+static unsigned metadataCount=0;
+static void Log(const std::string& line){if(line.find("MODULE ")==0)SetLastError(ERROR_SUCCESS);std::cout<<line<<std::endl;if(line.find("DEP forward-only metadata verified")!=std::string::npos)++metadataCount;}
+static void* Builtin(const char* dll,const char* name){if(auto p=ResolveModuleLoaderImport(dll,name))return p;if(auto crt=Hollowwake::ResolveLegacyStartupImport(dll,name))return crt;if(auto kernel=Hollowwake::ResolveKernelStartupImport(dll,name))return kernel;if(auto system=Hollowwake::ResolveSystemInfoImport(dll,name))return system;if(auto memory=Hollowwake::ResolveLegacyCrtImport(dll,name))return memory;if(auto clock=Hollowwake::ResolveClockImport(dll,name))return clock;return nullptr;}
+static void* Query(const char* dll,const char* name){if(auto p=Builtin(dll,name))return p;return QueryDependencyExport(dll,name);}
+static void* Resolve(const char* dll,const char* name){if(auto p=Builtin(dll,name))return p;return ResolveDependency(dll,name);}
+static void Check(bool condition,const char* message){if(!condition)throw std::runtime_error(message);}
+int wmain(int argc,wchar_t** argv){try{
+ Check(argc==2||argc==3,"Fixture directory required");
+ if(argc==3){Hollowwake::LegacyFatalLogger()=[](const char* text){std::cout<<text<<std::endl;};Hollowwake::LegacyNew(static_cast<size_t>(-1));return 99;}
+ // Occupy the common fixed ImageBase so neither export-only fixture can land
+ // there. The exact production mapper must resolve both at different addresses.
+ auto reservation=VirtualAlloc(reinterpret_cast<void*>(0x180000000ULL),65536,MEM_RESERVE,PAGE_NOACCESS);
+ MEMORY_BASIC_INFORMATION region{};VirtualQuery(reinterpret_cast<void*>(0x180000000ULL),&region,sizeof(region));Check(region.State!=MEM_FREE,"Preferred-base collision was not established");
+ ConfigureDependencies(argv[1],Resolve,Log,Query);ConfigureGuestModules(Query,Log);
+ wchar_t mainPath[4096];auto main=GetModuleHandleW(nullptr);GetModuleFileNameW(main,mainPath,4096);auto dos=reinterpret_cast<IMAGE_DOS_HEADER*>(main);auto nt=reinterpret_cast<IMAGE_NT_HEADERS64*>(reinterpret_cast<BYTE*>(main)+dos->e_lfanew);RegisterGuestMainImage(main,nt->OptionalHeader.SizeOfImage,mainPath);
+ auto first=ResolveDependency("FixtureFirst.dll","Answer");auto second=ResolveDependency("FixtureSecond.dll","#1");
+ Check(first&&second&&first==second,"Forwarded name/ordinal did not resolve to the same real target");
+ Check(DependencyFailures()==0&&metadataCount==2,"Unexpected production-loader blocker or metadata count");
+ auto clock=ResolveDependency("FixtureClock.dll","ReadTick");auto attach=ResolveDependency("FixtureClock.dll","ReadAttachTick");auto wasAttached=ResolveDependency("FixtureClock.dll","WasAttached");
+ Check(clock&&attach&&wasAttached,"Clock DLL exports were not resolved");
+ Check(!reinterpret_cast<BOOL(WINAPI*)()>(wasAttached)(),"Clock fixture initialized before the explicit graph initialization");
+ auto memoryCheck=ResolveDependency("FixtureMemory.dll","RunMemoryChecks");auto memoryAttached=ResolveDependency("FixtureMemory.dll","MemoryWasAttached");
+ Check(memoryCheck&&memoryAttached&&DependencyFailures()==0,"Legacy memory fixture imports were not resolved");
+ Check(!reinterpret_cast<BOOL(WINAPI*)()>(memoryAttached)(),"Memory fixture initialized before explicit process attach");
+ auto startupCheck=ResolveDependency("FixtureStartup.dll","StartupChecks");auto startupAttached=ResolveDependency("FixtureStartup.dll","StartupAttached");
+ Check(startupCheck&&startupAttached&&!reinterpret_cast<BOOL(WINAPI*)()>(startupAttached)(),"Startup fixture imports or pre-initialization state failed");
+ auto systemCheck=ResolveDependency("FixtureClock.dll","ReadSystemInformation");Check(systemCheck,"System information export missing");
+ auto moduleCheck=ResolveDependency("FixtureModules.dll","ModuleChecks");Check(moduleCheck&&DependencyFailures()==0,"Module fixture imports missing");
+ Check(InitializeDependencies(),"Original fixture initialization graph failed");
+ auto moduleResult=reinterpret_cast<int(WINAPI*)()>(moduleCheck)();Check(moduleResult==0,("Module lookup fixture failed: "+std::to_string(moduleResult)).c_str());std::cout<<"MODULE LoadLibraryExW/GetProcAddress FLS+destructor/synch/real export+ordinal/forwarding/module identity+filename/refcounts/missing optional NULL/path+flag rejection PASS"<<std::endl;
+ Check(reinterpret_cast<BOOL(WINAPI*)()>(startupAttached)(),"Startup constructor chain did not run");
+ Check(reinterpret_cast<int(WINAPI*)()>(startupCheck)()==0,"Combined C++/onexit/kernel/stack-probe/SEH startup fixture failed");
+ auto add=reinterpret_cast<void(WINAPI*)()>(ResolveDependency("FixtureStartup.dll","AddUnderLock"));auto count=reinterpret_cast<unsigned(WINAPI*)()>(ResolveDependency("FixtureStartup.dll","ProtectedCount"));Check(add&&count,"Lock fixture exports missing");
+ std::vector<std::thread> threads;for(unsigned i=0;i<8;++i)threads.emplace_back([&](){for(unsigned j=0;j<1000;++j)add();});for(auto& thread:threads)thread.join();Check(count()==8000,"CRT lock did not protect concurrent state");
+ Hollowwake::RunLegacyProcessExitCallbacks();auto processOrder=reinterpret_cast<unsigned(WINAPI*)()>(ResolveDependency("FixtureStartup.dll","ProcessExitOrder"));Check(processOrder&&processOrder()==21,"Process onexit callbacks were not LIFO");Hollowwake::RunLegacyProcessExitCallbacks();Check(processOrder()==21,"Process callbacks executed twice");
+ std::cout<<"STARTUP constructors/scalar+array new/delete/64 onexit callbacks/recursive locks+8000 concurrent updates/critical sections/private heap/TLS/sleep/24KB stack probe/real SEH PASS"<<std::endl;
+ Check(reinterpret_cast<BOOL(WINAPI*)()>(memoryAttached)(),"Mapped allocator fixture process attach did not run");
+ std::cout<<"INITIALIZERS mapped DLL_PROCESS_ATTACH invoked msvcrt!_initterm/_initterm_e; null skipping, ordered callbacks, empty tables, first-error short circuit PASS"<<std::endl;
+ auto memoryResult=reinterpret_cast<int(WINAPI*)()>(memoryCheck)();Check(memoryResult==0,("Mapped allocator checks failed: "+std::to_string(memoryResult)).c_str());
+ Check(Hollowwake::LegacyAllocatorContract(),"Production allocation-family contract failed");
+ Check(!Hollowwake::ResolveLegacyCrtImport("ucrtbase.dll","malloc")&&!Hollowwake::ResolveLegacyCrtImport("msvcrt.dll","_iob"),"Allocator bridge must not alias unrelated CRT or legacy FILE layouts");
+ std::cout<<"ALLOCATOR mapped DLL_PROCESS_ATTACH called msvcrt!malloc; allocation/free/grow/zero/overlap/duplication/overflow/errno/preserved-buffer checks PASS"<<std::endl;
+
+ Check(reinterpret_cast<BOOL(WINAPI*)()>(wasAttached)(),"Mapped DLL_PROCESS_ATTACH did not run");
+ SYSTEM_INFO mappedInfo{},nativeInfo{};GetSystemInfo(&nativeInfo);
+ Check(reinterpret_cast<BOOL(WINAPI*)(LPSYSTEM_INFO)>(systemCheck)(&mappedInfo),"Mapped GetSystemInfo attach/canary checks failed");
+ Check(mappedInfo.wProcessorArchitecture==nativeInfo.wProcessorArchitecture&&mappedInfo.dwPageSize==nativeInfo.dwPageSize&&mappedInfo.lpMinimumApplicationAddress==nativeInfo.lpMinimumApplicationAddress&&mappedInfo.lpMaximumApplicationAddress==nativeInfo.lpMaximumApplicationAddress&&mappedInfo.dwActiveProcessorMask==nativeInfo.dwActiveProcessorMask&&mappedInfo.dwNumberOfProcessors==nativeInfo.dwNumberOfProcessors&&mappedInfo.dwAllocationGranularity==nativeInfo.dwAllocationGranularity,"Mapped GetSystemInfo differs from real host query");
+ auto versionAddress=ResolveDependency("FixtureClock.dll","ReadVersion");Check(versionAddress,"Version fixture export missing");
+ auto realVersion=&::GetVersion;
+ Check(reinterpret_cast<DWORD(WINAPI*)()>(versionAddress)()==realVersion(),"Mapped GetVersion differs from actual manifest-dependent OS API");
+ Check(Hollowwake::SystemInfoContract(),"Production SystemInfo contract failed");
+ std::cout<<"SYSTEM_INFO mapped DLL_PROCESS_ATTACH called actual OS GetSystemInfo; struct ABI/canaries/page/address/processor fields matched host PASS"<<std::endl;
+ auto tick=reinterpret_cast<DWORD(WINAPI*)()>(clock);auto attachedTick=reinterpret_cast<DWORD(WINAPI*)()>(attach)();
+ auto begin=tick();Sleep(40);auto end=tick();auto elapsed=(DWORD)(end-begin);auto os=Hollowwake::TickCountLow32(GetTickCount64());
+ Check(elapsed>0&&elapsed<5000,"Mapped GetTickCount did not advance with elapsed time");
+ Check((DWORD)(os-end)<5000&&(DWORD)(end-attachedTick)<5000,"Mapped clock did not use real OS boot-relative uptime");
+ Check(Hollowwake::TickCountLow32(0x100000000ULL)==0&&Hollowwake::TickCountLow32(0x100000010ULL)==16&&(DWORD)(Hollowwake::TickCountLow32(0x100000010ULL)-Hollowwake::TickCountLow32(0xfffffff0ULL))==32,"GetTickCount wrap semantics failed");
+ std::cout<<"CLOCK mapped DLL_PROCESS_ATTACH called production GetTickCount; elapsed="<<elapsed<<"ms; boot-relative and 32-bit wrap checks PASS"<<std::endl;
+
+ Check(reinterpret_cast<int(*)()>(first)()==621,"Relocated original fixture target did not execute correctly");
+ auto bad=ResolveDependency("FixtureFixedCode.dll","Answer");Check(!bad&&DependencyFailures()==1,"Non-relocatable executable fixture must still be rejected");
+ std::cout<<"PASS: real production dependency resolver, two colliding non-relocatable forward-only DLLs, name+ordinal forwarding, mapped original target returned621; non-relocatable executable rejected"<<std::endl;
+ if(reservation)VirtualFree(reservation,0,MEM_RELEASE);return 0;
+ }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<std::endl;return 1;}}

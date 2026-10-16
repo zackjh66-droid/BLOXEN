@@ -1,0 +1,31 @@
+name: Hollowwake native client 0.5 test package
+on:
+  push:
+    branches: ['hollowwake/native-system-route']
+    paths: ['hollowwake/native-client-0.5.0/**', '.github/workflows/hollowwake-native-client-050.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build separate native-route package and focused production checks
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hollowwake-native-client-050-x64
+          path: |
+            artifacts/native-client-050/**/*.appx
+            artifacts/native-client-050/**/*.cer
+            artifacts/native-client-050/**/*.json
+            artifacts/native-client-050/**/*.log
+          retention-days: 3

@@ -1,0 +1,1054 @@
+{
+  "source": "https://public-build-archives-bucket.erafn.dev/6.21.zip",
+  "archiveBytes": 12528679454,
+  "files": [
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/chrome_elf.dll",
+      "offset": 417,
+      "compressed": 274145,
+      "bytes": 553872,
+      "method": 8,
+      "sha256": "2e97ad5910f36e02532bb4f8a1e8c39dcaacfdbd643f518a25825a456f86c10a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/d3dcompiler_47.dll",
+      "offset": 1197389,
+      "compressed": 1875963,
+      "bytes": 4479376,
+      "method": 8,
+      "sha256": "dada1fd6832f00d45adfe4ab8c8feca1a50fa8ab57f09816698d8c2bdc8b16cb"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libEGL.dll",
+      "offset": 50417023,
+      "compressed": 49871,
+      "bytes": 98704,
+      "method": 8,
+      "sha256": "fc98abe0ca86dd2950a58e18801a7a6a071d002ab6153194439d2bb17fcd5cfd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libGLESv2.dll",
+      "offset": 50476980,
+      "compressed": 1630023,
+      "bytes": 3928464,
+      "method": 8,
+      "sha256": "34109afeac12394b914373e571d2175768bca7ee1dfe966a168ad97f72ea2acd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+      "offset": 7436515,
+      "compressed": 42980425,
+      "bytes": 98281360,
+      "method": 8,
+      "sha256": "3d20b36b2e64fb695b1268acb646db02e39ba67032d03ded134257eb5398ccdd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/NVIDIA/NVaftermath/Win64/GFSDK_Aftermath_Lib.x64.dll",
+      "offset": 61203263,
+      "compressed": 61872,
+      "bytes": 123792,
+      "method": 8,
+      "sha256": "8d15fb1d19a55b0d7ad9937dd44c89e5b4ab17f7b817fb366126a145f36a4c1f"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/Ogg/Win64/VS2015/libogg_64.dll",
+      "offset": 61265444,
+      "compressed": 17407,
+      "bytes": 55184,
+      "method": 8,
+      "sha256": "769ea5b5b3b5b52cc864281f23190b6c74df93a38500a050e7a1d35874fafb96"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Clothing_x64.dll",
+      "offset": 61675172,
+      "compressed": 509060,
+      "bytes": 1225104,
+      "method": 8,
+      "sha256": "3090771f83b2517030557e24231b140b506551639c852302d62852c8ae2bcd28"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Legacy_x64.dll",
+      "offset": 62184333,
+      "compressed": 734309,
+      "bytes": 3335568,
+      "method": 8,
+      "sha256": "672b511274370fcce8e575852ba96e0241107a7ddedcea58603b20078b8b284f"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/ApexFramework_x64.dll",
+      "offset": 61283180,
+      "compressed": 391889,
+      "bytes": 1049488,
+      "method": 8,
+      "sha256": "797a8ff4579f77e242c00d8e8642550e6b346a47c4e99ea0993645a19f25945a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/NvCloth_x64.dll",
+      "offset": 62918739,
+      "compressed": 126119,
+      "bytes": 271248,
+      "method": 8,
+      "sha256": "ed94627c5771c1f8c48e3a15e3eb9f668cea1fdc4eb90479cfd669881df31a5a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PhysX3Common_x64.dll",
+      "offset": 63044960,
+      "compressed": 681811,
+      "bytes": 1602960,
+      "method": 8,
+      "sha256": "743450b45d7a3dce5ec06f01b1417260f17daedc3cc5dc0ad5414c61fcd3066c"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PhysX3Cooking_x64.dll",
+      "offset": 63726874,
+      "compressed": 123304,
+      "bytes": 250768,
+      "method": 8,
+      "sha256": "972c0dc67172a220035998b6b365f2abfb867c71c015bee8b02cd424798fcccd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PhysX3_x64.dll",
+      "offset": 63850274,
+      "compressed": 869694,
+      "bytes": 2111888,
+      "method": 8,
+      "sha256": "b859aefeb55d3f67a598517fee04785321749c69602451613d71ade6f93588d4"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PxFoundation_x64.dll",
+      "offset": 64720070,
+      "compressed": 27651,
+      "bytes": 60816,
+      "method": 8,
+      "sha256": "ff374fcfef9b516bf6aa857449bb959c80265bb496626bdbf32f36dd34b840cd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/PxPvdSDK_x64.dll",
+      "offset": 64747819,
+      "compressed": 75631,
+      "bytes": 194960,
+      "method": 8,
+      "sha256": "5b3f42258f96fa8232cbc5cbfc4c1a9484a33ee922eff50ed504b4fd337b6ca8"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/Vorbis/Win64/VS2015/libvorbis_64.dll",
+      "offset": 64847040,
+      "compressed": 242201,
+      "bytes": 1720208,
+      "method": 8,
+      "sha256": "a101b3d304c06fe2cd935c7c1054c2c709f4641b384bd2181f8f9d2631ccc2dd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/Vorbis/Win64/VS2015/libvorbisfile_64.dll",
+      "offset": 64823778,
+      "compressed": 23164,
+      "bytes": 43920,
+      "method": 8,
+      "sha256": "f202d1440024fc03b7499b515c14a9c77a7d273e178cfc58c810814ec43e6e9c"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll",
+      "offset": 65089575,
+      "compressed": 18391,
+      "bytes": 34704,
+      "method": 8,
+      "sha256": "0dd884216693ae21a68800902c44fde3a03cf9b6452cb4cf5cb407ebab7394e1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/X3DAudio1_7.dll",
+      "offset": 74531746,
+      "compressed": 13671,
+      "bytes": 24976,
+      "method": 8,
+      "sha256": "7aaaabc0d333415bb37423a9dd43e204bff6294f651795765ddd177ca58062f3"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/XAPOFX1_5.dll",
+      "offset": 74545487,
+      "compressed": 38950,
+      "bytes": 77712,
+      "method": 8,
+      "sha256": "671713363d4bf56e1f8e5d3368a58dc143705aa4f6bfe0c29a49a3219f69ee53"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/XAudio2_7.dll",
+      "offset": 74584507,
+      "compressed": 241808,
+      "bytes": 518544,
+      "method": 8,
+      "sha256": "7d7e275b789d857402c444820be215fdd15c773159422f338d38a6ca4193d21d"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-console-l1-1-0.dll",
+      "offset": 65108114,
+      "compressed": 5260,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "c60911b2ebc837cd03fd4f8e30a4005203d1ce894ce5ab45fbbabd53be2b13ed"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-datetime-l1-1-0.dll",
+      "offset": 65113466,
+      "compressed": 5097,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "f95f2c74d2d7eb44f9487cfd3e1c2901d245029458350ced86782f213fddd215"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-debug-l1-1-0.dll",
+      "offset": 65118652,
+      "compressed": 5108,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "86d63bb65e1f3b5467ea26ad9c48aeb364a4ff01402300fe07a8d0555b740a90"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-errorhandling-l1-1-0.dll",
+      "offset": 65123857,
+      "compressed": 5157,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "70204a7e0fe8060cfb75edabf99b74adcdd5330089aa06bbc7fb741c887c8270"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-file-l1-1-0.dll",
+      "offset": 65129102,
+      "compressed": 6210,
+      "bytes": 12688,
+      "method": 8,
+      "sha256": "d355ed36192d17a970d0992f4ff2871aca9368ee397634047977cbf68eab8be0"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-file-l1-2-0.dll",
+      "offset": 65135400,
+      "compressed": 5127,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "b7e4b293d16422fe37f5e9cc349b5f6dbbb1636206c85438c603d56ccb9c6973"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-file-l2-1-0.dll",
+      "offset": 65140615,
+      "compressed": 5246,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "8967b08e7611d77f4a0b9223558f7709b300b7c00d0f3f264c7d1acfdfd5a20a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-handle-l1-1-0.dll",
+      "offset": 65145951,
+      "compressed": 5130,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "f2a8d001815a57020f48cac4cc150a7d80bb5f73093b806f758d509cbdf08a9b"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-heap-l1-1-0.dll",
+      "offset": 65151169,
+      "compressed": 5290,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "870393629f891fc1c46e497ab3f3e669ae5a7f326de9a5e1cd931803b2182abb"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-interlocked-l1-1-0.dll",
+      "offset": 65156554,
+      "compressed": 5135,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "470c03b44db12793aeac7a35cf1e8abf68d86a20b2eccf689ab3d9e1176451d1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-libraryloader-l1-1-0.dll",
+      "offset": 65161786,
+      "compressed": 5351,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "31dae4ab3a774ff228ff6a9d61fcb8de2406a727b41b68f762aa936917752674"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-localization-l1-2-0.dll",
+      "offset": 65167233,
+      "compressed": 5987,
+      "bytes": 11664,
+      "method": 8,
+      "sha256": "4a22b7106c2a63b0f9ac9727ba7dff0dacb0bcb800f4f45df8bfbe400620d1c1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-memory-l1-1-0.dll",
+      "offset": 65173310,
+      "compressed": 5292,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "3243dffb7ca3c87fe64ad1c798aa3ba28b3be1707d1680dfbb20cd8c7f4c1243"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-namedpipe-l1-1-0.dll",
+      "offset": 65178695,
+      "compressed": 5226,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "694072afc1409a3b4b5487d59cfe1c47f746605c29873a950b439a3508aea9fe"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-processenvironment-l1-1-0.dll",
+      "offset": 65184023,
+      "compressed": 5373,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "d3af07aebfbd4503ec50c73d12a3601151600f973aa313d389b7b1b676777a7e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-processthreads-l1-1-0.dll",
+      "offset": 65189494,
+      "compressed": 5882,
+      "bytes": 11152,
+      "method": 8,
+      "sha256": "aefe55cc702537cd29424afd4eb15d98f8f3927119b4114803032c163346c4da"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-processthreads-l1-1-1.dll",
+      "offset": 65195474,
+      "compressed": 5326,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "9217764f58addbf05290406dc36681bbb172d9a11ce92ff0bf72a40005f24a28"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-profile-l1-1-0.dll",
+      "offset": 65200891,
+      "compressed": 5074,
+      "bytes": 8592,
+      "method": 8,
+      "sha256": "a44d81edbbd7a4b932b5c2693efc1e27128dae574ee139a36a6c4b065553625e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-rtlsupport-l1-1-0.dll",
+      "offset": 65206059,
+      "compressed": 5304,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "7ab92b55e9b21239cfa6817ba3430fa63b92090681c95b64c934fa2d66908411"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-string-l1-1-0.dll",
+      "offset": 65211453,
+      "compressed": 5178,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "98b53079047831494bab0f8e1b51730eb0d54e3bc2152af388d07348461a9785"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-synch-l1-1-0.dll",
+      "offset": 65216720,
+      "compressed": 5717,
+      "bytes": 11152,
+      "method": 8,
+      "sha256": "5003912a9eb0c918be823fa4e192ec14e6f0d655be574dba13c2912f1f7b448b"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-synch-l1-2-0.dll",
+      "offset": 65222526,
+      "compressed": 5350,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "b730272701760bc65363fcbaa541b65219e7b4f7ee704bb3b1b2535d4768aa49"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-sysinfo-l1-1-0.dll",
+      "offset": 65227967,
+      "compressed": 5419,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "af65f6b9aadc4ddda277ab317265a63c3eb77d499e7fc897dd6b4a6a58a77180"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-timezone-l1-1-0.dll",
+      "offset": 65233478,
+      "compressed": 5196,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "6de15947188dcc3366b424ece0d08339bb10ebfc59ac803638d19f2feb910fb0"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-util-l1-1-0.dll",
+      "offset": 65238762,
+      "compressed": 5112,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "d6e743411fdc726ba400debab9437694f0bf364fbe5ff6e67c917724bf01080a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-conio-l1-1-0.dll",
+      "offset": 65243962,
+      "compressed": 5446,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "f73a7180acd614c206ea0cfa91d2139d7ebafa5ec4803849250385798c6cd903"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-convert-l1-1-0.dll",
+      "offset": 65249498,
+      "compressed": 6501,
+      "bytes": 13200,
+      "method": 8,
+      "sha256": "493aff55d297bffe44ed4295f25f3a464635cb0fe2b745ce5e2ec566090f5775"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-environment-l1-1-0.dll",
+      "offset": 65256093,
+      "compressed": 5273,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "13890d1a2a81c9a17635bd46442f5ebc71b5faea7bf56fc24ea668dccea2d334"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-filesystem-l1-1-0.dll",
+      "offset": 65261459,
+      "compressed": 5901,
+      "bytes": 11152,
+      "method": 8,
+      "sha256": "710b86b395bc0091a8103f9d44dea25fdde3d7650671b027e2c1dffb24fe4b7a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-heap-l1-1-0.dll",
+      "offset": 65267447,
+      "compressed": 5420,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "4328d815ebfa84b4f77afcd9cfd34ef69aca2c1c72a7a77d8646222ab430097d"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-locale-l1-1-0.dll",
+      "offset": 65272956,
+      "compressed": 5377,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "73e7d0dd3650ff949655f79c88c0ecc9f809526f0be0051f60178764520ca8b4"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-math-l1-1-0.dll",
+      "offset": 65278420,
+      "compressed": 8184,
+      "bytes": 18320,
+      "method": 8,
+      "sha256": "c820891b686a9a07d579b40d563b62671ba1f316f498cf7a06dc772664f645e3"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-multibyte-l1-1-0.dll",
+      "offset": 65286696,
+      "compressed": 7451,
+      "bytes": 17296,
+      "method": 8,
+      "sha256": "2a67302a9d633d123ea39c229daa7d37145de698a8ba922f60ddc8ef3427f55f"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-private-l1-1-0.dll",
+      "offset": 65294237,
+      "compressed": 19598,
+      "bytes": 61328,
+      "method": 8,
+      "sha256": "0a25f26d18d403221217a9e246c3c140df29676636c1cb9740a2d850570dae70"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-process-l1-1-0.dll",
+      "offset": 65313925,
+      "compressed": 5470,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "28c0f9fd6e56002f1c41088684fd70413c54c80f4ccfd1a74dd429789327e2d1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-runtime-l1-1-0.dll",
+      "offset": 65319485,
+      "compressed": 6673,
+      "bytes": 13712,
+      "method": 8,
+      "sha256": "7998bb51e444c46372c8cf5208720d33622be1dd9d062d495643d2507e67794a"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-stdio-l1-1-0.dll",
+      "offset": 65326246,
+      "compressed": 7064,
+      "bytes": 15248,
+      "method": 8,
+      "sha256": "0c8cf121726f87cb5c78a50cf1afc5d7dc93d1ddbd3dbf0354de8e60da1e44a3"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-string-l1-1-0.dll",
+      "offset": 65333399,
+      "compressed": 7213,
+      "bytes": 15248,
+      "method": 8,
+      "sha256": "c6b2308b62c9106c6dc2a9464a53ccc5eb8095e81e8314cbdd0c5b40d9bcd664"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-time-l1-1-0.dll",
+      "offset": 65340699,
+      "compressed": 5982,
+      "bytes": 11664,
+      "method": 8,
+      "sha256": "f5c148b674dc4bd0bd9fc2eb10822d4701e3ab3bf0d590897adfc310bcf223b4"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-utility-l1-1-0.dll",
+      "offset": 65346771,
+      "compressed": 5413,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "2e64c763b83fe54a0a08c364d3622b268d12232948613b978f4b24384b05db26"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/concrt140.dll",
+      "offset": 65352254,
+      "compressed": 144575,
+      "bytes": 333200,
+      "method": 8,
+      "sha256": "aa2a1d9d663dfde187c65a5afb4f5fd1da1adde8a76c1866afc061381130033c"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/msvcp140.dll",
+      "offset": 72455789,
+      "compressed": 201474,
+      "bytes": 666000,
+      "method": 8,
+      "sha256": "e0dae3cf4936f2d77633c62cd67c281f6ffe144d5ae966ad2d94661d8f3b2967"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/msvcp140_1.dll",
+      "offset": 72657334,
+      "compressed": 10883,
+      "bytes": 21904,
+      "method": 8,
+      "sha256": "3ece0891a3919d894f340e49a97740d3660a8ef0a69a87fb3ce05719eb9785dd"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/ucrtbase.dll",
+      "offset": 72668286,
+      "compressed": 441843,
+      "bytes": 973200,
+      "method": 8,
+      "sha256": "5573cc7f33b8867381e08391a9975f206339d893378b18ebdf2a95de4a3905d1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/vccorlib140.dll",
+      "offset": 74377912,
+      "compressed": 110341,
+      "bytes": 376720,
+      "method": 8,
+      "sha256": "34390d40ef02314ce280f754db3e3e3652d665c4b892d089847e3f0939476884"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/vcruntime140.dll",
+      "offset": 74488326,
+      "compressed": 43348,
+      "bytes": 79248,
+      "method": 8,
+      "sha256": "48ecc6ae4dde87e8b8e89de7972c4bd9aebb845b6864cebf86afdd0e56822f20"
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/xinput1_3.dll",
+      "offset": 74826385,
+      "compressed": 48536,
+      "bytes": 103824,
+      "method": 8,
+      "sha256": "9af0b7bdfc5b8c0101f7de6f21d9f8e5068471105e65ee2566613068857bcb90"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Discord/Win64/discord-rpc.dll",
+      "offset": 85401265,
+      "compressed": 192182,
+      "bytes": 394128,
+      "method": 8,
+      "sha256": "6aec05dfe8c70108ca334cc386e1adda2005bf1ebf5b8a8ab32461995fb95508"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Nvidia/Win64/GfeSDK.dll",
+      "offset": 85593694,
+      "compressed": 1258306,
+      "bytes": 4230032,
+      "method": 8,
+      "sha256": "a730d34721a95eb06cb62ac0281a0cfdf2f3a82da0a37646fab1ac8589cafc91"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Oodle/Win64/oo2core_5_win64.dll",
+      "offset": 86852253,
+      "compressed": 427056,
+      "bytes": 941456,
+      "method": 8,
+      "sha256": "2aed482b29203c0df24823f50fddb6f91a02b93affe74b16d825fffad4607c88"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/SpeechGraphics/Win64/SG_Com.dll",
+      "offset": 87279580,
+      "compressed": 1280249,
+      "bytes": 3120016,
+      "method": 8,
+      "sha256": "361fe409b1be6f71fbeb61c9a4b63882e73ce4d2be1c6dcc49867d897d89b890"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/ortp_x64.dll",
+      "offset": 88560075,
+      "compressed": 117620,
+      "bytes": 226192,
+      "method": 8,
+      "sha256": "12b02c0cf7dc121e6f8917952305bad9b0b9c4b249f19a19cee192a2f1ce555e"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxplatform.dll",
+      "offset": 88677792,
+      "compressed": 94786,
+      "bytes": 179600,
+      "method": 8,
+      "sha256": "f15f0fb0a7d6e5bfd0d060cb2547fee9fcbb3f8cb47d0df5a44cc1797c264e5a"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll",
+      "offset": 88772674,
+      "compressed": 2052149,
+      "bytes": 5003664,
+      "method": 8,
+      "sha256": "b824684aca2a9eb4d0c8dfaa23e8c0065479af0b24bc3ef0be137d2a625664eb"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/BEClient_x64.dll",
+      "offset": 91069440,
+      "compressed": 3928255,
+      "bytes": 4276232,
+      "method": 8,
+      "sha256": "77b2247adff75764afa480cc08f15cce6f78abf2d33088f4bbb56e6af1d75e23"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/EasyAntiCheat_x64.dll",
+      "offset": 103384987,
+      "compressed": 395961,
+      "bytes": 792704,
+      "method": 8,
+      "sha256": "c2ce9e944daeb20c444f130db24a1d818ede23a91b9e157645558b4423c097fe"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe",
+      "offset": 104515655,
+      "compressed": 70588507,
+      "bytes": 100729744,
+      "method": 8,
+      "sha256": "9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/X3DAudio1_7.dll",
+      "offset": 177292725,
+      "compressed": 13665,
+      "bytes": 24976,
+      "method": 8,
+      "sha256": "3e7c6558479fd3da16a7692d31f25985a3f5a814261197d1ad4f1d568f6117a6"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/XAPOFX1_5.dll",
+      "offset": 177306466,
+      "compressed": 38948,
+      "bytes": 77712,
+      "method": 8,
+      "sha256": "94c443f55e64db5fae85344f8a7d3e785dc49f825e489ba6157568313fe7aae1"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/XAudio2_7.dll",
+      "offset": 177345490,
+      "compressed": 241805,
+      "bytes": 518544,
+      "method": 8,
+      "sha256": "d53c7331f062ae1d6a7d4c951ab3d047270624f62bcecff92682347f728625ca"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-console-l1-1-0.dll",
+      "offset": 90824983,
+      "compressed": 5262,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "87c1b4b2dec4692097f14f5b10f7e5c15804ed3eee49462e7eec9e71b2a545c6"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-datetime-l1-1-0.dll",
+      "offset": 90830343,
+      "compressed": 5099,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "bc3ab689bb0118e476cd2a55d88f24db9161824e4edb00cb4ca822dcf560e83a"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-debug-l1-1-0.dll",
+      "offset": 90835537,
+      "compressed": 5105,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "894661162e954701f1b5b9f08aeca8620abeea0ff139a736fad298e81bd16e75"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-errorhandling-l1-1-0.dll",
+      "offset": 90840745,
+      "compressed": 5155,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "bb3e817e4a0f6a76df5bede8ba9711ac036be0ea14c8175a6243dd428ad7e621"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-file-l1-1-0.dll",
+      "offset": 90845994,
+      "compressed": 6209,
+      "bytes": 12688,
+      "method": 8,
+      "sha256": "61e5d522cb0d431681b0e7d983b477ae7ce2750dc2e747ace0cc373e0506efd4"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-file-l1-2-0.dll",
+      "offset": 90852297,
+      "compressed": 5126,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "4ce167d03402f8ba70e5ec00dadab5bab0bdf667a759f2859e7e033ef447f2a5"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-file-l2-1-0.dll",
+      "offset": 90857517,
+      "compressed": 5243,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "42d568e3c61e09f4ff7f8e02376f54d7b465b9fc1ee3645a0f121a33931978fd"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-handle-l1-1-0.dll",
+      "offset": 90862856,
+      "compressed": 5124,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "5a6cb0401efc2701f916f600cb25b35e17af7fca7b1f2c35134920e89ab7eb10"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-heap-l1-1-0.dll",
+      "offset": 90868074,
+      "compressed": 5292,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "8021b4d59808f39881875ac246f203d41b057d8cbd8c55f38e971e014f21dff7"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-interlocked-l1-1-0.dll",
+      "offset": 90873467,
+      "compressed": 5138,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "237d9b4078d79d829c73fcf0eb93a77efb0a37df8808f8aa0a41389b77e18fba"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-libraryloader-l1-1-0.dll",
+      "offset": 90878708,
+      "compressed": 5352,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "fcf9ac9f64704fa40ee0f71ab97328cbc065a90e6c16e23cf26940ad9eab9235"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-localization-l1-2-0.dll",
+      "offset": 90884162,
+      "compressed": 5987,
+      "bytes": 11664,
+      "method": 8,
+      "sha256": "312f34a9ee80228bf94b15d2d167bd6326bbb8e39ebbab59dd53fdc2375680e6"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-memory-l1-1-0.dll",
+      "offset": 90890245,
+      "compressed": 5291,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "f92dac35eab94a90911ca40f16fb17b341e4b9f17b61eae2ca418229605dab42"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-namedpipe-l1-1-0.dll",
+      "offset": 90895635,
+      "compressed": 5226,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "c90b8858defc59dbf086fb1b8e88bac24e3efd69881976032540894ff3a1ce67"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-processenvironment-l1-1-0.dll",
+      "offset": 90900969,
+      "compressed": 5373,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "2d704c36e6772a3a2a3fc91c079016dd3df7e18a1561d524e3f93395b587d7e3"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-processthreads-l1-1-0.dll",
+      "offset": 90906446,
+      "compressed": 5882,
+      "bytes": 11152,
+      "method": 8,
+      "sha256": "140301b8236e7279695e7d2287297ed7231cb58a5a4543c57311826feaa9a9be"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-processthreads-l1-1-1.dll",
+      "offset": 90912432,
+      "compressed": 5327,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "8dbfbfb7f95cd28f05b3e2a56a514e2e898bd86906b3efde044789401f686838"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-profile-l1-1-0.dll",
+      "offset": 90917856,
+      "compressed": 5076,
+      "bytes": 8592,
+      "method": 8,
+      "sha256": "178e9574429c361796f61b5818647ce331084c1ca0313138f2275031b7380d28"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-rtlsupport-l1-1-0.dll",
+      "offset": 90923032,
+      "compressed": 5306,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "1578646808e471fe2a77b44226433d09761a1f3b27c2ebcc62f4b5257d5a8604"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-string-l1-1-0.dll",
+      "offset": 90928434,
+      "compressed": 5176,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "64c44f3d74e6902b8b9e636e68e554b737ba487d98b154d678f172bf8a4c803a"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-synch-l1-1-0.dll",
+      "offset": 90933705,
+      "compressed": 5717,
+      "bytes": 11152,
+      "method": 8,
+      "sha256": "91efd0aa07cd20297d3d8a8e6a1650c2977f3c185b32c5e5a625c5eddd5be2fa"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-synch-l1-2-0.dll",
+      "offset": 90939517,
+      "compressed": 5351,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "38b617708c1478d11d4aa0cb054a78b721c17199c9024b3d1db9d4b61b7e90b7"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-sysinfo-l1-1-0.dll",
+      "offset": 90944965,
+      "compressed": 5424,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "412233f43d966b9a3a7a91b7e2c1a98704ab0d5c58d838dadc0f44b908425e9a"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-timezone-l1-1-0.dll",
+      "offset": 90950487,
+      "compressed": 5197,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "cc5c356f38d0b1db8b840879f7b808339e7bbaa389b66e7c744539710d673c9e"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-util-l1-1-0.dll",
+      "offset": 90955778,
+      "compressed": 5112,
+      "bytes": 9104,
+      "method": 8,
+      "sha256": "f167104c881e5bb576dbd527970c5fe420781a5931961f6874a60205acd70d62"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-conio-l1-1-0.dll",
+      "offset": 90960984,
+      "compressed": 5441,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "218d1e22cfea8f2ab6a1c0b8d122ad90d2cd158b59cf5d96c9bdc09bcfb2a90d"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-convert-l1-1-0.dll",
+      "offset": 90966521,
+      "compressed": 6499,
+      "bytes": 13200,
+      "method": 8,
+      "sha256": "02f6ab74054cad552968a902321e8921f504fe6ad71404ffb0cbf8a59b5ba646"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-environment-l1-1-0.dll",
+      "offset": 90973120,
+      "compressed": 5276,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "97fbc202f7e0beb5390bf320e69f580f3defea81c1414025abb30946be72273f"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-filesystem-l1-1-0.dll",
+      "offset": 90978495,
+      "compressed": 5900,
+      "bytes": 11152,
+      "method": 8,
+      "sha256": "763c1ea5f2745f86bfe8a129673a93373f90ca09bc7a01011e3f9a9ecaf0be34"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-heap-l1-1-0.dll",
+      "offset": 90984488,
+      "compressed": 5420,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "2a6d31664035eb5d9dcbc04b2927e9605547358e8ff5c30203e8988162c5654e"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-locale-l1-1-0.dll",
+      "offset": 90990003,
+      "compressed": 5375,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "fde5497b12a5c2be48ba0389941848d71f70afb365b2a7de49bc6e65fffecd80"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-math-l1-1-0.dll",
+      "offset": 90995471,
+      "compressed": 8182,
+      "bytes": 18320,
+      "method": 8,
+      "sha256": "2486670e368c5d55f4a8a4ef06d4a5d1e39d40701294d66d2dbab5680a08f5fd"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-multibyte-l1-1-0.dll",
+      "offset": 91003751,
+      "compressed": 7452,
+      "bytes": 17296,
+      "method": 8,
+      "sha256": "8f829a86e23502c5829da408559edadb80f19b5c24bda3837b497b2c1558c841"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-private-l1-1-0.dll",
+      "offset": 91011299,
+      "compressed": 19599,
+      "bytes": 61328,
+      "method": 8,
+      "sha256": "e918b5b739b8beb6cb5c9a55f14d5c78849604b6022d78459a2edde6dd48f7ec"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-process-l1-1-0.dll",
+      "offset": 91030994,
+      "compressed": 5473,
+      "bytes": 10128,
+      "method": 8,
+      "sha256": "dc1a02726d88428ab2cff27ac1bad82e066aa18bd85099c680bf8faab3a97b76"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-runtime-l1-1-0.dll",
+      "offset": 91036563,
+      "compressed": 6673,
+      "bytes": 13712,
+      "method": 8,
+      "sha256": "d437dce4b70bc0108559b4ccba1a5a30beac7ad376a386c93f72ae20d5120b31"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-stdio-l1-1-0.dll",
+      "offset": 91043330,
+      "compressed": 7063,
+      "bytes": 15248,
+      "method": 8,
+      "sha256": "9dfd8dddfa44e2dbb4a757ebfe6719baf824236473d3359a5cd89e9520f3ebd5"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-string-l1-1-0.dll",
+      "offset": 91050488,
+      "compressed": 7208,
+      "bytes": 15248,
+      "method": 8,
+      "sha256": "49422d129dfcfae59444d75b8eb68537a7a1db04980358837a713c1d3535ea82"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-time-l1-1-0.dll",
+      "offset": 91057789,
+      "compressed": 5982,
+      "bytes": 11664,
+      "method": 8,
+      "sha256": "1890c73c91accc2cd398eca03a35f4d7597780e00a6be2e21075f98436c39d9d"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-utility-l1-1-0.dll",
+      "offset": 91063867,
+      "compressed": 5413,
+      "bytes": 9616,
+      "method": 8,
+      "sha256": "4fa6fdc298f532930c96f6a03088ce5ba2058a388d952611a1290df5ade79c8d"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/concrt140.dll",
+      "offset": 102022897,
+      "compressed": 144573,
+      "bytes": 333200,
+      "method": 8,
+      "sha256": "c7fe56cac97f95cd02f1abe841f2f127e7795adcdf6991301feb2288fa80a44c"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/dbghelp.dll",
+      "offset": 102167544,
+      "compressed": 518798,
+      "bytes": 1370000,
+      "method": 8,
+      "sha256": "6482c46d256dbe8ba3b716d895befb20b97b1039183485d192eaeb490aab4148"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/msvcp140.dll",
+      "offset": 176484382,
+      "compressed": 201475,
+      "bytes": 666000,
+      "method": 8,
+      "sha256": "2c9f1e878134e042abea02d91c9266ec49b88bc226554e757cd203056bf1eb3e"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/msvcp140_1.dll",
+      "offset": 176685934,
+      "compressed": 10880,
+      "bytes": 21904,
+      "method": 8,
+      "sha256": "2de26462dc599b3843fce177f1f39787d32c5f67b10324c048ab2f8c7d2977ba"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/ucrtbase.dll",
+      "offset": 176696954,
+      "compressed": 441848,
+      "bytes": 973200,
+      "method": 8,
+      "sha256": "65a3553daf517fbe6c4b7957fb341ad950f9563df916e7c1aa643167bbb18a5c"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/vccorlib140.dll",
+      "offset": 177138880,
+      "compressed": 110340,
+      "bytes": 376720,
+      "method": 8,
+      "sha256": "602bafeb33fded92190d08977d66fd0e8bfcc3c25457fd9eac50f63a14ce639b"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/vcruntime140.dll",
+      "offset": 177249299,
+      "compressed": 43348,
+      "bytes": 79248,
+      "method": 8,
+      "sha256": "d0476fb05a0c62ec4f5597c64fb4a1ad40f10ce0af874b0abf98001febbe94ec"
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/xinput1_3.dll",
+      "offset": 177587371,
+      "compressed": 48536,
+      "bytes": 103824,
+      "method": 8,
+      "sha256": "624052088c744387e65ab1c5a9c9d6fdb27736934fd80f65b5c4bb3bec1160c3"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Splash/Splash.bmp",
+      "offset": 12520937136,
+      "compressed": 844258,
+      "bytes": 1417016,
+      "method": 8,
+      "sha256": "1a304c792cecf66d5e1b9705f4a8752bf953442d86a6598cf9d3850f1cfb6731"
+    }
+  ]
+}

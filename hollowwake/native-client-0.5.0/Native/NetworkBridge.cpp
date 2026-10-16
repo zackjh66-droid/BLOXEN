@@ -1,0 +1,51 @@
+// Original native Winsock bridge. Uses real OS sockets and errors, never an
+// emulated HTTP login. Endpoint redirection/TLS host binding is a separate gap.
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include "NetworkBridge.h"
+#include "../../runtime-native-route/NativeSystem.h"
+#include <mutex>
+#include <string>
+#include <vector>
+#include <cstring>
+#include <algorithm>
+namespace {
+struct Endpoint{sockaddr_storage address;int length;ULONGLONG expiry;};
+std::mutex gate;std::string hostname;unsigned short allowedPort=443;std::vector<Endpoint> permitted;
+bool Equal(const sockaddr* a,int size,const Endpoint& item){if(size!=item.length||!a||a->sa_family!=item.address.ss_family)return false;
+ if(a->sa_family==AF_INET){auto x=(const sockaddr_in*)a,y=(const sockaddr_in*)&item.address;return x->sin_port==y->sin_port&&!memcmp(&x->sin_addr,&y->sin_addr,sizeof(IN_ADDR));}
+ if(a->sa_family==AF_INET6){auto x=(const sockaddr_in6*)a,y=(const sockaddr_in6*)&item.address;return x->sin6_port==y->sin6_port&&x->sin6_scope_id==y->sin6_scope_id&&!memcmp(&x->sin6_addr,&y->sin6_addr,sizeof(IN6_ADDR));}return false;
+}
+bool Allowed(const sockaddr* address,int length){std::lock_guard<std::mutex> lock(gate);auto now=GetTickCount64();for(auto& item:permitted)if(item.expiry>=now&&Equal(address,length,item))return true;return false;}
+int WSAAPI Startup(WORD version,LPWSADATA data){return ::WSAStartup(version,data);}
+int WSAAPI Resolve(PCSTR node,PCSTR service,const ADDRINFOA* hint,PADDRINFOA* output){
+ if(!output)return EAI_FAIL;*output=nullptr;std::string current;unsigned short port;{std::lock_guard<std::mutex> lock(gate);current=hostname;port=allowedPort;}
+ if(current.empty()||!node||_stricmp(node,current.c_str())||!service||(service!=std::to_string(port)&&_stricmp(service,"https"))||(hint&&(hint->ai_flags&AI_PASSIVE||hint->ai_socktype&&hint->ai_socktype!=SOCK_STREAM||hint->ai_protocol&&hint->ai_protocol!=IPPROTO_TCP))){WSASetLastError(WSAEACCES);return EAI_NONAME;}
+ if(!_stricmp(service,"https")&&port!=443){WSASetLastError(WSAEACCES);return EAI_SERVICE;}
+ ADDRINFOA restricted=hint?*hint:ADDRINFOA{};restricted.ai_socktype=SOCK_STREAM;restricted.ai_protocol=IPPROTO_TCP;auto result=::getaddrinfo(node,service,&restricted,output);if(result)return result;
+ std::lock_guard<std::mutex> lock(gate);if(current!=hostname||port!=allowedPort){::freeaddrinfo(*output);*output=nullptr;return EAI_AGAIN;}permitted.clear();
+ for(auto entry=*output;entry;entry=entry->ai_next)if(entry->ai_addr&&(entry->ai_family==AF_INET||entry->ai_family==AF_INET6)&&entry->ai_addrlen<=sizeof(sockaddr_storage)){Endpoint item={};item.length=(int)entry->ai_addrlen;memcpy(&item.address,entry->ai_addr,entry->ai_addrlen);item.expiry=GetTickCount64()+60000;permitted.push_back(item);}return 0;
+}
+SOCKET WSAAPI Socket(int family,int type,int protocol){if((family!=AF_INET&&family!=AF_INET6)||type!=SOCK_STREAM||(protocol&&protocol!=IPPROTO_TCP)){WSASetLastError(WSAEACCES);return INVALID_SOCKET;}return ::socket(family,type,protocol);}
+int WSAAPI Connect(SOCKET socket,const sockaddr* address,int size){if(!Allowed(address,size)){WSASetLastError(WSAEACCES);return SOCKET_ERROR;}return ::connect(socket,address,size);}
+int WSAAPI ConnectExtended(SOCKET socket,const sockaddr* address,int size,LPWSABUF caller,LPWSABUF callee,LPQOS sqos,LPQOS gqos){if(!Allowed(address,size)){WSASetLastError(WSAEACCES);return SOCKET_ERROR;}return ::WSAConnect(socket,address,size,caller,callee,sqos,gqos);}
+int WSAAPI SendTo(SOCKET socket,const char* data,int size,int flags,const sockaddr* address,int length){if(address&&!Allowed(address,length)){WSASetLastError(WSAEACCES);return SOCKET_ERROR;}return ::sendto(socket,data,size,flags,address,length);}
+int WSAAPI Ioctl(SOCKET socket,DWORD code,void* input,DWORD inputSize,void* output,DWORD outputSize,DWORD* returned,LPWSAOVERLAPPED overlapped,LPWSAOVERLAPPED_COMPLETION_ROUTINE callback){
+ // Extension function pointers could bypass Connect's destination restriction.
+ if(code==0xC8000006||code==0xC8000024){if(returned)*returned=0;WSASetLastError(WSAEOPNOTSUPP);return SOCKET_ERROR;}
+ return ::WSAIoctl(socket,code,input,inputSize,output,outputSize,returned,overlapped,callback);
+}
+}
+extern "C" BOOL __cdecl HWConfigureNetwork(const wchar_t* value,unsigned short port){if(!value||!port)return FALSE;std::string name;for(unsigned i=0;i<254;++i){auto c=value[i];if(!c)break;if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'))return FALSE;name+=(char)c;if(i==253)return FALSE;}if(name.empty()||name.front()=='.'||name.back()=='.')return FALSE;std::lock_guard<std::mutex> lock(gate);hostname=name;allowedPort=port;permitted.clear();return TRUE;}
+void* ResolveNetworkImport(const char* dll,const char* name){if(!dll||!name||_stricmp(dll,"ws2_32.dll"))return nullptr;
+#define API(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
+ API("WSAStartup",Startup);API("#115",Startup); // Windows Winsock ordinal115 is WSAStartup.
+ API("getaddrinfo",Resolve);API("socket",Socket);API("#23",Socket);API("connect",Connect);API("#4",Connect);API("WSAConnect",ConnectExtended);API("sendto",SendTo);API("#20",SendTo);API("WSAIoctl",Ioctl);
+#undef API
+ // Unsafe/unimplemented resolver, server, provider-catalog and extended socket
+ // APIs remain absent rather than exposing an unrestricted native pointer.
+ const char* names[]={"closesocket","#3","getpeername","#5","getsockname","#6","getsockopt","#7","htonl","#8","htons","#9","ioctlsocket","#10","inet_addr","#11","ntohl","#14","ntohs","#15","recv","#16","select","#18","send","#19","setsockopt","#21","shutdown","#22","WSACleanup","#116","WSAGetLastError","#111","WSASetLastError","#112","__WSAFDIsSet","#151","freeaddrinfo","inet_pton","WSAAddressToStringW","WSACloseEvent","WSACreateEvent","WSAEnumNetworkEvents","WSAEventSelect","WSAResetEvent","WSASetEvent","WSAStringToAddressW","WSAWaitForMultipleEvents"};
+ bool allowed=false;for(auto item:names)if(!strcmp(name,item))allowed=true;if(!allowed)return nullptr;
+ using Module=HMODULE(WINAPI*)(LPCWSTR);auto module=reinterpret_cast<Module>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));auto handle=module?module(L"ws2_32.dll"):nullptr;if(!handle)return nullptr;
+ if(name[0]=='#'){unsigned ordinal=0;for(auto p=name+1;*p;++p)ordinal=ordinal*10+(*p-'0');return reinterpret_cast<void*>(GetProcAddress(handle,reinterpret_cast<LPCSTR>((ULONG_PTR)ordinal)));}return reinterpret_cast<void*>(GetProcAddress(handle,name));
+}

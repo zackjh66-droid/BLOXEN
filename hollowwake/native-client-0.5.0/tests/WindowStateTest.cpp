@@ -1,0 +1,22 @@
+#include <windows.h>
+#include <stdexcept>
+#include <iostream>
+#include <string>
+void* ResolveWindowImport(const char*,const char*);
+extern "C" void __cdecl HWViewport(int,int);
+extern "C" void __cdecl HWHostActivation(int);
+extern "C" void __cdecl HWKey(unsigned,int);
+template<class T>T Api(const char* name){auto p=ResolveWindowImport("user32.dll",name);if(!p)throw std::runtime_error(std::string("Missing ")+name);return reinterpret_cast<T>(p);}
+#define API(n) Api<decltype(&n)>(#n)
+static void Check(bool value,const char* reason){if(!value)throw std::runtime_error(reason);}
+static LRESULT CALLBACK Procedure(HWND,UINT message,WPARAM,LPARAM){return message==WM_NCCREATE?TRUE:0;}
+static BOOL CALLBACK Monitor(HMONITOR h,HDC,LPRECT rect,LPARAM count){MONITORINFOEXW info={};info.cbSize=sizeof(info);Check(API(GetMonitorInfoW)(h,(MONITORINFO*)&info),"Virtual monitor query failed");Check(info.rcMonitor.right==1920&&info.rcMonitor.bottom==1080&&rect->right==100,"Viewport/clip rectangle not preserved");++*reinterpret_cast<int*>(count);return TRUE;}
+int main(){try{
+ HWViewport(1920,1080);WNDCLASSW cls={};cls.lpfnWndProc=Procedure;cls.hInstance=(HINSTANCE)621;cls.lpszClassName=L"OwnedWindowState";Check(API(RegisterClassW)(&cls),"Class registration failed");
+ auto h=API(CreateWindowExW)(0,cls.lpszClassName,L"Owned state",0,0,0,1920,1080,nullptr,nullptr,cls.hInstance,nullptr);Check(h,"Virtual fullscreen window creation failed");Check(API(IsWindow)(h),"Window state absent");Check(!API(ShowWindow)(h,SW_SHOW),"First show must report previous hidden state");Check(API(ShowWindow)(h,SW_SHOW),"Repeated show must report previous visible state");
+ API(SetFocus)(h);Check(API(GetFocus)()==h,"Focus not retained");API(SetCapture)(h);Check(API(GetCapture)()==h,"Capture not retained");Check(!API(EnableWindow)(h,FALSE),"EnableWindow prior-disabled ABI wrong");Check(!API(GetFocus)()&&!API(GetCapture)()&&!API(IsWindowEnabled)(h),"Disabling retained focus/capture");Check(API(EnableWindow)(h,TRUE),"Prior-disabled state not reported");
+ Check(API(SetWindowLongPtrW)(h,GWLP_USERDATA,0x123456789abcdefLL)==0,"Initial user data not zero");Check(API(GetWindowLongPtrW)(h,GWLP_USERDATA)==0x123456789abcdefLL,"64-bit user state truncated");DWORD pid=0;Check(API(GetWindowThreadProcessId)(h,&pid)==GetCurrentThreadId()&&pid==GetCurrentProcessId(),"Window owner identity wrong");
+ POINT point={30,40};Check(API(ClientToScreen)(h,&point)&&point.x==30&&point.y==40,"Fullscreen coordinate conversion altered point");Check(API(WindowFromPoint)(point)==h,"Hit test failed");RECT clip={0,0,100,100};int count=0;Check(API(EnumDisplayMonitors)(nullptr,&clip,Monitor,(LPARAM)&count)&&count==1,"Virtual monitor enumeration failed");
+ HWKey('A',1);Check(API(GetKeyState)('A')&0x8000,"Real forwarded key not stored");HWHostActivation(0);Check(!API(GetKeyState)('A')&&!API(GetFocus)(),"Deactivation retained stale input");HWHostActivation(1);Check(API(GetFocus)()==h,"Reactivation did not restore eligible window focus");Check(!API(UnregisterClassW)(cls.lpszClassName,cls.hInstance),"Unregistered class with live window");Check(API(DestroyWindow)(h)&&!API(IsWindow)(h),"Destroy did not invalidate window");Check(API(UnregisterClassW)(cls.lpszClassName,cls.hInstance),"Class teardown failed");
+ Check(!ResolveWindowImport("user32.dll","GetRawInputData"),"Unimplemented raw input must not return fake success");std::cout<<"PASS production single-CoreWindow state: focus/capture, visibility, enable, 64-bit user data, owner identity, virtual viewport/monitor enumeration, key deactivation and teardown. No game/Xbox execution.\n";return 0;
+ }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
