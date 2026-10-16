@@ -15,7 +15,7 @@ with zipfile.ZipFile(artifact) as z:
   assert '..' not in Path(n).parts;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(z.read(n))
  for name in ['AppxSignature.p7x','AppxBlockMap.xml','AppxManifest.xml']:
   with zipfile.ZipFile(bundle/'Hollowwake_0.4.4.0_x64.appx') as a:assert name in a.namelist()
-for name in ['initializer-callsite-audit.json','layout-checks.json','sites-tests.log','sites-build.log','xbox-malloc-failure.json','tick-callsite-audit.json','xbox-tick-failure.json','crt-forwarder-audit.json','xbox-forwarder-failure.json','source-identity.json','boot-range-verified.json','native-dependency-check.json','website-readonly-check.json','site-mobile-home.png','site-mobile-link.png','site-desktop-home.png','site-desktop-project.png','site-desktop-downloads.png','deployed-browser-results.json','live-browser-results.json','website-mobile.png','website-desktop.png']:
+for name in ['sites-deployment.json','access-preservation.json','delivery-secret-scan.json','public-download-verification.json','initializer-callsite-audit.json','branding-alpha-check.json','layout-checks.json','sites-tests.log','sites-build.log','xbox-malloc-failure.json','tick-callsite-audit.json','xbox-tick-failure.json','crt-forwarder-audit.json','xbox-forwarder-failure.json','source-identity.json','boot-range-verified.json','native-dependency-check.json','website-readonly-check.json','site-mobile-home.png','site-mobile-link.png','site-desktop-home.png','site-desktop-project.png','site-desktop-downloads.png','deployed-browser-results.json','live-browser-results.json','website-mobile.png','website-desktop.png']:
  f=exp/'evidence'/name
  if f.exists():shutil.copy2(f,logs/f.name)
 for name in ['credential-probes.json','credential-remediation.json']:
@@ -27,7 +27,7 @@ notes='''# Hollowwake 0.4 — client initialization experiment
 
 This download is a development-signed x64 UWP runtime that can import the actual inspected 6.21 client privately onto the console and attempt its original initialization. It is not a completed Fortnite port. No original lobby, character, locker or shop success is claimed. User photos establish original dbghelp dependency startup in0.4.1 at GetTickCount, followed by progression in0.4.2 to the next failing call: msvcrt!malloc. User photos of0.4.3 then show progression to msvcrt!_initterm in dbghelp. The 0.4.4 update is unverified on Xbox.
 
-The old working companion, live website v9, account service, owner-only administration and rollback packages are preserved. Update the existing experimental package without uninstalling to retain its private import and protected session; Xbox update preservation is unverified. This package has a separate identity and uses your existing Hollowwake account with a new device approval.
+The old working companion, account service, owner-only administration and rollback packages are preserved. The website visual update is saved as Sites version10 using the same persistent database and authentication configuration. Update the existing experimental package without uninstalling to retain its private import and protected session; Xbox update preservation is unverified. This package has a separate identity and uses your existing Hollowwake account with a new device approval.
 
 Changes in 0.4.4: real msvcrt!_initterm and _initterm_e callback-table walking; focused production-mapper tests verify order, null skipping, empty tables and first-failure short-circuit. Orange-gradient transparent HW branding, licensed condensed Anton lettering, centered transparent launcher menu with orange controller focus, genuine Epic September2018 Season6 cube background, readable linking/import/errors. Actual Windows UWP screenshots, where captured, are labeled as Windows and not Xbox. Website has distinct Home, Project, Downloads, Link, Account and Recovery routes, mobile layout and reduced-motion support. Retained: real GetTickCount startup support, mapped-initializer uptime/wrap tests and packaged clock contract. Retained fix for thirteen export-only CRT shims incorrectly rejected as non-relocatable; production-resolver fixture checks; named latest-failure summary and OS errors. Retained: original x64 image/dependency mapping, TLS donors, unwind registration, supported window/message/controller hooks, real DXGI/D3D11 composition bridge, explicit original entry attempt, fail-fast missing-API logs, post-crash log access, pinned minimum import, optional full import, and orange HW/focus branding. There are no placeholder successful implementations of missing native APIs.
 
@@ -67,7 +67,7 @@ for directory in [root/'client-runtime',exp]:
   if not f.is_file() or {'evidence','bin','obj','artifacts','AppPackages','__pycache__'} & set(rel.parts):continue
   if f.suffix.lower() in {'.pfx','.key','.sqlite','.dll','.exe'}:continue
   files['hollowwake/'+f.relative_to(root).as_posix()]=f.read_bytes()
-# Preserve the actual live v9 website/authentication fix in the source delivery.
+# Preserve exact current live Sites v10 website and authentication in the source delivery.
 import subprocess
 site=Path('/workspace/sites/hollowwake')
 tracked=subprocess.run(['git','ls-files'],cwd=site,text=True,capture_output=True,check=True).stdout.splitlines()
@@ -83,4 +83,4 @@ with zipfile.ZipFile(out/'Hollowwake-Source-0.4.4.zip','w',zipfile.ZIP_DEFLATED,
   assert '..' not in Path(n).parts and not n.startswith('/')
   assert Path(n).suffix.lower() not in {'.pfx','.key','.sqlite','.pak','.exe','.dll'}
   z.writestr(n,data)
-art={f.name:{'bytes':f.stat().st_size,'sha256':sha(f)} for f in sorted(out.iterdir()) if f.is_file() and f.name!='ARTIFACTS.json'};(out/'ARTIFACTS.json').write_text(json.dumps(art,indent=2));print(json.dumps(art,indent=2))
+art={f.name:{'bytes':f.stat().st_size,'sha256':sha(f)} for f in sorted(out.iterdir()) if f.is_file() and f.name not in {'ARTIFACTS.json','download-links.json'}};(out/'ARTIFACTS.json').write_text(json.dumps(art,indent=2));print(json.dumps(art,indent=2))
