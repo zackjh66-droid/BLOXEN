@@ -1,5 +1,8 @@
 name: Hollowwake native-system route investigation
 on:
+  push:
+    branches: ['hollowwake/native-system-route']
+    paths: ['hollowwake/runtime-native-route/**', '.github/workflows/hollowwake-native-system.yml']
   workflow_dispatch:
     inputs:
       build:
@@ -9,7 +12,7 @@ permissions:
   contents: read
 jobs:
   check:
-    if: ${{ inputs.build }}
+    if: ${{ inputs.build || (github.event_name == 'push' && github.ref == 'refs/heads/hollowwake/native-system-route') }}
     runs-on: windows-2022
     timeout-minutes: 15
     steps:
