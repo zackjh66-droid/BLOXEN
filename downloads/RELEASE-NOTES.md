@@ -1,0 +1,21 @@
+# Hollowwake0.4.6 — connected dependency-startup experiment
+
+Development-signed x64 UWP real-client loading experiment, NOT a completed Fortnite port. Original lobby/character/locker and native game authentication are unfinished.0.4.6 has not been tested on physical Xbox. It uses the existing privately imported inspected6.21 files; no game executable or PAK content is included.
+
+The user-reported0.4.5 failure is msvcrt!??2@YAPEAX_K@Z (legacy scalar operator new), dbghelp return RVA1221957. A static trace now covers the exact dependency entry point, its C initializer and all16 non-null C++ initializer roots. The newly supported direct constructor import set includes scalar/array new/delete, recursive CRT locking, callback-table growth/registration and critical-section initialization. Version/private-heap/TLS/wait/stack-probe and structured-exception support is tested in an original combined mapped-DLL fixture. Detailed coverage and remaining unimplemented entry/error/cleanup calls are recorded; this is static evidence, not proof that original dbghelp finished on Xbox.
+
+Legacy allocations share the same maintained allocator/free family. Private DLL exit tables keep their original ownership. Process exit callbacks are drained LIFO on a normal main return. Old C++ exception/new-handler behavior on allocation failure is not implemented: it explicitly fails fast with a named log. No old FILE/RTTI/C++ exception layouts are aliased to modern incompatible structures. Stable x64 SEH handling is tested separately from C++ exceptions.
+
+The combined fixture exercises16 scalar constructions/destructions, raw array allocation/deletion,64 callback registrations with reverse-order execution, recursive locking and8000 concurrent updates, real private-heap allocation/growth, TLS, sleeping,24KB stack probing and a caught structured exception through registered unwind information. Earlier initializer/clock/system-information/allocator/forwarder/TLS checks are preserved. Hosted testing never executes downloaded game code.
+
+Diagnostics now open with the latest named error and last stage, without the oversized checklist that hid the failure. Short Full log, Enable checks and Close buttons remain accessible. A real persisted own-fixture fail-fast error is used for the UI test and screenshot. This Windows diagnostic screenshot is NOT a new Xbox or Fortnite boot result. All six menu buttons remain visible without scrolling; Xbox cursor emulation stays disabled for directional focus.
+
+Hosted signed-package installation/activation, signature verification, existing native contracts, fail-fast logging/startup recovery, real website approval/polling, protected automatic sign-in after restart, logout and revocation are checked. Source/verification evidence is included. Physical Xbox execution and controller behavior require the user test.
+
+Install this as an UPDATE to Hollowwake.ClientExperiment without uninstalling. Keep your imported boot files and protected session. Use the same Hollowwake account; it is intended to own the game profile and username. Native game transport/login and the disabled client621 prototype are still unfinished. Website sign-in is not Fortnite login. No shared hardcoded game identity or Epic credentials are used. Matches are unavailable.
+
+Website/backend/accounts/private owner admin/original archive/previous releases are unchanged. Website download page may still list the earlier release; use this delivered0.4.6 link. Public website: https://hollowwake.jihnjohn10.chatgpt.site . Recovery email remains unavailable.
+
+Public signing certificate and all three x64 framework dependencies are included. The private key was non-exportable on the ephemeral hosted runner and is not distributed. Original public Epic Season6 promotional background and licensed Anton lettering are preserved under the recorded usage terms. No original archive binaries are uploaded to the public repository.
+
+Remaining requirements include legacy C++ EH/CRT compatibility, complete Windows module/thread/window/graphics behavior, and native client-compatible account/backend integration. Full archive import cannot implement missing APIs. No lobby success or next-boot guarantee is made.
