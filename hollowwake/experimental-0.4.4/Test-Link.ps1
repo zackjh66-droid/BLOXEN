@@ -28,6 +28,10 @@ try {
   if (!$button) {throw "Native button unavailable: $automationId"}
   $button.SetFocus();$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
  }
+ function Invoke-ButtonFocus([string]$automationId) {
+  $button=Wait-Control $automationId
+  $button.SetFocus();Start-Sleep -Milliseconds 1000
+ }
  function Save-NativeScreenshot([string]$name,[string]$controlId) {
   try {
    Add-Type -AssemblyName System.Drawing
@@ -36,6 +40,8 @@ try {
    $window=$element
    while($window -and $window.Current.ControlType -ne [System.Windows.Automation.ControlType]::Window){$window=$walker.GetParent($window)}
    if(!$window){throw 'No native top-level window found'}
+   try {$window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern).SetWindowVisualState([System.Windows.Automation.WindowVisualState]::Maximized)}catch{}
+   Start-Sleep -Milliseconds 1200
    $rect=$window.Current.BoundingRectangle
    $bitmap=New-Object System.Drawing.Bitmap ([int]$rect.Width),([int]$rect.Height)
    $graphics=[System.Drawing.Graphics]::FromImage($bitmap)
@@ -66,6 +72,7 @@ try {
  }
  Save-NativeScreenshot 'native-linking-windows.png' 'CodeText'
  Approve-DisplayedCode
+ Invoke-ButtonFocus 'ImportButton'
  Save-NativeScreenshot 'native-menu-windows.png' 'UsernameText'
  $result.checks+='Native code display, website-account approval, native polling and linked username'
  $devices=Invoke-RestMethod -Uri ($BackendOrigin+'/api/devices') -WebSession $session
