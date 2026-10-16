@@ -42,7 +42,7 @@ __declspec(noreturn) void __cdecl GuestEndThread(){LeaveGuestThread();auto real=
 }
 void* ResolveGuestThreadImport(const char* dll,const char* name){
  if(!dll||!name)return nullptr;
- if(!_stricmp(dll,"kernel32.dll")||!_stricmp(dll,"kernelbase.dll")||!_strnicmp(dll,"api-ms-win-core-processthreads-",29)||!_strnicmp(dll,"api-ms-win-core-libraryloader-",29)){
+ if(!_stricmp(dll,"kernel32.dll")||!_stricmp(dll,"kernelbase.dll")||!_strnicmp(dll,"api-ms-win-core-processthreads-",sizeof("api-ms-win-core-processthreads-")-1)||!_strnicmp(dll,"api-ms-win-core-libraryloader-",sizeof("api-ms-win-core-libraryloader-")-1)){
   if(!strcmp(name,"CreateThread"))return reinterpret_cast<void*>(&GuestCreateThread);
   if(!strcmp(name,"ExitThread"))return reinterpret_cast<void*>(&GuestExitThread);
   if(!strcmp(name,"DisableThreadLibraryCalls"))return reinterpret_cast<void*>(&GuestDisableThreadLibraryCalls);
