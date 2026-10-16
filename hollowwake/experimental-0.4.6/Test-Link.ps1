@@ -86,6 +86,16 @@ try {
  Check-MenuFits
  Invoke-ButtonFocus 'ImportButton'
  Save-NativeScreenshot 'native-menu-windows.png' 'UsernameText'
+ Invoke-Button 'LogButton'
+ $failure=Wait-Control 'FailureSummary'
+ if(!$failure.Current.Name.Contains('HOLLOWWAKE_ORIGINAL_FIXTURE!MissingFunction')){throw 'Real persisted fail-fast fixture is missing from short summary'}
+ $dialog=Wait-Control 'ClientDiagnostics'
+ $closeCondition=New-Object System.Windows.Automation.AndCondition (New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::ControlTypeProperty),[System.Windows.Automation.ControlType]::Button),(New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::NameProperty),'Close')
+ $close=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$closeCondition)
+ if(!$close -or $close.Current.IsOffscreen){throw 'Diagnostics close button is clipped'}
+ Save-NativeScreenshot 'native-diagnostics-windows.png' 'FailureSummary'
+ $close.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
+ $result.checks+='Real persisted failure is visible in compact diagnostics; close button accessible'
  $result.checks+='Native code display, website-account approval, native polling and linked username'
  $devices=Invoke-RestMethod -Uri ($BackendOrigin+'/api/devices') -WebSession $session
  if($devices.devices.Count -ne 1){throw 'Expected exactly one native device session'}

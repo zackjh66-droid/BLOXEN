@@ -8,7 +8,7 @@ void __cdecl operator delete(void*) noexcept;
 void __cdecl operator delete[](void*) noexcept;
 using Exit=int(__cdecl*)();
 extern "C" __declspec(dllimport) Exit __cdecl __dllonexit(Exit,Exit**,Exit**);
-extern "C" __declspec(dllimport) Exit __cdecl _onexit(Exit);
+// _onexit uses the SDK CRT declaration already pulled in by Windows headers.
 extern "C" __declspec(dllimport) void __cdecl _lock(int);
 extern "C" __declspec(dllimport) void __cdecl _unlock(int);
 extern "C" __declspec(dllimport) void __cdecl free(void*);

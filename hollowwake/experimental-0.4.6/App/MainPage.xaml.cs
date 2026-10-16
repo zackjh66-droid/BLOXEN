@@ -242,8 +242,10 @@ namespace Hollowwake
 
             string full="runtime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
             bool expanded=false;var block=new TextBlock{Text=summary,FontSize=18,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
+            Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(block,"FailureSummary");
             var scroll=new ScrollViewer{MaxHeight=Math.Max(160,Window.Current.Bounds.Height-210),IsTabStop=true,VerticalScrollBarVisibility=ScrollBarVisibility.Auto};
             var dialog=new ContentDialog{Title="Client stopped — 0.4.6",CloseButtonText="Close",PrimaryButtonText="Full log",SecondaryButtonText="Enable checks",Content=block};
+            Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(dialog,"ClientDiagnostics");
             dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;expanded=!expanded;dialog.Content=null;scroll.Content=null;block.Text=expanded?full:summary;block.IsTextSelectionEnabled=expanded;if(expanded){scroll.Content=block;dialog.Content=scroll;scroll.ChangeView(null,0,null);}else dialog.Content=block;dialog.PrimaryButtonText=expanded?"Summary":"Full log";};
             dialog.SecondaryButtonClick+=(d,args)=>{var marker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-startup.pending");if(File.Exists(marker))File.Delete(marker);};await dialog.ShowAsync();
         }
