@@ -72,7 +72,7 @@ namespace Hollowwake
                 catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
                 finally{if(File.Exists(pending))File.Delete(pending);}
             }
-            if(App.NativePreflight){await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";return;}
+            if(App.NativePreflight){await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";Log_Click(this,new RoutedEventArgs());return;}
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try
@@ -246,16 +246,18 @@ namespace Hollowwake
             summary+="\n\nNative route: game DLLs must be installed in the private client package. A LocalState boot import cannot provide them. The original lobby has not been reached.";
 
             string full="runtime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
-            var block=new TextBlock{Text=summary,FontSize=16,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
+            var block=new TextBlock{Text=summary,FontSize=18,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(block,"FailureSummary");
             var dialog=new ContentDialog{Title="Native client diagnostics — 0.5.0",CloseButtonText="Close",PrimaryButtonText="Missing imports",SecondaryButtonText="Full log",Content=block};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(dialog,"ClientDiagnostics");
-            string[] lines=null;int page=0;const int pageSize=6;
+            Button previousDiagnostic=null;dialog.GotFocus+=(sender,args)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previousDiagnostic!=null){previousDiagnostic.ClearValue(Button.BackgroundProperty);previousDiagnostic.ClearValue(Button.ForegroundProperty);}previousDiagnostic=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
+            string[] lines=null;int page=0;const int pageSize=10;
             Action render=()=>{int count=Math.Max(1,(lines.Length+pageSize-1)/pageSize);block.Text="PAGE "+(page+1)+" / "+count+"\n\n"+String.Join("\n",lines,page*pageSize,Math.Min(pageSize,lines.Length-page*pageSize));dialog.PrimaryButtonText="Next page";dialog.SecondaryButtonText="Previous page";};
-            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){var report=managed;int marker=report.IndexOf("native-imports-unresolved.txt",StringComparison.Ordinal);report=marker>=0?report.Substring(marker):"No missing-import report. Choose Full log after reopening diagnostics.";lines=report.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries);page=0;}else page=(page+1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
-            dialog.SecondaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){lines=full.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries);page=0;}else page=(page+Math.Max(1,(lines.Length+pageSize-1)/pageSize)-1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
+            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){var report=managed;int marker=report.IndexOf("native-imports-unresolved.txt",StringComparison.Ordinal);report=marker>=0?report.Substring(marker):"No missing-import report. Choose Full log after reopening diagnostics.";lines=DiagnosticRows(report);page=0;}else page=(page+1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
+            dialog.SecondaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){lines=DiagnosticRows(full);page=0;}else page=(page+Math.Max(1,(lines.Length+pageSize-1)/pageSize)-1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
             await dialog.ShowAsync();
         }
+        private static string[] DiagnosticRows(string text){var rows=new System.Collections.Generic.List<string>();foreach(var raw in text.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){var line=raw.TrimEnd('\r');for(int offset=0;offset<line.Length;offset+=40)rows.Add(line.Substring(offset,Math.Min(40,line.Length-offset)));}return rows.Count>0?rows.ToArray():new[]{"No records."};}
         private static bool IsFailureLine(string line){return line.StartsWith("NATIVE_PROXY_BLOCKED ")||line.StartsWith("NATIVE_LOAD_BLOCKED ")||line.StartsWith("NATIVE_LOAD_FAILED ")||line.StartsWith("NATIVE_LOAD_EXCEPTION ")||line.StartsWith("NATIVE_CRASH ")||line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED ");}
         private async Task RevokeTokenAsync(string token)
         {

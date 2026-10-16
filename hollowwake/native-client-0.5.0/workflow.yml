@@ -20,6 +20,7 @@ jobs:
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
       - name: Private game-input packaging check; never upload its files
+        if: ${{ !contains(github.event.head_commit.message, '[ui-only]') }}
         timeout-minutes: 10
         continue-on-error: true
         shell: cmd

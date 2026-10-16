@@ -22,5 +22,24 @@ $expected=@(Get-Content (Join-Path $PSScriptRoot 'Native\ClientDependencyImports
 if(!$native.Contains('NATIVE_PREFLIGHT total='+$expected)){throw 'Unexpected dependency import inventory'}
 if($native.Contains('NATIVE_ENTRY calling')){throw 'Forbidden game execution in hosted preflight'}
 if(!(Get-Process -Id $id -ErrorAction SilentlyContinue)){throw 'Own preflight app unexpectedly exited'}
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -AssemblyName UIAutomationTypes
+$desktop=[Windows.Automation.AutomationElement]::RootElement
+$dialog=$null;$deadline=[DateTime]::UtcNow.AddSeconds(20)
+do{$dialog=$desktop.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::AutomationIdProperty,'ClientDiagnostics')));if(!$dialog){Start-Sleep -Milliseconds 250}}while(!$dialog-and[DateTime]::UtcNow-lt $deadline)
+if(!$dialog){throw 'Native diagnostic dialog missing'}
+$button=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::NameProperty,'Missing imports')))
+if(!$button){throw 'Missing imports accessible button absent'}
+([Windows.Automation.InvokePattern]$button.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern)).Invoke();Start-Sleep -Milliseconds 350
+$summary=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::AutomationIdProperty,'FailureSummary')))
+$before=$summary.Current.Name
+$next=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::NameProperty,'Next page')))
+$previous=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::NameProperty,'Previous page')))
+if(!$next-or !$previous){throw 'Paged diagnostics buttons missing'}
+([Windows.Automation.InvokePattern]$next.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern)).Invoke();Start-Sleep -Milliseconds 350
+if($summary.Current.Name-eq $before){throw 'Accessible Next page action did not change diagnostic content'}
+$bounds=$dialog.Current.BoundingRectangle
+foreach($element in @($summary,$next,$previous)){ $rect=$element.Current.BoundingRectangle;if($rect.Width-le 0-or $rect.Height-le 0){throw 'Diagnostic element has no visible bounds'};if($rect.Top-lt $bounds.Top-or $rect.Bottom-gt $bounds.Bottom-or $rect.Left-lt $bounds.Left-or $rect.Right-gt $bounds.Right){throw 'Diagnostics overflowed dialog bounds'}}
+@{result='PASS Windows UIA pagination and content/button bounds';physicalXboxControllerTested=$false;customScrollViewerUsed=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'diagnostics-ui-results.json')
 Stop-Process -Id $id -Force
 @{result='PASS integrated UWP import preflight only';scope='Hosted Windows AppContainer; no game execution';xboxTested=$false;fortniteExecuted=$false;unresolvedCount=@(Get-Content (Join-Path $data 'native-imports-unresolved.txt')).Count}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'preflight-results.json')
