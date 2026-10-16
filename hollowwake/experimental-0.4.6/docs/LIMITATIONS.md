@@ -1,13 +1,13 @@
-# Exact remaining limitations
+# Remaining limitations
 
-0.4.6 is unverified on Xbox. The user photographed0.4.4 executing original dbghelp initialization and stopping at GetSystemInfo, RVA1221867. This update binds that call and the proven next GetVersion initializer to actual public SDK APIs. It does not establish original main entry or lobby rendering.
+0.4.6 has not been tested on Xbox. User-reported0.4.5 stopped in original dbghelp at scalar operator new, return RVA1221957. New work covers the connected direct-call constructor imports and tests their behavior in an original mapped DLL; it does not establish original dependency completion, main entry or lobby rendering.
 
-Many unsupported Windows APIs still fail fast. Complete module identity/loading, thread and TLS lifecycle, exception edges, window/messages, audio/file/CEF and DXGI engine paths remain incomplete. A named unsupported call terminates after logs are flushed. Registered unwind tables and own graphics fixtures are not proof of complete engine compatibility.
+Old C++ exception/new-handler/RTTI and legacy FILE/CRT globals remain incompatible or unimplemented. Allocation failure is explicitly fatal; no old C++ exception ABI is faked. The stable x64 structured-exception handler binding is a distinct ABI. Private exit callback tables preserve caller ownership; full module unload, process/thread detach and loader-lock semantics remain incomplete.
 
-The native game HTTP/authentication handoff is unfinished. The server prototype is disabled in production. It maps each Hollowwake account to its own stable client account and profiles, sharing the admin authority; it never accepts project refresh tokens as game credentials. Complete wire-format/bootstrap/presence behavior and cosmetic validation against encrypted assets remain missing. No shared game login or fabricated successful backend entry is used.
+Static trace coverage is bounded and cannot resolve every indirect call. Remaining entry/error/cleanup imports are listed in startup-coverage.json. Other129 dependency images can have additional platform requirements. Complete Windows module identity/loading, threads/TLS, window/input, audio/files/CEF and engine DXGI paths are missing or unverified. Unsupported paths fail fast with a named log.
 
-The original Fortnite loading/lobby, character, locker, game controller menus and shop are not available yet. Matches are unavailable. Full content import will eventually be necessary for original scenes but cannot implement missing APIs.
+Native Fortnite HTTP/login handoff, bootstrap/presence and validated assets remain unfinished. The prototype client621 backend remains disabled in production. Project accounts share authoritative intended profile/admin data, but website linking does not log the actual Fortnite client in.
 
-Host menu has no scroll container and uses directional controller focus. The full diagnostic log remains scrollable. The fixed logical layout scales uniformly to available dimensions; small windows have smaller text. Its focus/geometry are checked on hosted Windows, not a physical Xbox.
+Original Fortnite loading/lobby, characters, locker and game menus are not available yet. No matches. Full game content cannot repair missing APIs. Main menu fits without scrolling; long detailed logs still scroll. Xbox navigation/layout must be tested by the user. Windows captures and original-fixture tests do not demonstrate a working game port.
 
-Live website/account backend/private owner admin/data and0.4.4 rollback are preserved. Email recovery remains blocked by no configured authorized mail service. Original game archive is unchanged. Hosted verification executes only original owned fixtures, never downloaded game code. Runtime is not a secure malware-analysis sandbox.
+Existing site/accounts/private admin/data and rollback packages are preserved. Recovery email remains unavailable. Original game archive is unchanged; no downloaded game code is executed in hosted CI. This runtime is not a malware-analysis sandbox.

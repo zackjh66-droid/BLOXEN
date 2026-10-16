@@ -90,7 +90,9 @@ try {
  $failure=Wait-Control 'FailureSummary'
  if(!$failure.Current.Name.Contains('HOLLOWWAKE_ORIGINAL_FIXTURE!MissingFunction')){throw 'Real persisted fail-fast fixture is missing from short summary'}
  $dialog=Wait-Control 'ClientDiagnostics'
- $closeCondition=New-Object System.Windows.Automation.AndCondition (New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::ControlTypeProperty),[System.Windows.Automation.ControlType]::Button),(New-Object System.Windows.Automation.PropertyCondition ([System.Windows.Automation.AutomationElement]::NameProperty),'Close')
+ $closeType=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button)
+ $closeName=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,'Close')
+ $closeCondition=[System.Windows.Automation.AndCondition]::new($closeType,$closeName)
  $close=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$closeCondition)
  if(!$close -or $close.Current.IsOffscreen){throw 'Diagnostics close button is clipped'}
  Save-NativeScreenshot 'native-diagnostics-windows.png' 'FailureSummary'
