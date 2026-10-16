@@ -4,4 +4,5 @@
 namespace Hollowwake {
 void* ResolveNativeSystemImport(const char* dll,const char* symbol);
 bool NativeLegacyCrtAvailable();
+bool NativeSystemFacadeAvailable(const char* dll);
 }

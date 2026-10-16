@@ -16,6 +16,7 @@ std::map<std::string,Module> modules;
 HMODULE mainImage=nullptr;
 void*(*lookup)(const char*,const char*)=nullptr;
 void(*logger)(const std::string&)=nullptr;
+bool(*nativeScope)(const char*)=nullptr;
 // These are capability facades, not native Windows HMODULEs. Only public API
 // bridges from the same guest resolver can be obtained from them.
 const char* facades[]={"kernel32.dll","kernelbase.dll","api-ms-win-core-fibers-l1-1-1.dll","api-ms-win-core-synch-l1-2-0.dll"};
@@ -35,6 +36,7 @@ Module* Find(const std::string& name,bool load){
   if(load&&!i->second.facade&&i->second.handle!=mainImage){GuestModuleRecord state;if(!FindGuestDependency(name,state)||!state.initialized){SetLastError(ERROR_DLL_INIT_FAILED);return nullptr;}}
   return &i->second;
  }
+ if(nativeScope&&nativeScope(name.c_str())){auto& m=modules[name];m.name=name;m.facade=true;m.pinned=true;m.handle=reinterpret_cast<HMODULE>(&m);return &m;}
  for(auto facade:facades)if(name==facade){if(!load){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}auto& m=modules[name];m.name=name;m.facade=true;m.pinned=true;m.handle=reinterpret_cast<HMODULE>(&m);return &m;}
  GuestModuleRecord record;if(FindGuestDependency(name,record)){
   if(load&&!record.initialized){if(logger)logger("MODULE load refused: mapped dependency has not completed initialization: "+name);SetLastError(ERROR_DLL_INIT_FAILED);return nullptr;}
@@ -89,7 +91,7 @@ BOOL WINAPI GuestFreeLibrary(HMODULE handle){std::lock_guard<std::recursive_mute
 DWORD WINAPI GuestGetModuleFileNameW(HMODULE handle,LPWSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle?handle:mainImage);if(!m||m->facade){SetLastError(m?ERROR_NOT_SUPPORTED:ERROR_INVALID_HANDLE);return 0;}if(!output||!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}auto length=m->path.size();size_t copy=(std::min)(length,static_cast<size_t>(capacity-1));std::wmemcpy(output,m->path.c_str(),copy);output[copy]=0;if(length>=capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return capacity;}return static_cast<DWORD>(length);}
 DWORD WINAPI GuestGetModuleFileNameA(HMODULE handle,LPSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle?handle:mainImage);if(!m||m->facade){SetLastError(m?ERROR_NOT_SUPPORTED:ERROR_INVALID_HANDLE);return 0;}if(!output||!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}auto needed=WideCharToMultiByte(CP_ACP,0,m->path.c_str(),-1,nullptr,0,nullptr,nullptr);if(needed<=0)return 0;std::vector<char> bytes(needed);if(!WideCharToMultiByte(CP_ACP,0,m->path.c_str(),-1,bytes.data(),needed,nullptr,nullptr))return 0;size_t length=needed-1,copy=(std::min)(length,static_cast<size_t>(capacity-1));memcpy(output,bytes.data(),copy);output[copy]=0;if(length>=capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return capacity;}return static_cast<DWORD>(length);}
 }
-void ConfigureGuestModules(void*(*query)(const char*,const char*),void(*log)(const std::string&)){std::lock_guard<std::recursive_mutex> guard(mutex);lookup=query;logger=log;for(auto name:facades){auto& m=modules[name];m.name=name;m.facade=true;m.pinned=true;m.handle=reinterpret_cast<HMODULE>(&m);}}
+void ConfigureGuestModules(void*(*query)(const char*,const char*),void(*log)(const std::string&),bool(*scope)(const char*)){std::lock_guard<std::recursive_mutex> guard(mutex);lookup=query;logger=log;nativeScope=scope;for(auto name:facades){auto& m=modules[name];m.name=name;m.facade=true;m.pinned=true;m.handle=reinterpret_cast<HMODULE>(&m);}}
 void RegisterGuestMainImage(void* base,SIZE_T size,const std::wstring& path){std::lock_guard<std::recursive_mutex> guard(mutex);auto slash=path.find_last_of(L"/\\");auto name=path.substr(slash==std::wstring::npos?0:slash+1);std::string key;if(!Normalize(name.c_str(),key))return;auto& m=modules[key];m.name=key;m.path=path;m.handle=static_cast<HMODULE>(base);m.size=size;m.pinned=true;mainImage=m.handle;}
 void* ResolveModuleLoaderImport(const char* dll,const char* name){if(!dll||!name||(_stricmp(dll,"kernel32.dll")&&_stricmp(dll,"kernelbase.dll")&&_strnicmp(dll,"api-ms-win-core-libraryloader-",30)))return nullptr;
 #define MODULE_API(n) if(!strcmp(name,#n))return reinterpret_cast<void*>(&Guest##n)

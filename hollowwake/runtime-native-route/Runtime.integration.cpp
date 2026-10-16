@@ -96,7 +96,7 @@ static int MemoryPolicy(const wchar_t* path){
 }
 static int Attempt(const wchar_t* root){
  Log("ATTEMPT_BEGIN runtime=0.4.7.0 original-client import/initialization attempt");
- ConfigureDependencies(root,Import,Log,QueryImport);ConfigureGuestModules(QueryImport,Log);
+ ConfigureDependencies(root,Import,Log,QueryImport);ConfigureGuestModules(QueryImport,Log,Hollowwake::NativeSystemFacadeAvailable);
  if(consumed)Fail("Restart the app before another mapping attempt");
  std::wstring file=std::wstring(root)+L"\\6.21\\FortniteGame\\Binaries\\Win64\\FortniteClient-Win64-Shipping.exe";
  std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in)Fail("Exact client missing: import archive first");auto length=in.tellg();if(length<4096||length>512*1024*1024)Fail("Unexpected main image size");in.seekg(0);std::vector<BYTE> raw((SIZE_T)length);if(!in.read((char*)raw.data(),length))Fail("Image read failed");if(!Hash(raw))Fail("Main executable SHA256 differs from inspected 6.21 build");Log("HASH exact main image verified");

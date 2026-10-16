@@ -58,6 +58,18 @@ struct NativeModules {
 NativeModules& Modules(){static NativeModules value;return value;}
 }
 bool NativeLegacyCrtAvailable(){return Modules().legacyComplete;}
+#include "NativeContracts.generated.h"
+bool NativeSystemFacadeAvailable(const char* dll){
+ if(!dll)return false;auto& m=Modules();
+ if(!_stricmp(dll,"kernel32.dll"))return m.kernel!=nullptr;
+ if(!_stricmp(dll,"kernelbase.dll"))return m.base!=nullptr;
+ if(!_stricmp(dll,"ntdll.dll"))return m.ntdll!=nullptr;
+ if(!_stricmp(dll,"msvcrt.dll"))return m.legacyComplete;
+ for(auto contract:nativeContracts)if(!_stricmp(dll,contract)){
+  if(!_strnicmp(dll,"api-ms-win-core-winrt-",sizeof("api-ms-win-core-winrt-")-1))return m.combase!=nullptr;
+  return m.kernel||m.base;
+ }return false;
+}
 void* ResolveNativeSystemImport(const char* dll,const char* name){
  if(!dll||!name||!name[0])return nullptr;
  // A public WinRT SDK import establishes the OS provider dependency. It is
