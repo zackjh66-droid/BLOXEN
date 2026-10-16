@@ -27,7 +27,7 @@ HMODULE WINAPI ModuleW(LPCWSTR name){std::lock_guard<std::recursive_mutex> lock(
  if(!Hollowwake::NativeSystemFacadeAvailable(key.c_str())){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
  auto& entry=facades[key];entry.name=key;return reinterpret_cast<HMODULE>(&entry);
 }
-HMODULE WINAPI ModuleA(LPCSTR name){if(!name)return ModuleW(nullptr);auto text=Wide(name);return text.empty()?nullptr:ModuleW(text.c_str());}
+HMODULE WINAPI ModuleA(LPCSTR name){if(!name)return ModuleW(nullptr);auto text=Wide(name);if(text.empty()){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}return ModuleW(text.c_str());}
 BOOL WINAPI ModuleExW(DWORD flags,LPCWSTR name,HMODULE* output){std::lock_guard<std::recursive_mutex> lock(gate);if(!output){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}*output=nullptr;if(flags&~7||(flags&1&&flags&2)){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}
  HMODULE h=nullptr;if(flags&4){using Get=BOOL(WINAPI*)(DWORD,LPCWSTR,HMODULE*);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleExW"));if(!get||!get(6,name,&h)||h!=Main()){SetLastError(ERROR_MOD_NOT_FOUND);return FALSE;}}
  else h=ModuleW(name);
@@ -36,13 +36,13 @@ BOOL WINAPI ModuleExW(DWORD flags,LPCWSTR name,HMODULE* output){std::lock_guard<
  *output=h;return TRUE;
 }
 BOOL WINAPI ModuleExA(DWORD flags,LPCSTR name,HMODULE* output){if(flags&4)return ModuleExW(flags,reinterpret_cast<LPCWSTR>(name),output);if(!name)return ModuleExW(flags,nullptr,output);auto text=Wide(name);if(text.empty()){if(output)*output=nullptr;SetLastError(ERROR_MOD_NOT_FOUND);return FALSE;}return ModuleExW(flags,text.c_str(),output);}
-HMODULE WINAPI LoadW(LPCWSTR name,HANDLE file,DWORD flags){if(!name||file||flags&~0x1a00){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}HMODULE h=ModuleW(name);if(!h)return nullptr;
+HMODULE WINAPI LoadW(LPCWSTR name,HANDLE file,DWORD flags){std::lock_guard<std::recursive_mutex> lock(gate);if(!name||file||flags&~0x1a00){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}HMODULE h=ModuleW(name);if(!h)return nullptr;
  if(Virtual(h))return h;
  // This phase permits already-loaded main identity only. Arbitrary dependencies
  // cannot be loaded from LocalState or pulled into the package implicitly.
  if(flags&0x800){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}HMODULE held=nullptr;return ModuleExW(0,mainName.c_str(),&held)?held:nullptr;
 }
-HMODULE WINAPI LoadA(LPCSTR name,HANDLE file,DWORD flags){auto text=Wide(name);return text.empty()?nullptr:LoadW(text.c_str(),file,flags);}
+HMODULE WINAPI LoadA(LPCSTR name,HANDLE file,DWORD flags){auto text=Wide(name);if(text.empty()){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}return LoadW(text.c_str(),file,flags);}
 HMODULE WINAPI LoadSimpleW(LPCWSTR name){return LoadW(name,nullptr,0);}HMODULE WINAPI LoadSimpleA(LPCSTR name){return LoadA(name,nullptr,0);}
 FARPROC WINAPI Proc(HMODULE h,LPCSTR name){std::lock_guard<std::recursive_mutex> lock(gate);if(!name){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}auto value=reinterpret_cast<ULONG_PTR>(name);std::string ordinal;if(value<=65535){ordinal="#"+std::to_string(value);name=ordinal.c_str();}
  if(auto module=Virtual(h)){auto p=HWResolvePackagedImport(module->name.c_str(),name);if(!p)SetLastError(ERROR_PROC_NOT_FOUND);return reinterpret_cast<FARPROC>(p);}
