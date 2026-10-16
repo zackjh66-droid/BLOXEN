@@ -15,13 +15,13 @@ with zipfile.ZipFile(artifact) as z:
   assert '..' not in Path(n).parts;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(z.read(n))
  for name in ['AppxSignature.p7x','AppxBlockMap.xml','AppxManifest.xml']:
   with zipfile.ZipFile(bundle/'Hollowwake_0.4.4.0_x64.appx') as a:assert name in a.namelist()
-for name in ['xbox-malloc-failure.json','tick-callsite-audit.json','xbox-tick-failure.json','crt-forwarder-audit.json','xbox-forwarder-failure.json','source-identity.json','boot-range-verified.json','native-dependency-check.json','website-readonly-check.json','website-mobile.png','website-desktop.png']:
+for name in ['initializer-callsite-audit.json','layout-checks.json','sites-tests.log','sites-build.log','xbox-malloc-failure.json','tick-callsite-audit.json','xbox-tick-failure.json','crt-forwarder-audit.json','xbox-forwarder-failure.json','source-identity.json','boot-range-verified.json','native-dependency-check.json','website-readonly-check.json','website-mobile.png','website-desktop.png']:
  f=exp/'evidence'/name
  if f.exists():shutil.copy2(f,logs/f.name)
 for name in ['credential-probes.json','credential-remediation.json']:
  shutil.copy2(root/'research-0.3.1/evidence'/name,logs/name)
 for f in (exp/'docs').glob('*.md'):shutil.copy2(f,bundle/f.name)
-summary={'version':'0.4.4.0','status':'Experimental CRT initializer-table fix and orange HW visual update; unfinished Fortnite port','sourceCommit':commit,'workflowRun':f'https://github.com/zackjh66-droid/BLOXEN/actions/runs/{run}','hostedWindows':test,'productionForwarderFixture':forwarders,'xbox':'0.4.4 update unverified; user photographed 0.4.3 dbghelp process-attach stopping at msvcrt!_initterm after allocator and clock passed; original main entry/lobby not observed','fortniteLobby':'Not achieved or tested','productionServices':'Unchanged; existing accounts/admin/companion preserved','gameInputs':'No Fortnite code/assets redistributed; private console import required'}
+summary={'version':'0.4.4.0','status':'Experimental CRT initializer-table fix and orange HW visual update; unfinished Fortnite port','sourceCommit':commit,'workflowRun':f'https://github.com/zackjh66-droid/BLOXEN/actions/runs/{run}','hostedWindows':test,'productionForwarderFixture':forwarders,'xbox':'0.4.4 update unverified; user photographed 0.4.3 dbghelp process-attach stopping at msvcrt!_initterm after allocator and clock passed; original main entry/lobby not observed','fortniteLobby':'Not achieved or tested','productionServices':'Unchanged; existing accounts/admin/companion preserved','gameInputs':'No archive code or private game content redistributed; official public Season6 promotional background included under conditional fan-content terms; private console import required'}
 (logs/'verification-summary.json').write_text(json.dumps(summary,indent=2))
 notes='''# Hollowwake 0.4 — client initialization experiment
 
@@ -39,7 +39,7 @@ Install using INSTALL.md. Start with Show launch log, then the small Import boot
 
 Remaining requirements are in LIMITATIONS.md: extensive Windows ABI/lifecycle coverage, private native HTTP/authentication handoff, complete version-compatible backend/presence and validated assets. The production client-protocol adapter remains disabled. No matches are provided.
 
-Signing: public certificate only; private key was non-exportable on the ephemeral build runner. Self-signed development certificate, not Microsoft/Epic publisher endorsement. Game content is not included.
+Signing: public certificate only; private key was non-exportable on the ephemeral build runner. Self-signed development certificate, not Microsoft/Epic publisher endorsement. Executable/PAK game content is not included. Official public promotional background is included under conditional Epic fan-content terms; see VISUALS.md.
 
 Live website: https://hollowwake.jihnjohn10.chatgpt.site
 Admin remains owner-authenticated at the existing private address; it is deliberately omitted from public release metadata.
