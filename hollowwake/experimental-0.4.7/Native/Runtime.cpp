@@ -25,6 +25,8 @@
 #include "ModuleLoader.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include "../../runtime-native-route/NativeProxyDispatch.h"
+#include "../../runtime-native-route/PackagedNamespace.h"
+#include "../../runtime-native-route/Season621NativeImports.generated.h"
 #include "../../runtime-native-route/GuestThreads.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
@@ -46,9 +48,12 @@ static void Fail(const char* message){throw std::runtime_error(message);}
 static bool Range(SIZE_T start,SIZE_T count,SIZE_T size){return start<=size&&count<=size-start;}
 static BYTE* Rva(DWORD address,SIZE_T count){if(!Range(address,count,mappedSize))Fail("PE RVA outside image");return mapped+address;}
 static const char* Name(DWORD address){auto p=(const char*)Rva(address,1);SIZE_T max=mappedSize-address;if(max>4096)max=4096;if(!memchr(p,0,max))Fail("Unterminated PE name");return p;}
+static bool HashPinned(const std::vector<BYTE>& raw,const BYTE* expected){
+ BCRYPT_ALG_HANDLE alg=nullptr;BYTE result[32];if(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)return false;auto s=BCryptHash(alg,nullptr,0,const_cast<BYTE*>(raw.data()),(ULONG)raw.size(),result,32);BCryptCloseAlgorithmProvider(alg,0);return s>=0&&!memcmp(expected,result,32);
+}
 static bool Hash(const std::vector<BYTE>& raw){
  static const BYTE expected[32]={0x9d,0x18,0xfb,0x5c,0x5c,0x43,0xdd,0xc2,0x12,0x51,0xd5,0xce,0x9e,0x02,0x6c,0xa0,0x1f,0x90,0xd4,0x29,0x21,0xdd,0x74,0x19,0x73,0xbd,0x55,0x36,0xe8,0x94,0x94,0x78};
- BCRYPT_ALG_HANDLE alg=nullptr;BYTE result[32];if(BCryptOpenAlgorithmProvider(&alg,BCRYPT_SHA256_ALGORITHM,nullptr,0)<0)return false;auto s=BCryptHash(alg,nullptr,0,const_cast<BYTE*>(raw.data()),(ULONG)raw.size(),result,32);BCryptCloseAlgorithmProvider(alg,0);return s>=0&&!memcmp(expected,result,32);
+ return HashPinned(raw,expected);
 }
 void* ResolveControllerImport(const char*,const char*);
 void* ResolveWindowImport(const char*,const char*);
@@ -88,7 +93,7 @@ static void* PackagedRoute(const char* dll,const char* name){
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
  if(auto p=ResolveControllerImport(dll,name))return p;
- return nullptr; // Native client module identity/network adapters remain mandatory.
+ return nullptr; // Network/login and additional platform adapters remain mandatory.
 }
 static void MissingPackagedImport(const char* dll,const char* name){Log("NATIVE_PROXY_BLOCKED "+std::string(dll)+"!"+name);}
 extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
@@ -97,6 +102,28 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
  if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
+}
+// Explicit native-loader experiment. It accepts no download URL, credentials,
+// arbitrary DLL path or user command line. The UI's existing mapper is unchanged.
+extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
+ try{
+  if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
+  static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
+  auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
+  std::wstring file=std::wstring(location->Data())+L"\\Fortnite621.imports.private.dll";
+  std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
+  auto size=in.tellg();if(size!=100733440){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
+  static const BYTE expected[32]={0xe5,0x20,0x7f,0x54,0x27,0xb4,0x02,0x8a,0x29,0xa8,0xfe,0xa9,0xfa,0xa4,0x4b,0x51,0xeb,0x24,0xaa,0x9e,0x7c,0xab,0x7f,0x02,0x3b,0xcc,0x7a,0x73,0x89,0xe3,0x94,0x85};
+  if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}bytes.clear();
+  if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",L"Fortnite621.imports.private.dll")){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
+  unsigned unavailable=0;for(auto& item:season621NativeImports)if(!HWResolvePackagedImport(item.dll,item.symbol))++unavailable;
+  if(unavailable){Log("NATIVE_LOAD_BLOCKED unresolved main-image proxy operations="+std::to_string(unavailable)+"; no client code executed");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
+  Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
+  auto module=LoadPackagedLibrary(L"Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
+  auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
+  Log("NATIVE_ENTRY calling original client entry; no lobby success is inferred");auto result=entry();Log("NATIVE_ENTRY_RETURN value="+std::to_string(result));return result;
+ }catch(Platform::Exception^ e){Log("NATIVE_LOAD_EXCEPTION HRESULT="+std::to_string(e->HResult));return e->HResult;}
+ catch(const std::exception& e){Log(std::string("NATIVE_LOAD_EXCEPTION ")+e.what());return E_FAIL;}
 }
 static int MemoryPolicy(const wchar_t* path){
  logName=path;Log("POLICY allocate RW -> protect RX -> execute ORIGINAL return-621 fixture");
