@@ -1,0 +1,22 @@
+{
+  "run": "https://github.com/zackjh66-droid/BLOXEN/actions/runs/38938644202",
+  "commit": "f56ee6085cf0c78e900a110fe460fbad0734d2e8",
+  "compiledIntegratedNativeUwpDll": true,
+  "ownedCodeWindowsTestsPassed": true,
+  "productionDynamicNamespaceTestsPassed": true,
+  "staticCoreCrtImportPairsPresent": 765,
+  "staticCoreCrtImportPairsAbsent": 0,
+  "fortniteExecuted": false,
+  "xboxExecuted": false,
+  "lobbyReached": false,
+  "appxProduced": false,
+  "tests": [
+    "Real startup information ABI",
+    "Actual native thread task and exit status",
+    "Real system legacy allocation family",
+    "Real WinRT HSTRING allocation/release",
+    "Nested loader queries retain guest namespace",
+    "Missing optional export returns NULL",
+    "Unknown contracts, arbitrary paths, raw host handles and reference underflow rejected"
+  ]
+}
