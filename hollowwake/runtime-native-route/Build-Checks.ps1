@@ -20,7 +20,6 @@ try {
  if($LASTEXITCODE){throw 'Production adapter/factory bridge functionality failed'}
  & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DWINAPI_FAMILY=WINAPI_FAMILY_APP /c (Join-Path $PSScriptRoot 'NativeSystem.cpp') /Fo:NativeSystemApp.obj 2>&1|Tee-Object uwp-family-compile.log
  if($LASTEXITCODE){throw 'UWP API-family compilation failed'}
- '{"result":"PASS","scope":"Original native-system export resolver; actual OS startup-info, thread and legacy allocation operations","fortniteExecuted":false,"xboxTested":false,"appxDelivered":false}'|Set-Content result.json
 }finally{Pop-Location}
 
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -30,3 +29,5 @@ $msbuild=Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
 if($LASTEXITCODE){throw 'Integrated native UWP runtime failed compilation/linkage'}
 
 & (Join-Path $PSScriptRoot 'native-image\Build-NativeImage.ps1') -OutputDirectory $OutputDirectory
+
+@{result='PASS';scope='Original owned-code Windows checks: native exports, dynamic namespace, guest thread lifecycle, DXGI adapter/device bridge and native EXE/DLL loading';fortniteExecuted=$false;xboxTested=$false;appxDelivered=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'result.json')

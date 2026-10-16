@@ -25,5 +25,7 @@ jobs:
         if: always()
         with:
           name: hollowwake-native-system-route
-          path: artifacts/native-system-route/*.log
+          path: |
+            artifacts/native-system-route/*.log
+            artifacts/native-system-route/*.json
           retention-days: 3
