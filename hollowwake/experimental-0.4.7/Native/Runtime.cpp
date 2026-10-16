@@ -23,6 +23,7 @@
 #include <wrl/client.h>
 #include "Dependencies.h"
 #include "ModuleLoader.h"
+#include "../../runtime-native-route/NativeSystem.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false,guestStarted=false;
@@ -52,6 +53,7 @@ void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
 static void* QueryBuiltinImport(const char* dll,const char* name){
  if(auto p=ResolveModuleLoaderImport(dll,name))return p;
+ if(!_stricmp(dll,"msvcrt.dll"))if(auto p=Hollowwake::ResolveNativeSystemImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveLegacyStartupImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveKernelStartupImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveLegacyCrtImport(dll,name))return p;
@@ -60,6 +62,7 @@ static void* QueryBuiltinImport(const char* dll,const char* name){
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
  if(auto p=ResolveControllerImport(dll,name))return p;
+ if(auto p=Hollowwake::ResolveNativeSystemImport(dll,name))return p;
  if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"KERNELBASE.dll")&&_strnicmp(dll,"api-ms-win-core-",16)){return nullptr;}
  #define REAL(api) if(!strcmp(name,#api))return reinterpret_cast<void*>(&api)
  REAL(InitializeCriticalSectionEx);REAL(EnterCriticalSection);REAL(TryEnterCriticalSection);REAL(LeaveCriticalSection);REAL(DeleteCriticalSection);REAL(EncodePointer);REAL(DecodePointer);REAL(FlsAlloc);REAL(FlsGetValue);REAL(FlsSetValue);REAL(FlsFree);REAL(TlsAlloc);REAL(TlsGetValue);REAL(TlsSetValue);REAL(TlsFree);REAL(GetCurrentThread);REAL(IsProcessorFeaturePresent);REAL(GetSystemTimeAsFileTime);REAL(GetProcessHeap);REAL(HeapAlloc);REAL(HeapFree);REAL(HeapReAlloc);REAL(HeapSize);REAL(GetCurrentThreadId);REAL(GetCurrentProcessId);REAL(QueryPerformanceCounter);REAL(QueryPerformanceFrequency);REAL(GetLastError);REAL(SetLastError);REAL(GetTickCount64);REAL(GetCurrentProcess);

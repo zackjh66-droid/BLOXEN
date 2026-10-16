@@ -1,0 +1,29 @@
+name: Hollowwake native-system route investigation
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  check:
+    if: ${{ inputs.build }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compile original resolver, execute focused owned-code tests, link integrated UWP runtime
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          powershell -NoProfile -File hollowwake\runtime-native-route\Build-Checks.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-system-route"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hollowwake-native-system-route
+          path: artifacts/native-system-route/*.log
+          retention-days: 3
