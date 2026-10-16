@@ -39,7 +39,7 @@ extern "C" __declspec(dllexport) int WINAPI StartupChecks(){
  free(first);first=last=nullptr;
  if(__dllonexit(CallbackA,nullptr,&last)!=nullptr)return 3;
  for(unsigned i=0;i<16;++i){if(nodes[i]->value!=i*17)return 4;delete nodes[i];nodes[i]=nullptr;}if(destroyed!=16)return 5;
- auto array=new Node[7];for(unsigned i=0;i<7;++i)if(array[i].value!=621)return 6;delete[] array;if(destroyed!=23)return 7;
+ auto array=static_cast<unsigned*>(::operator new[](7*sizeof(unsigned)));for(unsigned i=0;i<7;++i)array[i]=621+i;for(unsigned i=0;i<7;++i)if(array[i]!=621+i)return 6;::operator delete[](array);if(destroyed!=16)return 7;
  auto empty=::operator new(0);if(!empty)return 8;::operator delete(empty);::operator delete(nullptr);
  CRITICAL_SECTION plain{},spin{};InitializeCriticalSection(&plain);if(!InitializeCriticalSectionAndSpinCount(&spin,4000))return 9;
  EnterCriticalSection(&plain);EnterCriticalSection(&plain);LeaveCriticalSection(&plain);LeaveCriticalSection(&plain);DeleteCriticalSection(&plain);DeleteCriticalSection(&spin);

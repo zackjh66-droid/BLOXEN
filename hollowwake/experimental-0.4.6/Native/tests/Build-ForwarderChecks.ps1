@@ -19,7 +19,7 @@ try{
  & lib.exe /nologo /DEF:LegacyStartup.def /MACHINE:X64 /OUT:LegacyStartup.lib 2>&1|Tee-Object startup-import-library.log;if($LASTEXITCODE){throw 'Startup import library failed'}
  @('LIBRARY KERNEL32.dll','EXPORTS',' __chkstk')|Set-Content LegacyKernel.def
  & lib.exe /nologo /DEF:LegacyKernel.def /MACHINE:X64 /OUT:LegacyKernel.lib 2>&1|Tee-Object stack-import-library.log;if($LASTEXITCODE){throw 'Stack probe import library failed'}
- & cl.exe /nologo /c /MD /Od /Oi- /EHsc /GR- /GS- /Zl (Join-Path $tests 'FixtureStartup.cpp') /Fo:FixtureStartup.obj 2>&1|Tee-Object startup-compile.log;if($LASTEXITCODE){throw 'Combined startup fixture compilation failed'}
+ & cl.exe /nologo /c /MD /Od /Oi- /EHsc /GR- /Zc:sizedDealloc- /GS- /Zl (Join-Path $tests 'FixtureStartup.cpp') /Fo:FixtureStartup.obj 2>&1|Tee-Object startup-compile.log;if($LASTEXITCODE){throw 'Combined startup fixture compilation failed'}
  & link.exe /DLL /ENTRY:StartupEntry /NODEFAULTLIB /MACHINE:X64 /DYNAMICBASE /FIXED:NO FixtureStartup.obj LegacyStartup.lib LegacyKernel.lib kernel32.lib /OUT:FixtureStartup.dll 2>&1|Tee-Object startup-link.log;if($LASTEXITCODE){throw 'Combined startup fixture linkage failed'}
  $header='struct KnownModule {const wchar_t* path;const char* name;const char* hash;};'+[Environment]::NewLine+'static const KnownModule known[]={'+[Environment]::NewLine
  foreach($name in @('FixtureFirst.dll','FixtureSecond.dll','FixtureTarget.dll','FixtureFixedCode.dll','FixtureClock.dll','FixtureMemory.dll','FixtureStartup.dll')){
