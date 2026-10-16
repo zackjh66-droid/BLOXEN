@@ -10,8 +10,9 @@ HRESULT BindGraphicsWindow(IUnknown* window){if(!window)return E_INVALIDARG;if(c
 static HRESULT WINAPI GuestCreateFactory1(REFIID iid,void** result){return Hollowwake::CreateCoreFactory(coreWindow.Get(),iid,result);}
 static HRESULT WINAPI GuestCreateFactory(REFIID iid,void** result){return Hollowwake::CreateCoreFactory(coreWindow.Get(),iid,result);}
 static HRESULT WINAPI GuestCreateDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* level,ID3D11DeviceContext** context){
- if(!coreWindow){if(device)*device=nullptr;if(context)*context=nullptr;return E_UNEXPECTED;}
- return ::D3D11CreateDevice(adapter,type,software,flags,levels,count,sdk,device,level,context);
+ // D3D device creation itself does not require a window. Preserve native
+ // errors and unwrap our enumerated adapter before the actual OS call.
+ return Hollowwake::CreateCoreDevice(adapter,type,software,flags,levels,count,sdk,device,level,context);
 }
 namespace Hollowwake {
 void* ResolveGraphicsImport(const char* dll,const char* name){

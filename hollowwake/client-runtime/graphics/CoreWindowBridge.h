@@ -21,3 +21,10 @@ namespace Hollowwake {
 // composition attachment callback instead of creating a second CoreWindow chain.
 void SetCompositionAttachment(HRESULT(*attach)(IDXGISwapChain*));
 }
+
+namespace Hollowwake {
+// Factory enumeration is valid before window binding; presentation still
+// requires an actual CoreWindow/composition attachment.
+HRESULT UnwrapCoreAdapter(IDXGIAdapter* adapter,IDXGIAdapter** result);
+HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context);
+}

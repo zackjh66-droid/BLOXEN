@@ -14,6 +14,10 @@ try {
  if($LASTEXITCODE){throw 'Production guest thread adapter compilation failed'}
  & .\GuestThreadTest.exe 2>&1|Tee-Object thread-test.log
  if($LASTEXITCODE){throw 'Production guest thread lifecycle checks failed'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot '..\client-runtime\graphics\CoreWindowBridge.cpp') (Join-Path $PSScriptRoot 'tests\AdapterFactoryTest.cpp') kernel32.lib d3d11.lib dxgi.lib /Fe:AdapterFactoryTest.exe 2>&1|Tee-Object adapter-build.log
+ if($LASTEXITCODE){throw 'Production adapter/factory bridge compilation failed'}
+ & .\AdapterFactoryTest.exe 2>&1|Tee-Object adapter-test.log
+ if($LASTEXITCODE){throw 'Production adapter/factory bridge functionality failed'}
  & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DWINAPI_FAMILY=WINAPI_FAMILY_APP /c (Join-Path $PSScriptRoot 'NativeSystem.cpp') /Fo:NativeSystemApp.obj 2>&1|Tee-Object uwp-family-compile.log
  if($LASTEXITCODE){throw 'UWP API-family compilation failed'}
  '{"result":"PASS","scope":"Original native-system export resolver; actual OS startup-info, thread and legacy allocation operations","fortniteExecuted":false,"xboxTested":false,"appxDelivered":false}'|Set-Content result.json
