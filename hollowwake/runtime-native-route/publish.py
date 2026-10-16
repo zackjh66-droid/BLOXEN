@@ -12,7 +12,7 @@ except RuntimeError:head=api('git/ref/heads/hollowwake/client-experiment-0.4.7')
 entries=[]
 for f in root.rglob('*'):
  if not f.is_file() or {'__pycache__','evidence'}&set(f.relative_to(root).parts):continue
- if f.suffix not in {'.cpp','.h','.md','.ps1','.py','.yml','.vcxproj'}:continue
+ if f.suffix not in {'.cpp','.h','.md','.ps1','.py','.yml','.vcxproj','.def'}:continue
  entries.append({'path':'hollowwake/runtime-native-route/'+f.relative_to(root).as_posix(),'mode':'100644','type':'blob','content':f.read_text()})
 for name,source in [('Runtime.cpp','Runtime.integration.cpp'),('Native.vcxproj','Native.integration.vcxproj'),('ModuleLoader.cpp','ModuleLoader.integration.cpp'),('ModuleLoader.h','ModuleLoader.integration.h'),('Dependencies.cpp','Dependencies.integration.cpp')]:entries.append({'path':'hollowwake/experimental-0.4.7/Native/'+name,'mode':'100644','type':'blob','content':(root/source).read_text()})
 entry={'path':'.github/workflows/'+workflow,'mode':'100644','type':'blob','content':(root/'workflow.yml').read_text()};entries.append(entry)

@@ -24,3 +24,5 @@ $vs=& $vswhere -latest -products '*' -property installationPath
 $msbuild=Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
 & $msbuild (Join-Path $PSScriptRoot '..\experimental-0.4.7\Native\Native.vcxproj') /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'integrated-uwp-build.log')
 if($LASTEXITCODE){throw 'Integrated native UWP runtime failed compilation/linkage'}
+
+& (Join-Path $PSScriptRoot 'native-image\Build-NativeImage.ps1') -OutputDirectory $OutputDirectory

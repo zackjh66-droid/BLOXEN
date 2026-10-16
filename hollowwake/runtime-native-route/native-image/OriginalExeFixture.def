@@ -1,0 +1,2 @@
+EXPORTS
+  ForwardedTick=KERNEL32.GetTickCount64
