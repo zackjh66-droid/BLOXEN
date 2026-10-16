@@ -5,9 +5,9 @@ New-Item -ItemType Directory -Force $proxyOutput|Out-Null
 Push-Location $proxyOutput
 try {
  $base=Split-Path $PSScriptRoot
- & cl.exe /nologo /LD /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot 'FixtureHost.cpp') (Join-Path $base 'NativeSystem.cpp') (Join-Path $base 'NativeProxyDispatch.cpp') kernel32.lib runtimeobject.lib /Fe:HollowwakeClientRuntime.dll 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-host-build.log')
+ & cl.exe /nologo /LD /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot 'FixtureHost.cpp') (Join-Path $base 'NativeSystem.cpp') (Join-Path $base 'NativeProxyDispatch.cpp') (Join-Path $base 'PackagedNamespace.cpp') kernel32.lib runtimeobject.lib /Fe:HollowwakeClientRuntime.dll 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-host-build.log')
  if($LASTEXITCODE){throw 'Own production-dispatch proxy host build failed'}
- & cl.exe /nologo /O2 /GS- /DHW_PROXY_FIXTURE /DWIN32_LEAN_AND_MEAN (Join-Path $base 'native-image\OriginalExeFixture.cpp') /Fe:ProxyInput.exe /link /NODEFAULTLIB /ENTRY:OriginalEntry /SUBSYSTEM:WINDOWS /DYNAMICBASE /FIXED:NO /INCREMENTAL:NO /INCLUDE:_tls_used kernel32.lib 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-input-build.log')
+ & cl.exe /nologo /O2 /GS- /DWIN32_LEAN_AND_MEAN (Join-Path $base 'native-image\OriginalExeFixture.cpp') /Fe:ProxyInput.exe /link /NODEFAULTLIB /ENTRY:OriginalEntry /SUBSYSTEM:WINDOWS /DYNAMICBASE /FIXED:NO /INCREMENTAL:NO /INCLUDE:_tls_used kernel32.lib 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-input-build.log')
  if($LASTEXITCODE){throw 'Original import-redirect EXE fixture build failed'}
  $hash=(Get-FileHash -Algorithm SHA256 ProxyInput.exe).Hash.ToLowerInvariant()
  & python (Join-Path $base 'native-image\convert_image.py') ProxyInput.exe ProxyConvertedUnredirected.dll --expected-sha256 $hash --report convert.json 2>&1|Tee-Object (Join-Path $OutputDirectory 'proxy-convert.log')

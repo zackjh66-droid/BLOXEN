@@ -1,5 +1,6 @@
 // Original owned-code proxy host, sharing the production dispatch implementation.
 #include "../NativeProxyDispatch.h"
+#include "../PackagedNamespace.h"
 #include <windows.h>
 #include <cstring>
 static volatile LONG missing=0;
@@ -7,4 +8,4 @@ static double WINAPI Mix(double a,ULONGLONG b,double c,ULONGLONG d,ULONGLONG e,U
 static void* Own(const char* dll,const char* name){if(!strcmp(dll,"FixtureAbiProvider.dll")&&(!strcmp(name,"MixDouble")||!strcmp(name,"#17")))return reinterpret_cast<void*>(&Mix);return nullptr;}
 static void Missing(const char*,const char*){InterlockedIncrement(&missing);}
 extern "C" __declspec(dllexport) LONG WINAPI HWFixtureMissing(){return missing;}
-extern "C" BOOL WINAPI DllMain(HINSTANCE,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH)Hollowwake::ConfigurePackagedProxyResolver(Own,Missing);return TRUE;}
+extern "C" BOOL WINAPI DllMain(HINSTANCE,DWORD reason,LPVOID){if(reason==DLL_PROCESS_ATTACH){if(!Hollowwake::ConfigurePackagedNamespace(L"ProxyConvertedFixture.dll",L"ProxyConvertedFixture.dll -owned-fixture"))return FALSE;Hollowwake::ConfigurePackagedProxyResolver(Own,Missing);}return TRUE;}

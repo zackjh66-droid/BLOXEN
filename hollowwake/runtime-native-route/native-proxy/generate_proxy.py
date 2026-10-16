@@ -17,7 +17,9 @@ def emit(spec,output):
   if symbol.startswith('#'):
    if not symbol[1:].isdigit() or not 1<=int(symbol[1:])<=65535:raise ValueError('Invalid ordinal')
    exports.append(' HWOrdinal'+symbol[1:]+'='+label+' @'+symbol[1:]+' NONAME')
-  else:exports.append(' "'+symbol+'"='+label)
+  else:
+   if not re.fullmatch(r'[A-Za-z0-9_?@$]+',symbol):raise ValueError('Unsupported export-name syntax')
+   exports.append(' '+symbol+'='+label)
  asm.append('END')
  cells=((len(symbols)*8+4095)//4096)*512
  cpp='''// Original generated proxy: only real resolved operations can be exported.

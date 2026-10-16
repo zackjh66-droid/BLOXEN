@@ -2,6 +2,7 @@
 // the OS owns TLS, DLL lifecycle and unwind registration for this route.
 #include "NativeProxyDispatch.h"
 #include "NativeSystem.h"
+#include "PackagedNamespace.h"
 #include <atomic>
 #include <cstring>
 namespace {
@@ -14,6 +15,7 @@ void ConfigurePackagedProxyResolver(Query route,Missing missing){explicitRoute.s
 }
 extern "C" __declspec(dllexport) void* __cdecl HWResolvePackagedImport(const char* dll,const char* name){
  if(!dll||!name)return nullptr;
+ if(auto p=Hollowwake::ResolvePackagedNamespaceImport(dll,name))return p;
  if(auto route=explicitRoute.load())if(auto p=route(dll,name))return p;
  // Raw host loader/command-line functions cannot be handed to a converted EXE:
  // its identity and permitted module namespace require an explicit adapter.
