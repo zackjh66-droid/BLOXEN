@@ -67,7 +67,7 @@ def fetch(manifest,destination):
       total+=len(chunk)
       if total>item['bytes']:raise ValueError('Selected expansion exceeds bounds')
       output.write(chunk);digest.update(chunk)
-    if total!=item['bytes'] or digest.hexdigest()!=item['sha256']:raise ValueError('Selected source hash mismatch')
+    if total!=item['bytes'] or digest.hexdigest()!=item['sha256']:raise ValueError('Selected source hash mismatch: '+item['path']+' expected='+item['sha256']+' actual='+digest.hexdigest())
   return {'files':len(m['files']),'matchesOriginalArchive':sameArchive,'allSelectedHashesMatched':True,'executed':False}
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('manifest');p.add_argument('output');a=p.parse_args();print(json.dumps(fetch(a.manifest,a.output)))

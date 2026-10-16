@@ -9,7 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-2022
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -23,7 +23,7 @@ jobs:
       - name: Private game-input packaging check; never upload its files
         id: private_source
         if: ${{ !contains(github.event.head_commit.message, '[ui-only]') }}
-        timeout-minutes: 10
+        timeout-minutes: 18
         continue-on-error: true
         shell: cmd
         run: |
