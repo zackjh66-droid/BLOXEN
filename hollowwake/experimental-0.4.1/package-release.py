@@ -1,38 +1,38 @@
 from pathlib import Path
 import zipfile,hashlib,json,shutil,io,sys
-root=Path('/workspace/hollowwake');exp=root/'experimental-0.4';out=Path('/workspace/hollowwake-experiment-release-0.4.0');out.mkdir(exist_ok=True)
+root=Path('/workspace/hollowwake');exp=root/'experimental-0.4.1';out=Path('/workspace/hollowwake-experiment-release-0.4.1');out.mkdir(exist_ok=True)
 artifact=Path(sys.argv[1]);run=int(sys.argv[2]);commit=sys.argv[3]
-bundle=out/'Hollowwake-Client-Experiment-0.4.0-x64';bundle.mkdir(exist_ok=True);logs=bundle/'WindowsVerification';logs.mkdir(exist_ok=True)
+bundle=out/'Hollowwake-Client-Experiment-0.4.1-x64';bundle.mkdir(exist_ok=True);logs=bundle/'WindowsVerification';logs.mkdir(exist_ok=True)
 with zipfile.ZipFile(artifact) as z:
  test=json.loads(z.read('windows-test.json').decode('utf-8-sig'));assert test['result'].startswith('PASS') and not test['xboxTested'] and not test['fortniteExecuted']
  for n in z.namelist():
-  if n.endswith('/Hollowwake_0.4.0.0_x64.appx'):dest=bundle/'Hollowwake_0.4.0.0_x64.appx'
+  if n.endswith('/Hollowwake_0.4.1.0_x64.appx'):dest=bundle/'Hollowwake_0.4.1.0_x64.appx'
   elif '/Dependencies/x64/' in n and n.endswith('.appx'):dest=bundle/'Dependencies/x64'/Path(n).name
   elif n=='HollowwakeExperiment.cer':dest=bundle/n
   elif n.endswith(('.log','.json','.txt')) and len(n.split('/'))<=2:dest=logs/n
   else:continue
   assert '..' not in Path(n).parts;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(z.read(n))
  for name in ['AppxSignature.p7x','AppxBlockMap.xml','AppxManifest.xml']:
-  with zipfile.ZipFile(bundle/'Hollowwake_0.4.0.0_x64.appx') as a:assert name in a.namelist()
-for name in ['source-identity.json','boot-range-verified.json','native-dependency-check.json','website-readonly-check.json','website-mobile.png','website-desktop.png']:
+  with zipfile.ZipFile(bundle/'Hollowwake_0.4.1.0_x64.appx') as a:assert name in a.namelist()
+for name in ['crt-forwarder-audit.json','xbox-forwarder-failure.json','source-identity.json','boot-range-verified.json','native-dependency-check.json','website-readonly-check.json','website-mobile.png','website-desktop.png']:
  f=exp/'evidence'/name
  if f.exists():shutil.copy2(f,logs/f.name)
 for name in ['credential-probes.json','credential-remediation.json']:
  shutil.copy2(root/'research-0.3.1/evidence'/name,logs/name)
 for f in (exp/'docs').glob('*.md'):shutil.copy2(f,bundle/f.name)
-summary={'version':'0.4.0.0','status':'Experimental real-client initialization attempt; unfinished Fortnite port','sourceCommit':commit,'workflowRun':f'https://github.com/zackjh66-droid/BLOXEN/actions/runs/{run}','hostedWindows':test,'xbox':'Unverified; no physical Xbox result for this build','fortniteLobby':'Not achieved or tested','productionServices':'Unchanged; existing accounts/admin/companion preserved','gameInputs':'No Fortnite code/assets redistributed; private console import required'}
+summary={'version':'0.4.1.0','status':'Experimental CRT forwarder-loader fix for observed Xbox failure; unfinished Fortnite port','sourceCommit':commit,'workflowRun':f'https://github.com/zackjh66-droid/BLOXEN/actions/runs/{run}','hostedWindows':test,'xbox':'0.4.1 update unverified; user photographed 0.4.0 native mapping/import and CRT-forwarder failure before guest entry','fortniteLobby':'Not achieved or tested','productionServices':'Unchanged; existing accounts/admin/companion preserved','gameInputs':'No Fortnite code/assets redistributed; private console import required'}
 (logs/'verification-summary.json').write_text(json.dumps(summary,indent=2))
 notes='''# Hollowwake 0.4 — client initialization experiment
 
 This download is a development-signed x64 UWP runtime that can import the actual inspected 6.21 client privately onto the console and attempt its original initialization. It is not a completed Fortnite port. No original lobby, character, locker or shop success is claimed. Xbox execution is unverified.
 
-The old working companion, account service, owner-only administration and rollback packages are preserved. This package has a separate identity and uses your existing Hollowwake account with a new device approval.
+The old working companion, live website v9, account service, owner-only administration and rollback packages are preserved. Update the existing experimental package without uninstalling to retain its private import and protected session; Xbox update preservation is unverified. This package has a separate identity and uses your existing Hollowwake account with a new device approval.
 
-Changes: original x64 image/dependency mapping, TLS donors, unwind registration, supported window/message/controller hooks, real DXGI/D3D11 composition bridge, explicit original entry attempt, fail-fast missing-API logs, post-crash log access, pinned minimum import, optional full import, and orange HW/focus branding. There are no placeholder successful implementations of missing native APIs.
+Changes in 0.4.1: fix for thirteen export-only CRT shims incorrectly rejected as non-relocatable; production-resolver fixture checks; named latest-failure summary and OS errors. Retained: original x64 image/dependency mapping, TLS donors, unwind registration, supported window/message/controller hooks, real DXGI/D3D11 composition bridge, explicit original entry attempt, fail-fast missing-API logs, post-crash log access, pinned minimum import, optional full import, and orange HW/focus branding. There are no placeholder successful implementations of missing native APIs.
 
-Hosted Windows checks passed on the exact signed package: installation/activation, executable-memory fixture, distinct packaged TLS slots, window/message and graphics contracts, actual missing-API fail-fast log/process exit, startup recovery, live own-account linking, protected restart sign-in, logout and revocation. Original mapped-TLS fixtures also passed, including modified-file rejection. No downloaded game code ran in hosted CI. See WindowsVerification for scope and logs.
+Hosted Windows checks passed on the exact signed package: installation/activation, executable-memory fixture, distinct packaged TLS slots, window/message and graphics contracts, actual missing-API fail-fast log/process exit, startup recovery, live own-account linking, protected restart sign-in, logout and revocation. Original mapped-TLS fixtures also passed, including modified-file rejection. The production dependency resolver also resolved two fixed-base forwarder DLLs to the same relocated original test function returning621, while rejecting a non-relocatable executable DLL. No downloaded game code ran in hosted CI. See WindowsVerification for scope and logs.
 
-131 import offsets/sizes/hashes were statically checked against the unchanged source ZIP; a source HTTPS byte range was checked independently. Native CLR/C++ imports were checked against provided x64 VCLibs. These do not establish console execution. No physical controller or in-game behavior has been verified.
+131 import offsets/sizes/hashes were statically checked against the unchanged source ZIP; a source HTTPS byte range was checked independently. Native CLR/C++ imports were checked against provided x64 VCLibs. These do not establish console execution. The user photographed 0.4.0.0 mapping original images on Xbox and stopping before original initialization at thirteen CRT-forwarder relocation rejections. This update treats proven export-only shims as read-only metadata; it does not bypass relocation requirements for executable DLLs. No physical controller or in-game behavior has been verified.
 
 Install using INSTALL.md. Start with Show launch log, then the small Import boot files test, then Attempt client boot. Return the last EXECUTE/STOP/CRASH/CALLED_UNSUPPORTED record. The full archive is not necessary just to reproduce an unsupported call.
 
@@ -51,14 +51,14 @@ def makezip(path,files):
   for name,f in files:z.write(f,name)
 makezip(out/(bundle.name+'.zip'),[(f.relative_to(bundle).as_posix(),f) for f in sorted(bundle.rglob('*')) if f.is_file()])
 makezip(out/'Hollowwake-Dependencies-x64.zip',[(f.relative_to(bundle).as_posix(),f) for f in sorted((bundle/'Dependencies').rglob('*.appx'))])
-makezip(out/'Hollowwake-Verification-0.4.0.zip',[(f.relative_to(bundle).as_posix(),f) for f in sorted(logs.rglob('*')) if f.is_file()]+[(f.name,f) for f in sorted((exp/'docs').glob('*.md'))])
-shutil.copy2(bundle/'Hollowwake_0.4.0.0_x64.appx',out/'Hollowwake_0.4.0.0_x64.appx');shutil.copy2(bundle/'HollowwakeExperiment.cer',out/'HollowwakeExperiment.cer')
+makezip(out/'Hollowwake-Verification-0.4.1.zip',[(f.relative_to(bundle).as_posix(),f) for f in sorted(logs.rglob('*')) if f.is_file()]+[(f.name,f) for f in sorted((exp/'docs').glob('*.md'))])
+shutil.copy2(bundle/'Hollowwake_0.4.1.0_x64.appx',out/'Hollowwake_0.4.1.0_x64.appx');shutil.copy2(bundle/'HollowwakeExperiment.cer',out/'HollowwakeExperiment.cer')
 # Preserve previously reviewed complete website/backend/admin/companion source;
 # replace the runtime directories with this build's original implementation.
-seed=Path('/workspace/hollowwake-runtime-release-0.3.2/Hollowwake-Source-0.3.2.zip');files={}
+seed=Path('/workspace/hollowwake-experiment-release-0.4.0/Hollowwake-Source-0.4.0.zip');files={}
 with zipfile.ZipFile(seed) as z:
  for n in z.namelist():
-  if n.startswith(('hollowwake/client-runtime/','hollowwake/experimental-0.4/')):continue
+  if n.startswith(('hollowwake/client-runtime/','hollowwake/experimental-0.4.1/')):continue
   files[n]=z.read(n)
 for directory in [root/'client-runtime',exp]:
  for f in sorted(directory.rglob('*')):
@@ -66,9 +66,18 @@ for directory in [root/'client-runtime',exp]:
   if not f.is_file() or {'evidence','bin','obj','artifacts','AppPackages','__pycache__'} & set(rel.parts):continue
   if f.suffix.lower() in {'.pfx','.key','.sqlite','.dll','.exe'}:continue
   files['hollowwake/'+f.relative_to(root).as_posix()]=f.read_bytes()
-files['hollowwake/EXPERIMENT-0.4-README.md']=notes.encode()
-files['hollowwake/README.md']=b'# Latest experimental runtime: 0.4\n\nRead EXPERIMENT-0.4-README.md and experimental-0.4/docs before the preserved companion documentation below. The actual Fortnite lobby is unfinished.\n\n'+files['hollowwake/README.md']
-with zipfile.ZipFile(out/'Hollowwake-Source-0.4.0.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+# Preserve the actual live v9 website/authentication fix in the source delivery.
+import subprocess
+site=Path('/workspace/sites/hollowwake')
+tracked=subprocess.run(['git','ls-files'],cwd=site,text=True,capture_output=True,check=True).stdout.splitlines()
+for name in tracked:
+ f=site/name
+ if f.is_file():files['hollowwake/sites/'+name]=f.read_bytes()
+for name in ['backend/core.mjs','backend/auth-options.mjs','web/app.js']:
+ files['hollowwake/'+name]=(root/name).read_bytes()
+files['hollowwake/EXPERIMENT-0.4.1-README.md']=notes.encode()
+files['hollowwake/README.md']=b'# Latest experimental runtime: 0.4.1\n\nRead EXPERIMENT-0.4.1-README.md and experimental-0.4.1/docs before the preserved companion documentation below. The actual Fortnite lobby is unfinished.\n\n'+files['hollowwake/README.md']
+with zipfile.ZipFile(out/'Hollowwake-Source-0.4.1.zip','w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
  for n,data in sorted(files.items()):
   assert '..' not in Path(n).parts and not n.startswith('/')
   assert Path(n).suffix.lower() not in {'.pfx','.key','.sqlite','.pak','.exe','.dll'}

@@ -1,6 +1,6 @@
 # What this build establishes and what remains missing
 
-This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. Physical Xbox installation/linking of an older companion was user-reported; this new runtime has not been tested on Xbox.
+This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. The user reported and photographed 0.4.0.0 importing boot files, mapping the original main image and dependencies, applying section protections and registering the main unwind table on a physical Xbox. That run stopped at 13 CRT-forwarder relocation rejections before original dependency initialization or main entry. 0.4.1.0 fixes that specific parser/loader case, but the update has not been tested on Xbox.
 
 Implemented paths:
 

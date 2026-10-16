@@ -13,7 +13,7 @@ try{
  foreach($name in @('FixtureFirst.dll','FixtureSecond.dll','FixtureTarget.dll','FixtureFixedCode.dll')){
   $hash=(Get-FileHash $name -Algorithm SHA256).Hash.ToLowerInvariant();$header+='{L"'+$name+'","'+$name+'","'+$hash+'"},'+[Environment]::NewLine
  };$header+='};';[IO.File]::WriteAllText((Join-Path $OutputDirectory 'FixtureModules.generated.h'),$header)
- & cl.exe /nologo /MD /EHsc /std:c++17 /DHW_DEPENDENCY_FIXTURE "/I$OutputDirectory" (Join-Path $tests 'ForwarderTest.cpp') (Join-Path $native 'Dependencies.cpp') windowsapp.lib bcrypt.lib /Fe:ForwarderTest.exe 2>&1|Tee-Object harness-build.log;if($LASTEXITCODE){throw 'Production-resolver fixture harness compilation failed'}
+ & cl.exe /nologo /MD /EHsc /std:c++17 /DHW_DEPENDENCY_FIXTURE /DNOMINMAX /DWIN32_LEAN_AND_MEAN "/I$OutputDirectory" (Join-Path $tests 'ForwarderTest.cpp') (Join-Path $native 'Dependencies.cpp') windowsapp.lib bcrypt.lib /Fe:ForwarderTest.exe 2>&1|Tee-Object harness-build.log;if($LASTEXITCODE){throw 'Production-resolver fixture harness compilation failed'}
  & .\ForwarderTest.exe $OutputDirectory 2>&1|Tee-Object forwarder-test.log;if($LASTEXITCODE){throw 'Production forwarder resolver contract failed'}
  '{"productionResolverUsed":true,"fixedBaseCollisionEstablished":true,"forwardOnlyNameAndOrdinalResolved":true,"realMappedTargetReturn":621,"fixedExecutableRejected":true,"downloadedCodeExecuted":false}'|Set-Content forwarder-test.json
 }finally{Pop-Location}

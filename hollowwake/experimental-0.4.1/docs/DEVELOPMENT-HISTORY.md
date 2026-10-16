@@ -10,3 +10,11 @@ These were hosted Windows development results, not Xbox tests or Fortnite launch
 - The first hosted Python range request to the archive received HTTP 403. Chromium and a request explicitly identifying `Hollowwake/0.4` returned the correct HTTP 206 range. The importers now send that user agent. The verified range decompressed to the pinned file hash; all 131 offsets/sizes/hashes were separately checked against the existing immutable ZIP. Xbox networking/import remains unverified.
 
 Successful run 38812239400 verified the TLS/startup fixes and full native account regression. The release run linked in WindowsVerification/verification-summary.json repeats the checks after adding the explicit importer user agent. Neither workflow executes downloaded game code. No game launch screenshot or physical Xbox success is claimed.
+
+## 0.4.1 — user-reported Xbox failure
+
+The supplied Xbox photos show thirteen `api-ms-win-crt-*` modules rejected with `dependency cannot relocate`. The original 0.4.0 loader required relocation information for every image moved off ImageBase. Those thirteen modules are export-only forwarders: no entry point, executable sections, imports, TLS or unwind data. All their exports forward to ucrtbase.
+
+0.4.1 validates those constraints and all export/name/ordinal/forward-string bounds before treating a shim as immutable metadata. It does not relocate, execute or initialize that shim. Forwarded symbols still resolve through the existing allowlisted target DLL implementation. Fixed executable images without relocation support remain rejected. The shared metadata predicate and actual production dependency resolver are exercised by original compiler-built fixtures, including two forwarder images with the same unavailable preferred base and an executable negative fixture.
+
+The log viewer now puts named failures from the latest attempt first, and allocation/protection/load failures include Windows error numbers where supported. Earlier `UNIMPLEMENTED` import records still describe real gaps; a forwarder fix is not a complete Windows runtime or lobby.
