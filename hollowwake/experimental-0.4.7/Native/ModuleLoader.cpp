@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cwchar>
 #include <limits>
+#include <vector>
 namespace {
 // Documented Win32 guest ABI flag values; desktop SDK names are hidden in UWP.
 constexpr DWORD SearchSystem32=0x800,SearchDefaultDirs=0x1000,SearchApplicationDir=0x200;
@@ -30,7 +31,10 @@ Module* Remember(const GuestModuleRecord& record,const std::string& name){
  auto& m=modules[name];m.name=name;m.path=record.path;m.handle=record.handle;m.size=record.size;m.pinned=true;return &m;
 }
 Module* Find(const std::string& name,bool load){
- auto i=modules.find(name);if(i!=modules.end())return &i->second;
+ auto i=modules.find(name);if(i!=modules.end()){
+  if(load&&!i->second.facade&&i->second.handle!=mainImage){GuestModuleRecord state;if(!FindGuestDependency(name,state)||!state.initialized){SetLastError(ERROR_DLL_INIT_FAILED);return nullptr;}}
+  return &i->second;
+ }
  for(auto facade:facades)if(name==facade){if(!load){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}auto& m=modules[name];m.name=name;m.facade=true;m.pinned=true;m.handle=reinterpret_cast<HMODULE>(&m);return &m;}
  GuestModuleRecord record;if(FindGuestDependency(name,record)){
   if(load&&!record.initialized){if(logger)logger("MODULE load refused: mapped dependency has not completed initialization: "+name);SetLastError(ERROR_DLL_INIT_FAILED);return nullptr;}
@@ -83,7 +87,7 @@ FARPROC WINAPI GuestGetProcAddress(HMODULE handle,LPCSTR name){
 }
 BOOL WINAPI GuestFreeLibrary(HMODULE handle){std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle);if(!m||!m->refs){SetLastError(ERROR_INVALID_HANDLE);return FALSE;}--m->refs;return TRUE;}
 DWORD WINAPI GuestGetModuleFileNameW(HMODULE handle,LPWSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle?handle:mainImage);if(!m||m->facade){SetLastError(m?ERROR_NOT_SUPPORTED:ERROR_INVALID_HANDLE);return 0;}if(!output||!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}auto length=m->path.size();size_t copy=(std::min)(length,static_cast<size_t>(capacity-1));std::wmemcpy(output,m->path.c_str(),copy);output[copy]=0;if(length>=capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return capacity;}return static_cast<DWORD>(length);}
-DWORD WINAPI GuestGetModuleFileNameA(HMODULE handle,LPSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle?handle:mainImage);if(!m||m->facade){SetLastError(m?ERROR_NOT_SUPPORTED:ERROR_INVALID_HANDLE);return 0;}if(!output||!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}auto needed=WideCharToMultiByte(CP_ACP,0,m->path.c_str(),-1,nullptr,0,nullptr,nullptr);if(needed<=0)return 0;if(static_cast<DWORD>(needed)>capacity){output[0]=0;SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}if(!WideCharToMultiByte(CP_ACP,0,m->path.c_str(),-1,output,capacity,nullptr,nullptr))return 0;return needed-1;}
+DWORD WINAPI GuestGetModuleFileNameA(HMODULE handle,LPSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle?handle:mainImage);if(!m||m->facade){SetLastError(m?ERROR_NOT_SUPPORTED:ERROR_INVALID_HANDLE);return 0;}if(!output||!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}auto needed=WideCharToMultiByte(CP_ACP,0,m->path.c_str(),-1,nullptr,0,nullptr,nullptr);if(needed<=0)return 0;std::vector<char> bytes(needed);if(!WideCharToMultiByte(CP_ACP,0,m->path.c_str(),-1,bytes.data(),needed,nullptr,nullptr))return 0;size_t length=needed-1,copy=(std::min)(length,static_cast<size_t>(capacity-1));memcpy(output,bytes.data(),copy);output[copy]=0;if(length>=capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return capacity;}return static_cast<DWORD>(length);}
 }
 void ConfigureGuestModules(void*(*query)(const char*,const char*),void(*log)(const std::string&)){std::lock_guard<std::recursive_mutex> guard(mutex);lookup=query;logger=log;for(auto name:facades){auto& m=modules[name];m.name=name;m.facade=true;m.pinned=true;m.handle=reinterpret_cast<HMODULE>(&m);}}
 void RegisterGuestMainImage(void* base,SIZE_T size,const std::wstring& path){std::lock_guard<std::recursive_mutex> guard(mutex);auto slash=path.find_last_of(L"/\\");auto name=path.substr(slash==std::wstring::npos?0:slash+1);std::string key;if(!Normalize(name.c_str(),key))return;auto& m=modules[key];m.name=key;m.path=path;m.handle=static_cast<HMODULE>(base);m.size=size;m.pinned=true;mainImage=m.handle;}

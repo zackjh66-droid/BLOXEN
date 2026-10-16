@@ -38,5 +38,12 @@ extern "C" BOOL WINAPI ModulesEntry(HINSTANCE self,DWORD reason,LPVOID){
  CRITICAL_SECTION cs;if(!init(&cs,1000,0))return fail(24);EnterCriticalSection(&cs);LeaveCriticalSection(&cs);DeleteCriticalSection(&cs);
  if(!FreeLibrary(synch))return fail(25);
  if(!GetModuleHandleW(nullptr)||GetModuleHandleW(L"FixtureModules.dll")!=self)return fail(26);
+ auto ansi=LoadLibraryExA("kernel32.dll",nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);if(!ansi||GetModuleHandleA("kernel32")!=ansi)return fail(27);
+ auto wide=LoadLibraryW(L"kernel32"),plain=LoadLibraryA("kernel32");if(!wide||wide!=ansi||plain!=ansi)return fail(28);
+ HMODULE borrowed=nullptr;if(!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,"kernel32",&borrowed)||borrowed!=ansi)return fail(29);
+ char filenameA[1024]={};if(!GetModuleFileNameA(self,filenameA,1024)||!filenameA[0])return fail(30);
+ char tinyA[2]={};if(GetModuleFileNameA(self,tinyA,2)!=2||tinyA[1]||GetLastError()!=ERROR_INSUFFICIENT_BUFFER)return fail(31);
+ if(GetProcAddress(reinterpret_cast<HMODULE>(1),"GetTickCount64")||GetLastError()!=ERROR_INVALID_HANDLE)return fail(32);
+ if(!FreeLibrary(ansi)||!FreeLibrary(wide)||!FreeLibrary(plain))return fail(33);
  status=0;return TRUE;
 }

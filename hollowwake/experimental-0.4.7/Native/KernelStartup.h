@@ -43,7 +43,7 @@ inline void* ResolveKernelStartupImport(const char* dll,const char* name){
  START("GetCurrentProcessId",::GetCurrentProcessId);START("GetCurrentThreadId",::GetCurrentThreadId);START("GetCurrentThread",::GetCurrentThread);
  START("GetSystemTimeAsFileTime",::GetSystemTimeAsFileTime);START("QueryPerformanceCounter",::QueryPerformanceCounter);START("QueryPerformanceFrequency",::QueryPerformanceFrequency);
  START("GetProcessHeap",::GetProcessHeap);START("IsProcessorFeaturePresent",::IsProcessorFeaturePresent);
- START("RtlCaptureContext",::RtlCaptureContext);START("RtlLookupFunctionEntry",::RtlLookupFunctionEntry);START("RtlVirtualUnwind",::RtlVirtualUnwind);
+ START("RtlLookupFunctionEntry",::RtlLookupFunctionEntry);START("RtlVirtualUnwind",::RtlVirtualUnwind);
  START("SetFilePointerEx",::SetFilePointerEx);START("FlushFileBuffers",::FlushFileBuffers);
  START("GetLastError",::GetLastError);START("SetLastError",::SetLastError);
 
