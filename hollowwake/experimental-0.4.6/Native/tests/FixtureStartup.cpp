@@ -14,13 +14,15 @@ extern "C" __declspec(dllimport) void __cdecl _unlock(int);
 extern "C" __declspec(dllimport) void __cdecl free(void*);
 static BOOL attached=FALSE;static unsigned destroyed=0,exitOrder=0,processOrder=0,protectedCounter=0;
 struct Node {unsigned value;explicit Node(unsigned n=621) noexcept:value(n){}~Node() noexcept{++destroyed;}};
-static Node* nodes[16];static Exit* first=nullptr;static Exit* last=nullptr;
+static Node* nodes[16];
+Node** volatile startupRelocationAnchor=nodes;static Exit* first=nullptr;static Exit* last=nullptr;
 static int __cdecl CallbackA(){exitOrder=exitOrder*3+1;return 0;}
 static int __cdecl CallbackB(){exitOrder=exitOrder*3+2;return 0;}
 static int __cdecl ProcessA(){processOrder=processOrder*10+1;return 0;}
 static int __cdecl ProcessB(){processOrder=processOrder*10+2;return 0;}
 extern "C" BOOL WINAPI StartupEntry(HINSTANCE,DWORD reason,LPVOID){
  if(reason!=DLL_PROCESS_ATTACH)return TRUE;
+ if(startupRelocationAnchor!=nodes)return FALSE;
  _lock(8);_lock(8);
  for(unsigned i=0;i<16;++i){nodes[i]=new Node(i*17);if(!nodes[i]||nodes[i]->value!=i*17)return FALSE;}
  for(unsigned i=0;i<64;++i){auto callback=i%2?CallbackB:CallbackA;if(__dllonexit(callback,&first,&last)!=callback)return FALSE;}
