@@ -19,7 +19,7 @@ def exports(path):
   o=offset(rva);end=b.index(0,o,min(len(b),o+4096));return b[o:end].decode('ascii')
  export=u32(opt+112);end=export+u32(opt+116);e=offset(export);base=u32(e+16);count=u32(e+20);names=u32(e+24)
  if max(count,names)>4096:fail('Unexpected export count')
- f=offset(u32(e+28));n=offset(u32(e+32));o=offset(u32(e+36));result={};named=set()
+ f=offset(u32(e+28));n=offset(u32(e+32)) if names else 0;o=offset(u32(e+36)) if names else 0;result={};named=set()
  def entry(index):
   rva=u32(f+4*index)
   return string(rva) if export<=rva<end else None
