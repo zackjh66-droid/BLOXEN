@@ -1,0 +1,9 @@
+{
+  "sourceDll": "ntdll.dll",
+  "proxyDll": "HWNT.dll",
+  "symbols": [
+    "RtlCaptureContext",
+    "RtlLookupFunctionEntry",
+    "RtlVirtualUnwind"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "sourceDll": "WININET.dll",
+  "proxyDll": "HWINET.dll",
+  "symbols": [
+    "HttpOpenRequestW",
+    "HttpQueryInfoW",
+    "HttpSendRequestW",
+    "InternetCloseHandle",
+    "InternetConnectW",
+    "InternetOpenW",
+    "InternetQueryOptionA",
+    "InternetReadFile",
+    "InternetSetOptionA"
+  ]
+}

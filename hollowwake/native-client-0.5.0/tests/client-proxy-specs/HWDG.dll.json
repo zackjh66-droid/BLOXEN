@@ -1,0 +1,8 @@
+{
+  "sourceDll": "dxgi.dll",
+  "proxyDll": "HWDG.dll",
+  "symbols": [
+    "CreateDXGIFactory",
+    "CreateDXGIFactory1"
+  ]
+}

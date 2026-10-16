@@ -1,0 +1,7 @@
+{
+  "sourceDll": "d3d11.dll",
+  "proxyDll": "HWD11.dll",
+  "symbols": [
+    "D3D11CreateDevice"
+  ]
+}

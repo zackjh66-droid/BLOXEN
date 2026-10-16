@@ -1,0 +1,8 @@
+{
+  "sourceDll": "XINPUT1_3.dll",
+  "proxyDll": "HWXI13.dll",
+  "symbols": [
+    "#2",
+    "#3"
+  ]
+}

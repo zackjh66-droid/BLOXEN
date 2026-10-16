@@ -1,0 +1,21 @@
+{
+  "sourceDll": "WINHTTP.dll",
+  "proxyDll": "HWHTTP.dll",
+  "symbols": [
+    "WinHttpAddRequestHeaders",
+    "WinHttpCloseHandle",
+    "WinHttpConnect",
+    "WinHttpCrackUrl",
+    "WinHttpGetDefaultProxyConfiguration",
+    "WinHttpGetIEProxyConfigForCurrentUser",
+    "WinHttpGetProxyForUrl",
+    "WinHttpOpen",
+    "WinHttpOpenRequest",
+    "WinHttpQueryHeaders",
+    "WinHttpReadData",
+    "WinHttpReceiveResponse",
+    "WinHttpSendRequest",
+    "WinHttpSetTimeouts",
+    "WinHttpWriteData"
+  ]
+}

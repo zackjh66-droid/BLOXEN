@@ -18,6 +18,8 @@ if($LASTEXITCODE){throw 'Network test build failed'}
 & "$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test.log');if($LASTEXITCODE){throw 'Network behavior failed'}
 & (Join-Path $source 'tests\Test-DataExports.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-export-test.log')
 if($LASTEXITCODE){throw 'Native DATA export fixture failed'}
+& (Join-Path $source 'tests\Test-ClientProxies.ps1') -OutputDirectory $OutputDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib') 2>&1|Tee-Object (Join-Path $OutputDirectory 'client-proxy-build.log')
+if($LASTEXITCODE){throw 'Exact dependency proxy build failed'}
 if($PrivatePreparedDirectory){
  & (Join-Path $source 'private-package\Build-Proxies.ps1') -PreparedDirectory $PrivatePreparedDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib')
  Copy-Item (Join-Path $PrivatePreparedDirectory 'GamePayload\*') (Join-Path $source 'App') -Recurse -Force
