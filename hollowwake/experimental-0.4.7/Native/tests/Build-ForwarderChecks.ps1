@@ -24,7 +24,7 @@ try{
  @('LIBRARY api-ms-win-core-libraryloader-l1-1-0.dll','EXPORTS',' LoadLibraryExW',' GetProcAddress',' FreeLibrary',' GetModuleHandleW',' GetModuleHandleExW',' GetModuleFileNameW')|Set-Content GuestLoader.def
  & lib.exe /nologo /DEF:GuestLoader.def /MACHINE:X64 /OUT:GuestLoader.lib 2>&1|Tee-Object modules-import-library.log;if($LASTEXITCODE){throw 'Module loader import library failed'}
  & cl.exe /nologo /c /MD /Od /GS- /Zl (Join-Path $tests 'FixtureModules.cpp') /Fo:FixtureModules.obj 2>&1|Tee-Object modules-compile.log;if($LASTEXITCODE){throw 'Module API fixture compilation failed'}
- & link.exe /DLL /ENTRY:ModulesEntry /NODEFAULTLIB /MACHINE:X64 /DYNAMICBASE /FIXED:NO FixtureModules.obj GuestLoader.lib kernel32.lib /OUT:FixtureModules.dll 2>&1|Tee-Object modules-link.log;if($LASTEXITCODE){throw 'Module API fixture link failed'}
+ & link.exe /DLL /ENTRY:ModulesEntry /NODEFAULTLIB /MACHINE:X64 /DYNAMICBASE /FIXED:NO FixtureModules.obj GuestLoader.lib LegacyAllocator.lib kernel32.lib /OUT:FixtureModules.dll 2>&1|Tee-Object modules-link.log;if($LASTEXITCODE){throw 'Module API fixture link failed'}
  $header='struct KnownModule {const wchar_t* path;const char* name;const char* hash;};'+[Environment]::NewLine+'static const KnownModule known[]={'+[Environment]::NewLine
  foreach($name in @('FixtureFirst.dll','FixtureSecond.dll','FixtureTarget.dll','FixtureFixedCode.dll','FixtureClock.dll','FixtureMemory.dll','FixtureStartup.dll','FixtureModules.dll')){
   $hash=(Get-FileHash $name -Algorithm SHA256).Hash.ToLowerInvariant();$header+='{L"'+$name+'","'+$name+'","'+$hash+'"},'+[Environment]::NewLine

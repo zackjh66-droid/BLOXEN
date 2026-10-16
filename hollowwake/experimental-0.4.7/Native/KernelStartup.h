@@ -37,12 +37,14 @@ inline void* ResolveKernelStartupImport(const char* dll,const char* name){
  START("FlsAlloc",::FlsAlloc);START("FlsFree",::FlsFree);START("FlsGetValue",::FlsGetValue);START("FlsSetValue",::FlsSetValue);
  START("InitializeCriticalSectionEx",::InitializeCriticalSectionEx);START("TryEnterCriticalSection",::TryEnterCriticalSection);
  START("GetStringTypeW",::GetStringTypeW);START("CompareStringW",::CompareStringW);START("CompareStringEx",::CompareStringEx);
- START("LCMapStringW",::LCMapStringW);START("LCMapStringEx",::LCMapStringEx);START("GetLocaleInfoW",::GetLocaleInfoW);START("GetLocaleInfoEx",::GetLocaleInfoEx);
- START("IsValidLocaleName",::IsValidLocaleName);START("GetACP",::GetACP);START("GetOEMCP",::GetOEMCP);START("GetCPInfo",::GetCPInfo);START("IsValidCodePage",::IsValidCodePage);
+ START("LCMapStringEx",::LCMapStringEx);START("GetLocaleInfoW",::GetLocaleInfoW);START("GetLocaleInfoEx",::GetLocaleInfoEx);
+ START("IsValidLocaleName",::IsValidLocaleName);START("GetACP",::GetACP);START("GetCPInfo",::GetCPInfo);START("IsValidCodePage",::IsValidCodePage);
  START("EncodePointer",::EncodePointer);START("DecodePointer",::DecodePointer);START("IsDebuggerPresent",::IsDebuggerPresent);
  START("GetCurrentProcessId",::GetCurrentProcessId);START("GetCurrentThreadId",::GetCurrentThreadId);START("GetCurrentThread",::GetCurrentThread);
  START("GetSystemTimeAsFileTime",::GetSystemTimeAsFileTime);START("QueryPerformanceCounter",::QueryPerformanceCounter);START("QueryPerformanceFrequency",::QueryPerformanceFrequency);
  START("GetProcessHeap",::GetProcessHeap);START("IsProcessorFeaturePresent",::IsProcessorFeaturePresent);
+ START("RtlCaptureContext",::RtlCaptureContext);START("RtlLookupFunctionEntry",::RtlLookupFunctionEntry);START("RtlVirtualUnwind",::RtlVirtualUnwind);
+ START("SetFilePointerEx",::SetFilePointerEx);START("FlushFileBuffers",::FlushFileBuffers);
  START("GetLastError",::GetLastError);START("SetLastError",::SetLastError);
 
  #undef START

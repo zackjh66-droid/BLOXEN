@@ -6,6 +6,9 @@
 #include <cwchar>
 #include <limits>
 namespace {
+// Documented Win32 guest ABI flag values; desktop SDK names are hidden in UWP.
+constexpr DWORD SearchSystem32=0x800,SearchDefaultDirs=0x1000,SearchApplicationDir=0x200;
+constexpr DWORD HandlePin=1,HandleUnchangedRefcount=2,HandleFromAddress=4;
 struct Module {std::string name;std::wstring path;HMODULE handle=nullptr;SIZE_T size=0;unsigned refs=0;bool facade=false,pinned=false;};
 std::recursive_mutex mutex;
 std::map<std::string,Module> modules;
@@ -41,11 +44,11 @@ Module* Find(const std::string& name,bool load){
 bool AddRef(Module& m){if(m.refs==std::numeric_limits<unsigned>::max()){SetLastError(ERROR_TOO_MANY_MODULES);return false;}++m.refs;return true;}
 HMODULE WINAPI GuestLoadLibraryExW(LPCWSTR name,HANDLE file,DWORD flags){
  std::lock_guard<std::recursive_mutex> guard(mutex);
- constexpr DWORD supported=LOAD_LIBRARY_SEARCH_SYSTEM32|LOAD_LIBRARY_SEARCH_DEFAULT_DIRS|LOAD_LIBRARY_SEARCH_APPLICATION_DIR;
+ constexpr DWORD supported=SearchSystem32|SearchDefaultDirs|SearchApplicationDir;
  if(file||flags&~supported){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}
  std::string key;if(!Normalize(name,key))return nullptr;
  auto module=Find(key,true);if(!module)return nullptr;
- if((flags&LOAD_LIBRARY_SEARCH_SYSTEM32)&&!module->facade){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
+ if((flags&SearchSystem32)&&!module->facade){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
  if(!AddRef(*module))return nullptr;
  if(logger)logger("MODULE acquired "+key+(module->facade?" (public-API facade)":" (initialized hash-pinned guest image)"));return module->handle;
 }
@@ -57,16 +60,16 @@ HMODULE WINAPI GuestGetModuleHandleW(LPCWSTR name){std::lock_guard<std::recursiv
 HMODULE WINAPI GuestGetModuleHandleA(LPCSTR name){if(!name)return GuestGetModuleHandleW(nullptr);auto wide=Widen(name);if(wide.empty()){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}return GuestGetModuleHandleW(wide.c_str());}
 BOOL WINAPI GuestGetModuleHandleExW(DWORD flags,LPCWSTR name,HMODULE* output){
  std::lock_guard<std::recursive_mutex> guard(mutex);if(!output){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}*output=nullptr;
- if(flags&~(GET_MODULE_HANDLE_EX_FLAG_PIN|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT|GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS)||(flags&GET_MODULE_HANDLE_EX_FLAG_PIN&&flags&GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT)){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}
+ if(flags&~(HandlePin|HandleUnchangedRefcount|HandleFromAddress)||(flags&HandlePin&&flags&HandleUnchangedRefcount)){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}
  HMODULE h=nullptr;
- if(flags&GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS){auto address=reinterpret_cast<ULONG_PTR>(name);for(auto& p:modules){auto& m=p.second;auto begin=reinterpret_cast<ULONG_PTR>(m.handle);if(!m.facade&&address>=begin&&address-begin<m.size){h=m.handle;break;}}
+ if(flags&HandleFromAddress){auto address=reinterpret_cast<ULONG_PTR>(name);for(auto& p:modules){auto& m=p.second;auto begin=reinterpret_cast<ULONG_PTR>(m.handle);if(!m.facade&&address>=begin&&address-begin<m.size){h=m.handle;break;}}
   if(!h){GuestModuleRecord record;if(FindGuestDependencyAddress(address,record)){std::string key;auto slash=record.path.find_last_of(L"/\\");auto base=record.path.substr(slash==std::wstring::npos?0:slash+1);if(Normalize(base.c_str(),key)){h=Remember(record,key)->handle;}}}
  }else h=GuestGetModuleHandleW(name);
  auto m=ByHandle(h);if(!h||!m){SetLastError(ERROR_MOD_NOT_FOUND);return FALSE;}
- if(!(flags&GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT)&&!AddRef(*m))return FALSE;
- if(flags&GET_MODULE_HANDLE_EX_FLAG_PIN)m->pinned=true;*output=h;return TRUE;
+ if(!(flags&HandleUnchangedRefcount)&&!AddRef(*m))return FALSE;
+ if(flags&HandlePin)m->pinned=true;*output=h;return TRUE;
 }
-BOOL WINAPI GuestGetModuleHandleExA(DWORD flags,LPCSTR name,HMODULE* output){if(flags&GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS)return GuestGetModuleHandleExW(flags,reinterpret_cast<LPCWSTR>(name),output);if(!name)return GuestGetModuleHandleExW(flags,nullptr,output);auto wide=Widen(name);if(wide.empty()){if(output)*output=nullptr;SetLastError(ERROR_MOD_NOT_FOUND);return FALSE;}return GuestGetModuleHandleExW(flags,wide.c_str(),output);}
+BOOL WINAPI GuestGetModuleHandleExA(DWORD flags,LPCSTR name,HMODULE* output){if(flags&HandleFromAddress)return GuestGetModuleHandleExW(flags,reinterpret_cast<LPCWSTR>(name),output);if(!name)return GuestGetModuleHandleExW(flags,nullptr,output);auto wide=Widen(name);if(wide.empty()){if(output)*output=nullptr;SetLastError(ERROR_MOD_NOT_FOUND);return FALSE;}return GuestGetModuleHandleExW(flags,wide.c_str(),output);}
 FARPROC WINAPI GuestGetProcAddress(HMODULE handle,LPCSTR name){
  std::lock_guard<std::recursive_mutex> guard(mutex);auto m=ByHandle(handle);if(!m){SetLastError(ERROR_INVALID_HANDLE);return nullptr;}
  auto raw=reinterpret_cast<ULONG_PTR>(name);if(!raw){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}
