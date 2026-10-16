@@ -1,6 +1,6 @@
 {
-  "run": "https://github.com/zackjh66-droid/BLOXEN/actions/runs/38942511443",
-  "compiledCommit": "9431750ef876f16406db354fc2516a5b45c9fb5b",
+  "run": "https://github.com/zackjh66-droid/BLOXEN/actions/runs/38948936117",
+  "compiledCommit": "6b3a3434e2759ddcb80a3c39ebf747dffb1ea86a",
   "scope": "Original owned-code hosted Windows checks, not game execution",
   "nativeUwpRuntimeBuild": "PASS",
   "dynamicImportNamespace": "PASS",
@@ -13,5 +13,11 @@
   "xboxExecuted": false,
   "originalLobbyReached": false,
   "gameAuthenticationHandoffImplemented": false,
-  "appxProduced": false
+  "appxProduced": false,
+  "nativeImportProxyAndOwnedExeExecution": "PASS",
+  "nativeMainIdentityAndRestrictedDynamicLookup": "PASS",
+  "mixedArgumentAndOrdinalProxyAbi": "PASS",
+  "missingExportDllInitializationRejection": "PASS",
+  "nativePackagedClientEntry": "Compiled only; not invoked",
+  "season621ImportRewrite": "Static preservation of 1081 symbols; eight descriptor aliases; no execution"
 }
