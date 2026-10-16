@@ -25,7 +25,7 @@ try {
   & python (Join-Path $PSScriptRoot 'generate_proxy.py') $specPath $generated
   if($LASTEXITCODE){throw "Proxy generation failed: $name"}
   $obj=Join-Path $generated 'proxy.obj';$cpp=Join-Path $generated 'proxy.cpp';$asm=Join-Path $generated 'proxy.asm';$def=Join-Path $generated 'proxy.def'
-  & ml64.exe /nologo /c "/Fo:$obj" $asm 2>&1|Tee-Object -Append (Join-Path $OutputDirectory 'proxy-dll-build.log')
+  & ml64.exe /nologo /c "/Fo$obj" $asm 2>&1|Tee-Object -Append (Join-Path $OutputDirectory 'proxy-dll-build.log')
   if($LASTEXITCODE){throw "Proxy assembly failed: $name"}
   & cl.exe /nologo /LD /MD /DWIN32_LEAN_AND_MEAN /DWINAPI_FAMILY=WINAPI_FAMILY_APP $cpp $obj HollowwakeClientRuntime.lib windowsapp.lib "/Fe:$name" /link "/DEF:$def" 2>&1|Tee-Object -Append (Join-Path $OutputDirectory 'proxy-dll-build.log')
   if($LASTEXITCODE){throw "Proxy DLL link failed: $name"}
