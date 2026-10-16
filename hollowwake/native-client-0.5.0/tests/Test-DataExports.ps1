@@ -10,10 +10,12 @@ try{
  if($LASTEXITCODE){throw 'Data provider fixture compilation failed'}
  & cl.exe /nologo /LD /MD (Join-Path $PSScriptRoot 'DataExportHost.cpp') /Fe:HWProxyTestHost.dll
  if($LASTEXITCODE){throw 'Data resolver fixture compilation failed'}
- & ml64.exe /nologo /c /Foproxy.obj generated/proxy.asm
+ & ml64.exe /nologo /c /Foproxy-asm.obj generated/proxy.asm
  if($LASTEXITCODE){throw 'Data proxy fixture assembly failed'}
- & cl.exe /nologo /LD /MD generated/proxy.cpp proxy.obj HWProxyTestHost.lib windowsapp.lib /Fe:HWDataProxy.dll /link /DEF:generated/proxy.def
+ & cl.exe /nologo /LD /MD generated/proxy.cpp /Foproxy-cpp.obj proxy-asm.obj HWProxyTestHost.lib windowsapp.lib /Fe:HWDataProxy.dll /link /DEF:generated/proxy.def
  if($LASTEXITCODE){throw 'Data proxy fixture link failed'}
+ & lib.exe /nologo /DEF:generated/proxy-import.def /MACHINE:X64 /OUT:HWDataProxy.lib
+ if($LASTEXITCODE){throw 'DATA-aware consumer import library generation failed'}
  & cl.exe /nologo /MD (Join-Path $PSScriptRoot 'DataExportConsumer.cpp') HWDataProxy.lib /Fe:DataExportConsumer.exe
  if($LASTEXITCODE){throw 'Data consumer fixture compilation failed'}
  & ./DataExportConsumer.exe

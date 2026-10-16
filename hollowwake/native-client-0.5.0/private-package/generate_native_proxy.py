@@ -15,7 +15,7 @@ def emit(spec,output):
   if not isinstance(symbol,str) or not 1<=len(symbol)<=4096 or any(ord(c)<33 or ord(c)>126 or c in '\\"' for c in symbol):raise ValueError('Invalid export name')
   if symbol in data:
    if not re.fullmatch(r'[A-Za-z0-9_?@$]+',symbol):raise ValueError('Data forwarder requires a named export')
-   exports.append(' '+symbol+'='+dll[:-4]+'.'+symbol+' DATA')
+   exports.append(' '+symbol+'='+dll[:-4]+'.'+symbol)
    continue
   label='HWProxyFn'+str(i)
   asm+=['PUBLIC '+label,label+' PROC',' jmp QWORD PTR [HWProxyTargets+'+str(i*8)+']',label+' ENDP']
@@ -42,6 +42,10 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE,DWORD reason,LPVOID){
 }
 '''.replace('DATAFLAGS',','.join('true' if x in data else 'false' for x in symbols)).replace('CELLS',str(cells)).replace('SYMBOLS',','.join(json.dumps(x) for x in symbols)).replace('COUNT',str(len(symbols))).replace('DLL,',json.dumps(dll)+',')
  (out/'proxy.cpp').write_text(cpp);(out/'proxy.asm').write_text('\n'.join(asm)+'\n');(out/'proxy.def').write_text('\n'.join(exports)+'\n')
+ # PE export tables have no DATA bit. Only consumer import libraries need it;
+ # MSVC LINK rejects DATA on some forwarded exports while LIB accepts it.
+ imports=[line+' DATA' if line.split('=',1)[0].strip() in data else line for line in exports]
+ (out/'proxy-import.def').write_text('\n'.join(imports)+'\n')
  (out/'proxy.json').write_text(json.dumps(spec,indent=2)+'\n')
  return out
 if __name__=='__main__':
