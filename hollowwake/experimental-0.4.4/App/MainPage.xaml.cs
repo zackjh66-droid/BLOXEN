@@ -45,7 +45,7 @@ namespace Hollowwake
         {
             InitializeComponent();
             var core=CoreWindow.GetForCurrentThread();core.KeyDown+=(s,e)=>{if(policyReady)HWKey((uint)e.VirtualKey,1);};core.KeyUp+=(s,e)=>{if(policyReady)HWKey((uint)e.VirtualKey,0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWChar(e.KeyCode);};
-            Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null)previous.ClearValue(Button.BackgroundProperty);previous=selected;if(selected!=null)selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,138,36));};
+            Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
             Loaded += async (s, e) => { if (!ready) { ready = true; await InitializeAsync(); } };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; await CancelLinkAsync(); };
@@ -205,7 +205,8 @@ namespace Hollowwake
             if(importBusy||loadBusy)return;if(!policyReady){StatusText.Text="Executable-memory policy failed. Show the log; import is paused to avoid an unnecessary 39 GB download.";return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}importBusy=true;
             try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);var progress=new Progress<string>(text=>{var ignored=Dispatcher.RunAsync(CoreDispatcherPriority.Normal,()=>StatusText.Text=text);});await Task.Run(()=>minimum?BootImport.Run(progress,operation.Token):GameImport.Run(progress,operation.Token));StatusText.Text="Import complete. Choose Attempt client loading.";await ManagedLog(minimum?"Minimum boot input hashes verified; full ZIP was not downloaded and launchers/scripts were not selected.":"Immutable archive verified; clean copy and quarantine inventory complete.");
-                var splash=Path.Combine(GameImport.Root,"6.21","FortniteGame","Content","Splash","Splash.bmp");if(File.Exists(splash)){var f=await StorageFile.GetFileFromPathAsync(splash);using(var input=await f.OpenReadAsync()){var image=new BitmapImage();await image.SetSourceAsync(input);BackgroundImage.Source=image;}}
+                // Keep the verified Season 6 landscape visible in the host. Only guest rendering may replace it with the actual game loading/lobby.
+
             }catch(OperationCanceledException){StatusText.Text="Import paused. Download bytes are retained; retry resumes. Incomplete extraction is never marked ready.";}
             catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8")+(ex is IOException?" "+ex.Message:""));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
         }

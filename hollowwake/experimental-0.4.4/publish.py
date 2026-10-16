@@ -15,7 +15,7 @@ for source in [p,root/'client-runtime']:
   if not f.is_file() or {'evidence','bin','obj','artifacts','AppPackages','__pycache__'}&set(f.relative_to(source).parts):continue
   if f.suffix.lower() in {'.pfx','.key','.sqlite','.dll','.exe'}:continue
   path='hollowwake/'+f.relative_to(root).as_posix()
-  if f.suffix.lower() in {'.png','.jpg'}:
+  if f.suffix.lower() in {'.png','.jpg','.ttf'}:
    b=api('git/blobs',{'content':base64.b64encode(f.read_bytes()).decode(),'encoding':'base64'});entries.append({'path':path,'mode':'100644','type':'blob','sha':b['sha']})
   else:entries.append({'path':path,'mode':'100644','type':'blob','content':f.read_text()})
 entries.append({'path':'.github/workflows/hollowwake-client-experiment-044.yml','mode':'100644','type':'blob','content':(p/'workflow.yml').read_text()})

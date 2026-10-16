@@ -31,6 +31,7 @@ int wmain(int argc,wchar_t** argv){try{
  Check(!reinterpret_cast<BOOL(WINAPI*)()>(memoryAttached)(),"Memory fixture initialized before explicit process attach");
  Check(InitializeDependencies(),"Original fixture initialization graph failed");
  Check(reinterpret_cast<BOOL(WINAPI*)()>(memoryAttached)(),"Mapped allocator fixture process attach did not run");
+ std::cout<<"INITIALIZERS mapped DLL_PROCESS_ATTACH invoked msvcrt!_initterm/_initterm_e; null skipping, ordered callbacks, empty tables, first-error short circuit PASS"<<std::endl;
  auto memoryResult=reinterpret_cast<int(WINAPI*)()>(memoryCheck)();Check(memoryResult==0,("Mapped allocator checks failed: "+std::to_string(memoryResult)).c_str());
  Check(Hollowwake::LegacyAllocatorContract(),"Production allocation-family contract failed");
  Check(!Hollowwake::ResolveLegacyCrtImport("ucrtbase.dll","malloc")&&!Hollowwake::ResolveLegacyCrtImport("msvcrt.dll","_iob"),"Allocator bridge must not alias unrelated CRT or legacy FILE layouts");

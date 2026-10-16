@@ -1,0 +1,20 @@
+{
+  "background": {
+    "file": "Landmark.jpg / assets/landmark.jpg",
+    "imageUrl": "https://cdn2.unrealengine.com/Fortnite%2Fblog%2Fv6-00-patch-notes%2FBR06_News_Featured_16_9_ReleaseNotes-1920x1080-9a66a68e6061577160f354858e3e13d80eda6886.jpg",
+    "page": "https://www.fortnite.com/news/season-6?lang=en-US",
+    "published": "2018-09-27",
+    "description": "Epic official Chapter 1 Season 6 promotional scene: Kevin cube, corrupted ground, Shadow Stones. Same scene as supplied launcher reference; not claimed to be Loot Lake floating island.",
+    "sha256": "5641d8515e8b490979132aa7d1ab61aec27eac96ac7f8016387635d6269d32de",
+    "permission": "Conditional noncommercial fan-content use under Epic Fan Content Policy; no game-redistribution or mod authorization implied. Public promotional image obtained directly from Epic CDN.",
+    "policy": "https://legal.epicgames.com/epicgames/fan-art-policy",
+    "support": "https://www.epicgames.com/help/c-35761596/a25498694?lang=en-US"
+  },
+  "branding": {
+    "description": "Original transparent SVG reconstruction of supplied orange HW reference; separate live text wordmark, not flattened mockup.",
+    "font": "Anton Regular, Google Fonts, SIL Open Font License 1.1; included Anton-OFL.txt",
+    "fontSource": "https://github.com/google/fonts/tree/main/ofl/anton",
+    "epicFont": false
+  },
+  "reviewedAt": "2026-10-16"
+}

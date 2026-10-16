@@ -28,6 +28,22 @@ try {
   if (!$button) {throw "Native button unavailable: $automationId"}
   $button.SetFocus();$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke()
  }
+ function Save-NativeScreenshot([string]$name,[string]$controlId) {
+  try {
+   Add-Type -AssemblyName System.Drawing
+   $element=Wait-Control $controlId
+   $walker=[System.Windows.Automation.TreeWalker]::ControlViewWalker
+   $window=$element
+   while($window -and $window.Current.ControlType -ne [System.Windows.Automation.ControlType]::Window){$window=$walker.GetParent($window)}
+   if(!$window){throw 'No native top-level window found'}
+   $rect=$window.Current.BoundingRectangle
+   $bitmap=New-Object System.Drawing.Bitmap ([int]$rect.Width),([int]$rect.Height)
+   $graphics=[System.Drawing.Graphics]::FromImage($bitmap)
+   $graphics.CopyFromScreen([int]$rect.X,[int]$rect.Y,0,0,$bitmap.Size)
+   $bitmap.Save((Join-Path $OutputDirectory $name),[System.Drawing.Imaging.ImageFormat]::Png)
+   $graphics.Dispose();$bitmap.Dispose()
+  }catch{('Screenshot unavailable: '+$_.Exception.Message)|Set-Content (Join-Path $OutputDirectory ($name+'.txt'))}
+ }
  $status=Invoke-RestMethod -Uri ($BackendOrigin+'/api/status')
  if($status.project -ne 'Hollowwake'){throw 'Wrong backend'}
  $result.checks+='Hosted Windows HTTPS backend access'
@@ -48,7 +64,9 @@ try {
   $null=Invoke-RestMethod -Uri ($BackendOrigin+'/api/link/approve') -Method POST -ContentType 'application/json' -Headers $headers -WebSession $session -Body $body
   $null=Wait-Control 'UsernameText' 40 $username
  }
+ Save-NativeScreenshot 'native-linking-windows.png' 'CodeText'
  Approve-DisplayedCode
+ Save-NativeScreenshot 'native-menu-windows.png' 'UsernameText'
  $result.checks+='Native code display, website-account approval, native polling and linked username'
  $devices=Invoke-RestMethod -Uri ($BackendOrigin+'/api/devices') -WebSession $session
  if($devices.devices.Count -ne 1){throw 'Expected exactly one native device session'}
