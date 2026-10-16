@@ -5,6 +5,7 @@ artifact=Path(sys.argv[1]);run=int(sys.argv[2]);commit=sys.argv[3]
 bundle=out/'Hollowwake-Client-Experiment-0.4.1-x64';bundle.mkdir(exist_ok=True);logs=bundle/'WindowsVerification';logs.mkdir(exist_ok=True)
 with zipfile.ZipFile(artifact) as z:
  test=json.loads(z.read('windows-test.json').decode('utf-8-sig'));assert test['result'].startswith('PASS') and not test['xboxTested'] and not test['fortniteExecuted']
+ forwarders=json.loads(z.read('forwarder-checks/forwarder-test.json').decode('utf-8-sig'));assert forwarders['productionResolverUsed'] and forwarders['fixedBaseCollisionEstablished'] and forwarders['realMappedTargetReturn']==621 and forwarders['fixedExecutableRejected'] and not forwarders['downloadedCodeExecuted']
  for n in z.namelist():
   if n.endswith('/Hollowwake_0.4.1.0_x64.appx'):dest=bundle/'Hollowwake_0.4.1.0_x64.appx'
   elif '/Dependencies/x64/' in n and n.endswith('.appx'):dest=bundle/'Dependencies/x64'/Path(n).name
@@ -20,7 +21,7 @@ for name in ['crt-forwarder-audit.json','xbox-forwarder-failure.json','source-id
 for name in ['credential-probes.json','credential-remediation.json']:
  shutil.copy2(root/'research-0.3.1/evidence'/name,logs/name)
 for f in (exp/'docs').glob('*.md'):shutil.copy2(f,bundle/f.name)
-summary={'version':'0.4.1.0','status':'Experimental CRT forwarder-loader fix for observed Xbox failure; unfinished Fortnite port','sourceCommit':commit,'workflowRun':f'https://github.com/zackjh66-droid/BLOXEN/actions/runs/{run}','hostedWindows':test,'xbox':'0.4.1 update unverified; user photographed 0.4.0 native mapping/import and CRT-forwarder failure before guest entry','fortniteLobby':'Not achieved or tested','productionServices':'Unchanged; existing accounts/admin/companion preserved','gameInputs':'No Fortnite code/assets redistributed; private console import required'}
+summary={'version':'0.4.1.0','status':'Experimental CRT forwarder-loader fix for observed Xbox failure; unfinished Fortnite port','sourceCommit':commit,'workflowRun':f'https://github.com/zackjh66-droid/BLOXEN/actions/runs/{run}','hostedWindows':test,'productionForwarderFixture':forwarders,'xbox':'0.4.1 update unverified; user photographed 0.4.0 native mapping/import and CRT-forwarder failure before guest entry','fortniteLobby':'Not achieved or tested','productionServices':'Unchanged; existing accounts/admin/companion preserved','gameInputs':'No Fortnite code/assets redistributed; private console import required'}
 (logs/'verification-summary.json').write_text(json.dumps(summary,indent=2))
 notes='''# Hollowwake 0.4 — client initialization experiment
 

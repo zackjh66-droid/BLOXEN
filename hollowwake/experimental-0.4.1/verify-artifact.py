@@ -2,7 +2,7 @@ import io,zipfile,json,hashlib,base64,sys,xml.etree.ElementTree as ET
 from pathlib import Path
 from cryptography import x509
 import pefile
-p=Path(sys.argv[1]);out=Path(sys.argv[2]);z=zipfile.ZipFile(p);root="Hollowwake_0.4.0.0_x64_Test/";a=zipfile.ZipFile(io.BytesIO(z.read(root+"Hollowwake_0.4.0.0_x64.appx")));v=zipfile.ZipFile(io.BytesIO(z.read(root+"Dependencies/x64/Microsoft.VCLibs.x64.14.00.appx")))
+p=Path(sys.argv[1]);out=Path(sys.argv[2]);z=zipfile.ZipFile(p);root="Hollowwake_0.4.1.0_x64_Test/";a=zipfile.ZipFile(io.BytesIO(z.read(root+"Hollowwake_0.4.1.0_x64.appx")));v=zipfile.ZipFile(io.BytesIO(z.read(root+"Dependencies/x64/Microsoft.VCLibs.x64.14.00.appx")))
 exports={}
 for n in v.namelist():
  if n.lower().endswith(".dll"):
