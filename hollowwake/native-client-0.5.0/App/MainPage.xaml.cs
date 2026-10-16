@@ -192,8 +192,8 @@ namespace Hollowwake
                 if (ticket != generation || sessionToken != token) return;
                 UsernameText.Text = profile.GetNamedString("publicUsername");
                 await api.SendAsync("/api/device/renew", new JsonObject(), token, operation.Token);
-                StatusText.Text = policyReady?"Account verified. Import the inspected archive, then attempt native client loading. This is not a proven port.":"Native executable-memory policy or initialization failed. Show the launch log before downloading game files.";
-                heartbeat.Start(); if (focus) ImportButton.Focus(FocusState.Programmatic);
+                StatusText.Text = policyReady?"Account verified. Native client code must be installed in the private package; legacy imports are disabled. Client compatibility remains unfinished.":"Native graphics window binding failed. Open the launch log for details.";
+                heartbeat.Start(); if (focus) LaunchButton.Focus(FocusState.Programmatic);
             }
             catch (ApiException ex) when (ex.Status == HttpStatusCode.Unauthorized)
             {
