@@ -15,11 +15,13 @@ jobs:
         with:
           persist-credentials: false
       - name: Build separate native-route package and focused production checks
+        id: public_build
         shell: cmd
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
       - name: Private game-input packaging check; never upload its files
+        id: private_source
         if: ${{ !contains(github.event.head_commit.message, '[ui-only]') }}
         timeout-minutes: 10
         continue-on-error: true
@@ -32,6 +34,14 @@ jobs:
           python hollowwake\native-client-0.5.0\private-package\prepare.py "%RUNNER_TEMP%\HollowwakePrivateInputs\6.21" "%RUNNER_TEMP%\HollowwakePrivatePrepared"
           if errorlevel 1 exit /b 1
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%RUNNER_TEMP%\HollowwakePrivatePackage" -PrivatePreparedDirectory "%RUNNER_TEMP%\HollowwakePrivatePrepared"
+      - name: Record public and private outcomes separately
+        if: always()
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force artifacts/native-client-050|Out-Null
+          @{publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';gameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
+          $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
+          if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

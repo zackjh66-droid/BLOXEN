@@ -31,7 +31,12 @@ def fallback(manifest,destination):
     if archive.exists() and archive.stat().st_size>16*1024**3:process.kill();process.communicate();raise ValueError('Mirror archive exceeds16GiB cap')
     time.sleep(.2)
    stdout,stderr=process.communicate()
-   if process.returncode:raise RuntimeError('Verified OS HTTPS download failed: '+stderr.decode(errors='replace')[:160])
+   # A verified TLS stream may finish its payload without a close_notify.
+   # Never accept other curl errors; archive checks and every selected SHA still apply.
+   detail=stderr.decode(errors='replace')
+   abruptClose=process.returncode==56 and 'missing close_notify' in detail and archive.is_file() and archive.stat().st_size>0
+   if process.returncode and not abruptClose:raise RuntimeError('Verified OS HTTPS download failed: '+detail[:160])
+   print(json.dumps({'source':url,'downloadBytes':archive.stat().st_size,'curlExit':process.returncode,'closeNotifyMissing':abruptClose,'tlsVerificationDisabled':False}))
    listing=subprocess.run([str(tool),'l','-slt','-sccUTF-8',str(archive)],capture_output=True,text=True,encoding='utf-8',check=True).stdout
    records=[]
    for block in listing.split('\n\n'):

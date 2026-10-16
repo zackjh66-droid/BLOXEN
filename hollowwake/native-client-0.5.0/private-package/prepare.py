@@ -9,7 +9,7 @@ sys.path.insert(0,str(ROOT/'native-image'));sys.path.insert(0,str(ROOT/'native-p
 from convert_image import convert
 from redirect_imports import redirect,SHORT
 SHORT.update({"xinput1_3.dll":"HWXI13.dll","xinput1_4.dll":"HWXI14.dll","xinput9_1_0.dll":"HWXI91.dll"})
-from generate_proxy import emit
+from generate_native_proxy import emit
 PIN='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def metadata(path):
@@ -69,7 +69,11 @@ def prepare(source,out):
   records.append({'originalRelativePath':'6.21/'+rel,'originalSha256':original,'packageRelativePath':dest.relative_to(stage).as_posix(),'sha256':sha(dest),'bytes':dest.stat().st_size,'mainImage':p==main})
   if sha(p)!=original:raise RuntimeError('Original changed')
  proxyRoot=out/'ProxySources';proxyRoot.mkdir()
- for item in proxies.values():emit(item,proxyRoot/item['proxyDll'])
+ for item in proxies.values():
+  # _iob is a legacy MSVCRT DATA export, not a callable function. A native
+  # PE forwarder preserves the provider's actual object address and CRT ownership.
+  if item['sourceDll'].lower()=='msvcrt.dll' and '_iob' in item['symbols']:item['dataSymbols']=['_iob']
+  emit(item,proxyRoot/item['proxyDll'])
  manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False}
  (stage/'native-package-manifest.json').write_text(json.dumps(manifest,indent=2));(out/'plan.json').write_text(json.dumps(manifest,indent=2));return manifest
 if __name__=='__main__':
