@@ -1,5 +1,5 @@
-// Original exact-ABI import hooks. A future mapper must bind these instead of
-// returning desktop DXGI factory functions; there is no complete mapper here.
+// Original exact-ABI import hooks integrated into Hollowwake's import path.
+// These hooks do not imply complete platform or client compatibility.
 #include "CoreWindowBridge.h"
 #include <wrl/client.h>
 #include <cstring>

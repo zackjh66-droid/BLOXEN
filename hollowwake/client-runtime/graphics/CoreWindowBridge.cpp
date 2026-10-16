@@ -1,4 +1,5 @@
-// Original import-bridge implementation. Does not emulate user32 or DXGI factories.
+// Original bounded UWP presentation bridge and DXGI wrappers.
+// This is not complete desktop/window or D3D COM-graph emulation.
 #include "CoreWindowBridge.h"
 #include <wrl/client.h>
 #include <new>

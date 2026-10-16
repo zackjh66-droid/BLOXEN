@@ -119,4 +119,8 @@ def convert(source,destination,expected):
  return {'inputSha256':digest,'outputSha256':hashlib.sha256(result).hexdigest(),'inputBytes':len(raw),'outputBytes':len(result),'originalInputUnchanged':True,'exportStorage':'new RX section' if headerRoom else 'extended existing final RX section; original protection retained','headerPaddingPreserved':headerRoom or result[newHeader:newHeader+40]==raw[newHeader:newHeader+40],'originalEntryRva':entry,'newDllEntryRva':dllEntry,'entryExport':symbol.decode(),'priorExportSlotsPreserved':originalExports,'priorExportNamesPreserved':len(names)-1,'forwardersPreserved':len(forwarders),'changes':['DLL characteristic','original leaf DllMain returns TRUE; original EXE entry exposed for explicit invocation','appended export data preserving prior exports and forwarders','checksum and invalidated Authenticode directory cleared'],'nativeLoadTested':False,'fortniteExecuted':False,'xboxTested':False,'portableClientClaimed':False}
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('destination');p.add_argument('--expected-sha256',required=True);p.add_argument('--report',required=True);a=p.parse_args()
- result=convert(a.source,a.destination,a.expected_sha256);Path(a.report).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
+ report=Path(a.report)
+ if report.resolve() in {Path(a.source).resolve(),Path(a.destination).resolve()} or report.exists():raise ValueError('Report must be a new file distinct from input and output')
+ result=convert(a.source,a.destination,a.expected_sha256)
+ with report.open('x') as f:f.write(json.dumps(result,indent=2)+'\n')
+ print(json.dumps(result))
