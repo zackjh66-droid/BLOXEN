@@ -2,14 +2,30 @@
 #pragma once
 #include <windows.h>
 #include <cstring>
+#include <roerrorapi.h>
+#include <intrin.h>
 // GetVersion is legacy and manifest-dependent; preserve the actual OS API behavior.
 #pragma warning(push)
 #pragma warning(disable:4996)
 namespace Hollowwake {
+using SystemInfoFailure=void(*)(DWORD);
+inline SystemInfoFailure& SystemInfoFailureHandler(){static SystemInfoFailure handler=nullptr;return handler;}
+inline DWORD WINAPI GuestGetVersion(){
+ OSVERSIONINFOW version{};version.dwOSVersionInfoSize=sizeof(version);
+ if(!::GetVersionExW(&version)){
+  DWORD error=GetLastError();if(SystemInfoFailureHandler())SystemInfoFailureHandler()(error);
+  RoFailFastWithErrorContext(HRESULT_FROM_WIN32(error?error:ERROR_GEN_FAILURE));__fastfail(7);
+ }
+ DWORD packed=(version.dwMajorVersion&255)|((version.dwMinorVersion&255)<<8);
+ if(version.dwPlatformId==VER_PLATFORM_WIN32_NT)packed|=(version.dwBuildNumber&0x7fff)<<16;
+ else packed|=0x80000000UL;
+ return packed;
+}
+
 inline void* ResolveSystemInfoImport(const char* dll,const char* name){
  if(!dll||!name)return nullptr;
  if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"KERNELBASE.dll")&&_strnicmp(dll,"api-ms-win-core-",16))return nullptr;
- if(!strcmp(name,"GetVersion"))return reinterpret_cast<void*>(&::GetVersion);
+ if(!strcmp(name,"GetVersion"))return reinterpret_cast<void*>(&GuestGetVersion);
  if(!strcmp(name,"GetSystemInfo"))return reinterpret_cast<void*>(&::GetSystemInfo);
  if(!strcmp(name,"GetNativeSystemInfo"))return reinterpret_cast<void*>(&::GetNativeSystemInfo);
  return nullptr;

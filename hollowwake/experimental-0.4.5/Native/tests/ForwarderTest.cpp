@@ -1,4 +1,5 @@
 #include <windows.h>
+#pragma warning(disable:4996)
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -44,7 +45,7 @@ int wmain(int argc,wchar_t** argv){try{
  Check(reinterpret_cast<BOOL(WINAPI*)(LPSYSTEM_INFO)>(systemCheck)(&mappedInfo),"Mapped GetSystemInfo attach/canary checks failed");
  Check(mappedInfo.wProcessorArchitecture==nativeInfo.wProcessorArchitecture&&mappedInfo.dwPageSize==nativeInfo.dwPageSize&&mappedInfo.lpMinimumApplicationAddress==nativeInfo.lpMinimumApplicationAddress&&mappedInfo.lpMaximumApplicationAddress==nativeInfo.lpMaximumApplicationAddress&&mappedInfo.dwActiveProcessorMask==nativeInfo.dwActiveProcessorMask&&mappedInfo.dwNumberOfProcessors==nativeInfo.dwNumberOfProcessors&&mappedInfo.dwAllocationGranularity==nativeInfo.dwAllocationGranularity,"Mapped GetSystemInfo differs from real host query");
  auto versionAddress=ResolveDependency("FixtureClock.dll","ReadVersion");Check(versionAddress,"Version fixture export missing");
- auto realVersion=reinterpret_cast<DWORD(WINAPI*)()>(Hollowwake::ResolveSystemInfoImport("KERNEL32.dll","GetVersion"));
+ auto realVersion=&::GetVersion;
  Check(reinterpret_cast<DWORD(WINAPI*)()>(versionAddress)()==realVersion(),"Mapped GetVersion differs from actual manifest-dependent OS API");
  Check(Hollowwake::SystemInfoContract(),"Production SystemInfo contract failed");
  std::cout<<"SYSTEM_INFO mapped DLL_PROCESS_ATTACH called actual OS GetSystemInfo; struct ABI/canaries/page/address/processor fields matched host PASS"<<std::endl;
