@@ -79,7 +79,7 @@ def convert(source,destination,expected):
   # table. Do not overwrite it or shift existing RVAs. Extend an already-readable,
   # non-writable/non-discardable final section only when every extent permits it.
   extend=max(sections,key=lambda x:x['rp']+x['rs'])
-  if extend['vs']>extend['rs'] or not extend['flags']&0x40000000 or extend['flags']&0x82000000:raise ValueError('No safe final section for export data')
+  if extend['vs']>extend['rs'] or not extend['flags']&0x40000000 or not extend['flags']&0x20000000 or extend['flags']&0x82000000:raise ValueError('No safe final section for export data')
   end=extend['va']+max(extend['vs'],extend['rs'])
   if end<max(x['va']+max(x['vs'],x['rs']) for x in sections):raise ValueError('Final raw and virtual sections differ')
   overlay=len(raw)-(extend['rp']+extend['rs'])
@@ -97,20 +97,26 @@ def convert(source,destination,expected):
   struct.pack_into('<I',body,nt+i*4,add(name));struct.pack_into('<H',body,ot+i*2,ordinal)
  for i,address in enumerate(funcs):struct.pack_into('<I',body,eat+i*4,address)
  struct.pack_into('<IIHH7I',body,0,0,0,0,0,dllName,base,len(funcs),len(names),va+eat,va+nt,va+ot)
+ exportLength=len(body)
+ # A real, leaf x64 DllMain is required so the OS marks process attach as
+ # completed and delivers subsequent TLS thread notifications. It deliberately
+ # defers the original EXE CRT entry to the explicit launch export.
+ while len(body)%16:body.append(0)
+ dllEntry=va+len(body);body.extend(b'\xb8\x01\x00\x00\x00\xc3')
  rs=align(len(body),fa);newImage=align(max(imageSize,va+len(body)),sa)
  if rp+rs>0xffffffff or newImage>0xffffffff:raise ValueError('PE field overflow')
  result=bytearray(raw);result.extend(b'\0'*(rp+rs-len(result)));result[rp:rp+len(body)]=body
  if headerRoom:struct.pack_into('<H',result,pe+6,count+1)
  struct.pack_into('<H',result,pe+22,flags|0x2000)
- struct.pack_into('<I',result,opt+16,0);struct.pack_into('<I',result,opt+56,newImage);struct.pack_into('<I',result,opt+64,0)
- struct.pack_into('<II',result,opt+112,va,len(body));struct.pack_into('<II',result,opt+112+4*8,0,0)
- if headerRoom:struct.pack_into('<8s6I2HI',result,newHeader,b'.hwload\0',len(body),va,rs,rp,0,0,0,0,0x40000040)
+ struct.pack_into('<I',result,opt+16,dllEntry);struct.pack_into('<I',result,opt+56,newImage);struct.pack_into('<I',result,opt+64,0)
+ struct.pack_into('<II',result,opt+112,va,exportLength);struct.pack_into('<II',result,opt+112+4*8,0,0)
+ if headerRoom:struct.pack_into('<8s6I2HI',result,newHeader,b'.hwload\0',len(body),va,rs,rp,0,0,0,0,0x60000060)
  else:
   struct.pack_into('<I',result,extend['header']+8,va-extend['va']+len(body))
   struct.pack_into('<I',result,extend['header']+16,rp+rs-extend['rp'])
  with destination.open('xb') as f:f.write(result)
  if hashlib.sha256(source.read_bytes()).hexdigest()!=digest:raise RuntimeError('Original input changed during conversion')
- return {'inputSha256':digest,'outputSha256':hashlib.sha256(result).hexdigest(),'inputBytes':len(raw),'outputBytes':len(result),'originalInputUnchanged':True,'exportStorage':'new read-only section' if headerRoom else 'extended existing final section; original protection retained','headerPaddingPreserved':headerRoom or result[newHeader:newHeader+40]==raw[newHeader:newHeader+40],'originalEntryRva':entry,'newDllEntryRva':0,'entryExport':symbol.decode(),'priorExportSlotsPreserved':originalExports,'priorExportNamesPreserved':len(names)-1,'forwardersPreserved':len(forwarders),'changes':['DLL characteristic','zero DLL entry; original EXE entry exposed for explicit invocation','appended export data preserving prior exports and forwarders','checksum and invalidated Authenticode directory cleared'],'nativeLoadTested':False,'fortniteExecuted':False,'xboxTested':False,'portableClientClaimed':False}
+ return {'inputSha256':digest,'outputSha256':hashlib.sha256(result).hexdigest(),'inputBytes':len(raw),'outputBytes':len(result),'originalInputUnchanged':True,'exportStorage':'new RX section' if headerRoom else 'extended existing final RX section; original protection retained','headerPaddingPreserved':headerRoom or result[newHeader:newHeader+40]==raw[newHeader:newHeader+40],'originalEntryRva':entry,'newDllEntryRva':dllEntry,'entryExport':symbol.decode(),'priorExportSlotsPreserved':originalExports,'priorExportNamesPreserved':len(names)-1,'forwardersPreserved':len(forwarders),'changes':['DLL characteristic','original leaf DllMain returns TRUE; original EXE entry exposed for explicit invocation','appended export data preserving prior exports and forwarders','checksum and invalidated Authenticode directory cleared'],'nativeLoadTested':False,'fortniteExecuted':False,'xboxTested':False,'portableClientClaimed':False}
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('destination');p.add_argument('--expected-sha256',required=True);p.add_argument('--report',required=True);a=p.parse_args()
  result=convert(a.source,a.destination,a.expected_sha256);Path(a.report).write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
