@@ -81,7 +81,7 @@ FARPROC WINAPI GuestGetProcAddress(HMODULE handle,LPCSTR name){
  // Dynamic optional queries must return NULL for unavailable functions. They
  // must never manufacture a non-null fail-fast thunk that UCRT will call.
  void* result=m->facade?(lookup?lookup(m->name.c_str(),name):nullptr):QueryDependencyExport(m->name.c_str(),name);
- if(!result){SetLastError(ERROR_PROC_NOT_FOUND);if(logger)logger("MODULE optional export absent "+m->name+"!"+name);}
+ if(!result){if(logger)logger("MODULE optional export absent "+m->name+"!"+name);SetLastError(ERROR_PROC_NOT_FOUND);}
  else if(logger)logger("MODULE export resolved "+m->name+"!"+name);
  return reinterpret_cast<FARPROC>(result);
 }

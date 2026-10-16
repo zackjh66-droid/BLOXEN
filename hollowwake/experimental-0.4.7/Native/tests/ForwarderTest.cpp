@@ -16,7 +16,7 @@
 #include "../LegacyStartup.h"
 #include "../KernelStartup.h"
 static unsigned metadataCount=0;
-static void Log(const std::string& line){std::cout<<line<<std::endl;if(line.find("DEP forward-only metadata verified")!=std::string::npos)++metadataCount;}
+static void Log(const std::string& line){if(line.find("MODULE ")==0)SetLastError(ERROR_SUCCESS);std::cout<<line<<std::endl;if(line.find("DEP forward-only metadata verified")!=std::string::npos)++metadataCount;}
 static void* Builtin(const char* dll,const char* name){if(auto p=ResolveModuleLoaderImport(dll,name))return p;if(auto crt=Hollowwake::ResolveLegacyStartupImport(dll,name))return crt;if(auto kernel=Hollowwake::ResolveKernelStartupImport(dll,name))return kernel;if(auto system=Hollowwake::ResolveSystemInfoImport(dll,name))return system;if(auto memory=Hollowwake::ResolveLegacyCrtImport(dll,name))return memory;if(auto clock=Hollowwake::ResolveClockImport(dll,name))return clock;return nullptr;}
 static void* Query(const char* dll,const char* name){if(auto p=Builtin(dll,name))return p;return QueryDependencyExport(dll,name);}
 static void* Resolve(const char* dll,const char* name){if(auto p=Builtin(dll,name))return p;return ResolveDependency(dll,name);}
