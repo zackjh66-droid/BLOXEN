@@ -38,7 +38,7 @@ DWORD WINAPI Attributes(LPCWSTR name){WIN32_FILE_ATTRIBUTE_DATA result={};return
 HANDLE WINAPI Find(LPCWSTR name,FINDEX_INFO_LEVELS level,LPVOID output,FINDEX_SEARCH_OPS operation,LPVOID filter,DWORD flags){auto path=Map(name,false);return path.empty()?INVALID_HANDLE_VALUE:FindFirstFileExFromAppW(path.c_str(),level,output,operation,filter,flags);}
 BOOL WINAPI Directory(LPCWSTR name,LPSECURITY_ATTRIBUTES security){auto path=Map(name,true);return !path.empty()&&CreateDirectoryFromAppW(path.c_str(),security);}
 BOOL WINAPI Delete(LPCWSTR name){auto path=Map(name,true);return !path.empty()&&DeleteFileFromAppW(path.c_str());}
-BOOL WINAPI RemoveDirectory(LPCWSTR name){auto path=Map(name,true);return !path.empty()&&RemoveDirectoryFromAppW(path.c_str());}
+BOOL WINAPI RemoveDataDirectory(LPCWSTR name){auto path=Map(name,true);return !path.empty()&&RemoveDirectoryFromAppW(path.c_str());}
 DWORD WINAPI Current(DWORD capacity,LPWSTR output){std::lock_guard<std::recursive_mutex> lock(gate);if(cwd.empty()){SetLastError(ERROR_PATH_NOT_FOUND);return 0;}DWORD needed=(DWORD)cwd.size()+1;if(capacity<needed)return needed;if(!output){SetLastError(ERROR_INVALID_PARAMETER);return 0;}std::wmemcpy(output,cwd.c_str(),needed);return needed-1;}
 BOOL WINAPI SetCurrent(LPCWSTR name){std::lock_guard<std::recursive_mutex> lock(gate);auto logical=Absolute(name);if(!Under(logical,package+L"\\6.21")&&!Under(logical,data+L"\\6.21")){SetLastError(ERROR_ACCESS_DENIED);return FALSE;}auto attr=Attributes(logical.c_str());if(attr==INVALID_FILE_ATTRIBUTES||!(attr&FILE_ATTRIBUTE_DIRECTORY)){SetLastError(ERROR_PATH_NOT_FOUND);return FALSE;}cwd=logical;return TRUE;}
 }
@@ -46,7 +46,7 @@ bool ConfigureDataFiles(const wchar_t* packageRoot,const wchar_t* localRoot){std
 bool RegisterCodeFileAlias(const wchar_t* original,const wchar_t* physical){std::lock_guard<std::recursive_mutex> lock(gate);if(!original||!physical||package.empty())return false;auto o=Fold(original),p=Fold(physical);for(auto path:{o,p})if(path.empty()||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;if(!Executable(o)||!Executable(p))return false;auto key=package+L"\\"+o,value=package+L"\\"+p;auto old=code.find(key);if(old!=code.end())return old->second==value;code[key]=value;code[value]=value;return true;}
 void* ResolveDataFileImport(const char* dll,const char* name){if(!dll||!name||(_stricmp(dll,"kernel32.dll")&&_stricmp(dll,"kernelbase.dll")&&_strnicmp(dll,"api-ms-win-core-file",20)&&_strnicmp(dll,"api-ms-win-core-processenvironment-",33)))return nullptr;
 #define API(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
- API("CreateFileW",Open);API("GetFileAttributesW",Attributes);API("GetFileAttributesExW",AttributesEx);API("FindFirstFileExW",Find);API("CreateDirectoryW",Directory);API("DeleteFileW",Delete);API("RemoveDirectoryW",RemoveDirectory);API("GetCurrentDirectoryW",Current);API("SetCurrentDirectoryW",SetCurrent);
+ API("CreateFileW",Open);API("GetFileAttributesW",Attributes);API("GetFileAttributesExW",AttributesEx);API("FindFirstFileExW",Find);API("CreateDirectoryW",Directory);API("DeleteFileW",Delete);API("RemoveDirectoryW",RemoveDataDirectory);API("GetCurrentDirectoryW",Current);API("SetCurrentDirectoryW",SetCurrent);
 #undef API
  return nullptr;
 }
