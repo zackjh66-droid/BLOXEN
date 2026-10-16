@@ -2,7 +2,8 @@ param([string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 Push-Location $OutputDirectory
 try {
- & cl.exe /nologo /O2 /GS- /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot 'OriginalExeFixture.cpp') /Fe:OriginalExeFixture.exe /link /NODEFAULTLIB /ENTRY:OriginalEntry /SUBSYSTEM:WINDOWS /DYNAMICBASE /FIXED:NO /INCREMENTAL:NO /DEF:(Join-Path $PSScriptRoot 'OriginalExeFixture.def') kernel32.lib ntdll.lib 2>&1|Tee-Object native-image-fixture-build.log
+ $fixtureDefinition=Join-Path $PSScriptRoot 'OriginalExeFixture.def'
+ & cl.exe /nologo /O2 /GS- /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot 'OriginalExeFixture.cpp') /Fe:OriginalExeFixture.exe /link /NODEFAULTLIB /ENTRY:OriginalEntry /SUBSYSTEM:WINDOWS /DYNAMICBASE /FIXED:NO /INCREMENTAL:NO "/DEF:$fixtureDefinition" /INCLUDE:_tls_used kernel32.lib ntdll.lib 2>&1|Tee-Object native-image-fixture-build.log
  if($LASTEXITCODE){throw 'Original native-loader EXE fixture compilation failed'}
  $digest=(Get-FileHash -Algorithm SHA256 OriginalExeFixture.exe).Hash.ToLowerInvariant()
  & python (Join-Path $PSScriptRoot 'convert_image.py') OriginalExeFixture.exe OriginalConvertedFixture.dll --expected-sha256 $digest --report native-image-conversion.json 2>&1|Tee-Object native-image-conversion.log
