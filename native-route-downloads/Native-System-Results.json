@@ -1,0 +1,18 @@
+{
+  "compiledSourceCommit": "dd2f2d64f87ded0af0c075564339702d03fba76a",
+  "workflowRun": 38936516506,
+  "windowsBuild": "PASS; integrated native UWP DLL linked",
+  "testedOperations": [
+    "OS startup-info output and canaries",
+    "native thread creation/wait/exit code",
+    "system legacy CRT allocation/reallocation/release",
+    "WinRT HSTRING create/read/release",
+    "missing export/ordinal/path/network-scope rejection"
+  ],
+  "nativeDemandPairsResolved": 765,
+  "nativeDemandPairsMissing": 0,
+  "scope": "Hosted Windows address availability across selected core/CRT domains only; not all API semantics or Xbox availability",
+  "originalGameExecuted": false,
+  "xboxTested": false,
+  "newAppxDelivered": false
+}
