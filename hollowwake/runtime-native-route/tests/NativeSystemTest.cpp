@@ -7,6 +7,7 @@
 static void Check(bool condition,const char* message){if(!condition)throw std::runtime_error(message);}
 int main(){try{
  using namespace Hollowwake;
+ auto systemLegacy=LoadLibraryExW(L"msvcrt.dll",nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);Check(systemLegacy,"Trusted system legacy CRT unavailable for fixture");
  auto startup=reinterpret_cast<void(WINAPI*)(LPSTARTUPINFOW)>(ResolveNativeSystemImport("kernel32.dll","GetStartupInfoW"));Check(startup,"Actual OS GetStartupInfoW missing");
  struct Guarded{unsigned long long before;STARTUPINFOW value;unsigned long long after;} observed{},expected{};
  observed.before=expected.before=0x621621621;observed.after=expected.after=0x740740740;
