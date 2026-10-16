@@ -216,19 +216,35 @@ namespace Hollowwake
             catch(Exception ex){await ManagedLog("Native call HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}finally{loadBusy=false;}
         }
         private async void Log_Click(object sender,RoutedEventArgs e){
-            string text="Logs are in this package's LocalState: runtime-policy.txt, native-launch.log, managed-launch.log and import-inventory.txt. They contain no project tokens.\n\n";
-            try{
-                var native=await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync("native-launch.log"));
-                int start=native.LastIndexOf("ATTEMPT_BEGIN",StringComparison.Ordinal);var latest=start>=0?native.Substring(start):native;
-                var important=new System.Collections.Generic.List<string>();
-                foreach(var line in latest.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){
-                    if(line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED "))important.Add(line.Trim());
-                }
-                text+="LATEST CLIENT FAILURE SUMMARY — runtime 0.4.3.0\n"+(important.Count==0?"No named failure recorded yet.":string.Join("\n",important))+"\n\n";
-            }catch{}
-            foreach(var n in new[]{"runtime-policy.txt","native-launch.log","managed-launch.log"}){try{text+="\n"+n+"\n"+await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync(n));}catch{}}
-            var dialog=new ContentDialog{Title="Client loader diagnostics",CloseButtonText="Close",SecondaryButtonText="Allow native checks next launch",Content=new ScrollViewer{Content=new TextBlock{Text=text,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=true},MaxHeight=500}};dialog.SecondaryButtonClick+=(s,args)=>{var marker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-startup.pending");if(File.Exists(marker))File.Delete(marker);};await dialog.ShowAsync();
+            string native="",policy="",managed="";
+            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log"}){
+                try{var content=await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync(name));if(name=="native-launch.log")native=content;else if(name=="runtime-policy.txt")policy=content;else managed=content;}catch{}
+            }
+            int start=native.LastIndexOf("ATTEMPT_BEGIN",StringComparison.Ordinal);string latest=start>=0?native.Substring(start):native;
+            var important=new System.Collections.Generic.List<string>();var phases=new System.Collections.Generic.List<string>();
+            foreach(var raw in latest.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){
+                var line=raw.Trim();
+                if(IsFailureLine(line))important.Add(line);
+                if(line.StartsWith("ATTEMPT_BEGIN")||line.StartsWith("HASH ")||line.StartsWith("IMPORT ")||line.StartsWith("PROTECT ")||line.StartsWith("UNWIND ")||line.StartsWith("DEPENDENCY ")||line.StartsWith("EXECUTE "))phases.Add(line);
+            }
+            string summary="CLIENT FAILURE SUMMARY — runtime 0.4.3.0\n";
+            if(important.Count>0)summary+=string.Join("\n",important);
+            else{
+                summary+=loadBusy?"The latest client attempt is still in progress.":"The latest attempt has not recorded a named failure.";
+                var previous=new System.Collections.Generic.List<string>();
+                if(start>0)foreach(var raw in native.Substring(0,start).Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){var line=raw.Trim();if(IsFailureLine(line))previous.Add(line);}
+                if(previous.Count>0)summary+="\n\nPREVIOUS RECORDED FAILURE (earlier attempt)\n"+previous[previous.Count-1];
+            }
+            if(phases.Count>0)summary+="\n\nLATEST LOADING STAGE\n"+string.Join("\n",phases.GetRange(Math.Max(0,phases.Count-8),Math.Min(8,phases.Count)));
+            summary+="\n\nNATIVE CHECKS\n"+policy+"\n\nDEP mapped and deferred TLS lines describe loading stages. UNIMPLEMENTED lists unsupported imports; CALLED_UNSUPPORTED names an actual invocation. Full details remain in LocalState/native-launch.log.\nBoot files are enough for current initialization tests. Full game content will be needed for a lobby; importing it does not implement missing APIs.";
+            string full="runtime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
+            bool expanded=false;var block=new TextBlock{Text=summary,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=true};
+            var scroll=new ScrollViewer{Content=block,MaxHeight=500};
+            var dialog=new ContentDialog{Title="Client loader diagnostics",CloseButtonText="Close",PrimaryButtonText="Show full log",SecondaryButtonText="Allow native checks next launch",Content=scroll};
+            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;expanded=!expanded;block.Text=expanded?full:summary;dialog.PrimaryButtonText=expanded?"Show summary":"Show full log";scroll.ChangeView(null,0,null);};
+            dialog.SecondaryButtonClick+=(d,args)=>{var marker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-startup.pending");if(File.Exists(marker))File.Delete(marker);};await dialog.ShowAsync();
         }
+        private static bool IsFailureLine(string line){return line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED ");}
         private async Task RevokeTokenAsync(string token)
         {
             try { using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5))) await api.SendAsync("/api/device/logout", new JsonObject(), token, timeout.Token); } catch { }
