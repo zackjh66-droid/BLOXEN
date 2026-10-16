@@ -1,0 +1,17 @@
+{
+  "run": "https://github.com/zackjh66-droid/BLOXEN/actions/runs/38942511443",
+  "compiledCommit": "9431750ef876f16406db354fc2516a5b45c9fb5b",
+  "scope": "Original owned-code hosted Windows checks, not game execution",
+  "nativeUwpRuntimeBuild": "PASS",
+  "dynamicImportNamespace": "PASS",
+  "guestThreadLifecycle": "PASS",
+  "adapterFactoryAndNativeDeviceBridge": "PASS; output parent path checked only if native outputs existed, see log count",
+  "realWarpResourceUploadCopyReadback": "PASS",
+  "originalExeConvertedDllNativeLoad": "PASS; original fixture only",
+  "season621PrivateImageStructuralChecks": "PASS; no execution",
+  "fortniteExecuted": false,
+  "xboxExecuted": false,
+  "originalLobbyReached": false,
+  "gameAuthenticationHandoffImplemented": false,
+  "appxProduced": false
+}
