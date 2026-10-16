@@ -1,0 +1,31 @@
+# What this build establishes and what remains missing
+
+This is a genuine attempt to load the exact inspected Windows client through an original UWP compatibility runtime. It is NOT a completed Fortnite port. The working companion and website remain separate, preserved products. The user reported and photographed 0.4.0.0 importing boot files, mapping the original main image and dependencies, applying section protections and registering the main unwind table on a physical Xbox. That run stopped at 13 CRT-forwarder relocation rejections before original dependency initialization or main entry. 0.4.2.0 fixes that specific parser/loader case, but the update has not been tested on Xbox.
+
+Implemented paths:
+
+- Private, pinned minimum-file import and optional full ZIP import with unchanged archive retention, separate clean/quarantine directories and SHA256 inventories.
+- x64 PE mapping, relocations, recursive allowlisted dependency exports/forwarders, normal/delay/ordinal imports, RX section transitions and registered x64 unwind tables.
+- OS-assigned static TLS through individually built packaged donor modules; main-client empty callback list is distinguished from a callback function. Dependency callbacks/entry points run only on explicit client boot.
+- Real supported UWP APIs for selected kernel calls, bounded CoreWindow message/window/key handling, WinRT Gamepad state/vibration translated to the client's XInput ABI, and real DXGI factory/D3D11 swapchain presentation through the XAML SwapChainPanel/CoreWindow bridge.
+- Original dependency initialization and main-entry attempt after mapping succeeds. Every unsupported import gets a fail-fast thunk that logs its name and caller module/RVA if invoked; it never returns placeholder success. Mapping/hash/structural failures can stop before original code runs.
+- Existing explicit account linking, protected sign-in persistence and revocation in the host. Project refresh tokens are never passed to the guest. Native failure text is accessible after restart or through Device Portal.
+
+Exact remaining blockers:
+
+Xbox policy prerequisite: writable-to-executable memory and packaged TLS/graphics operations passed only on hosted Windows. If Xbox rejects the logged VirtualAllocFromApp/VirtualProtectFromApp operation or package capability, the manual-loader route stops before client code. An allowed console execution mechanism or a legitimate source/platform port would then be required; an APPX manifest cannot remove that policy. No bypass is implemented.
+
+1. Many required Win32 APIs have no compatible implementation. In particular, expected Win32 socket/HTTP APIs fail fast. The native client has no private HTTP/authentication transport or secure exchange handoff; it cannot currently log into the project backend. The next hardware failure is not known in advance. The console log will identify the first failing operation; it may be an earlier dependency or structural failure rather than a network call.
+2. This is not a full Windows loader. PEB/module identity and discovery, dynamic LoadLibrary/GetProcAddress semantics, complete thread creation/attach/detach and thread-pool behavior, loader-lock/callback ordering, CRT/load-config and exception edge cases remain incomplete. Registered unwind tables alone do not prove UE4 C++ exception compatibility. No unsupported DLL is silently treated as loaded.
+3. CoreWindow virtual window/message support is a subset; full User32, raw input, IME and multiwindow behavior are missing. Newer DXGI factory interfaces, adapter-parent paths and all engine presentation behavior are not proven. WinRT controller mapping has no physical-input evidence yet. Hosted graphics checks use original fixture calls, not Fortnite rendering.
+4. File-system/audio/CEF/other subsystem requirements are incomplete. The minimum import excludes PAK/media content and cannot provide the original lobby. Full content import does not solve missing APIs.
+5. The version-specific backend prototype and route compatibility research are included in source. It is disabled in production. Native wire authentication, complete 6.21 bootstrap/cloud-storage/presence responses and a verified asset-derived cosmetic registry are unfinished. Encrypted PAK indexes prevented cosmetic validation. Existing owner-only admin/profile/shop data does not demonstrate an in-game effect.
+6. No original loading sequence, lobby scene, character rendering, locker, game menus, saved game-profile changes or shop has been verified. No match server is provided. The host's imported Season 6 splash artwork is explicitly a background, not a rendered lobby or proof of game execution.
+
+Minimum next evidence: Xbox logs showing whether writable-to-executable memory and packaged TLS/window/graphics calls are permitted, followed by the first real-client `EXECUTE`, `STOP`, `CRASH` or `CALLED_UNSUPPORTED` record. Implement that specific missing ABI/behavior and test it with a focused original fixture before retrying the client. Do not infer success from an APPX installation or a graphics contract alone.
+
+The runtime is not a secure malware-analysis sandbox. No archive-provided executable, DLL, script or launcher was run in hosted CI. The explicit console boot action is an experimental native execution attempt; it may terminate the application. No Epic credentials are requested.
+
+Branding: orange HW mark, italic HOLLOWWAKE wordmark, orange focused controls and subtle purple bottom tint. The bundled floating-island landscape is project-owned fan artwork. A genuine supplied Season 6 splash image is displayed only after private import; no proprietary art or game code is redistributed in the package.
+
+0.4.1 hardware update: user photos confirm the CRT-forwarder blockers were removed and original dbghelp dependency initialization began. It stopped on GetTickCount. 0.4.2 addresses that observed clock call; original Fortnite main entry, main-window/scene rendering, in-game controller input and all lobby/backend functionality remain unverified.
