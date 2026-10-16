@@ -1,13 +1,13 @@
 // Original fixture: exercises the actual guest module bridges during process attach.
 #include <windows.h>
 static volatile LONG status=-1;static volatile LONG destructorCount=0;
-static int* volatile relocationAnchor=nullptr;
+static volatile LONG* volatile relocationAnchor=&status;
 static VOID NTAPI ReleaseValue(PVOID value){if(value==reinterpret_cast<void*>(0x621))InterlockedIncrement(&destructorCount);}
 extern "C" __declspec(dllexport) int WINAPI ModuleChecks(){return status;}
 extern "C" BOOL WINAPI ModulesEntry(HINSTANCE self,DWORD reason,LPVOID){
  if(reason!=DLL_PROCESS_ATTACH)return TRUE;
  auto fail=[](int code){status=code;return TRUE;};
- if(relocationAnchor)return fail(1);
+ if(relocationAnchor!=&status)return fail(1);
  auto fiber=LoadLibraryExW(L"api-ms-win-core-fibers-l1-1-1",nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);if(!fiber)return fail(2);
  auto alloc=reinterpret_cast<DWORD(WINAPI*)(PFLS_CALLBACK_FUNCTION)>(GetProcAddress(fiber,"FlsAlloc"));
  auto put=reinterpret_cast<BOOL(WINAPI*)(DWORD,PVOID)>(GetProcAddress(fiber,"FlsSetValue"));
