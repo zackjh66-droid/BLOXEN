@@ -2,10 +2,14 @@
 #pragma once
 #include <windows.h>
 #include <cstring>
+// GetVersion is legacy and manifest-dependent; preserve the actual OS API behavior.
+#pragma warning(push)
+#pragma warning(disable:4996)
 namespace Hollowwake {
 inline void* ResolveSystemInfoImport(const char* dll,const char* name){
  if(!dll||!name)return nullptr;
  if(_stricmp(dll,"KERNEL32.dll")&&_stricmp(dll,"KERNELBASE.dll")&&_strnicmp(dll,"api-ms-win-core-",16))return nullptr;
+ if(!strcmp(name,"GetVersion"))return reinterpret_cast<void*>(&::GetVersion);
  if(!strcmp(name,"GetSystemInfo"))return reinterpret_cast<void*>(&::GetSystemInfo);
  if(!strcmp(name,"GetNativeSystemInfo"))return reinterpret_cast<void*>(&::GetNativeSystemInfo);
  return nullptr;
@@ -27,3 +31,5 @@ inline bool SystemInfoContract(){
  &&a.info.dwActiveProcessorMask==b.info.dwActiveProcessorMask&&a.info.dwActiveProcessorMask!=0;
 }
 }
+
+#pragma warning(pop)
