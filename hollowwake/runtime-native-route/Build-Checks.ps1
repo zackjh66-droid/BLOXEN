@@ -30,4 +30,6 @@ if($LASTEXITCODE){throw 'Integrated native UWP runtime failed compilation/linkag
 
 & (Join-Path $PSScriptRoot 'native-image\Build-NativeImage.ps1') -OutputDirectory $OutputDirectory
 
+& (Join-Path $PSScriptRoot 'native-proxy\Build-Proxy.ps1') -OutputDirectory $OutputDirectory
+
 @{result='PASS';scope='Original owned-code Windows checks: native exports, dynamic namespace, guest thread lifecycle, DXGI adapter/device bridge and native EXE/DLL loading';fortniteExecuted=$false;xboxTested=$false;appxDelivered=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'result.json')

@@ -24,6 +24,7 @@
 #include "Dependencies.h"
 #include "ModuleLoader.h"
 #include "../../runtime-native-route/NativeSystem.h"
+#include "../../runtime-native-route/NativeProxyDispatch.h"
 #include "../../runtime-native-route/GuestThreads.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
@@ -82,8 +83,16 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
   ++imports;if(p)*out=(ULONGLONG)p;else {++missing;if(missing<=256)Log("UNRESOLVED "+std::string(dll)+"!"+symbol);}
  }Fail("Unbounded import thunk list");
 }
+// Native DLL route must not reuse manual-map TLS/thread notifications.
+static void* PackagedRoute(const char* dll,const char* name){
+ if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
+ if(auto p=ResolveWindowImport(dll,name))return p;
+ if(auto p=ResolveControllerImport(dll,name))return p;
+ return nullptr; // Native client module identity/network adapters remain mandatory.
+}
+static void MissingPackagedImport(const char* dll,const char* name){Log("NATIVE_PROXY_BLOCKED "+std::string(dll)+"!"+name);}
 extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
- logName=path;ConfigureUnsupported(Log);Hollowwake::LegacyFatalLogger()=[](const char* message){Log(std::string("CRASH ")+message);};Hollowwake::SystemInfoFailureHandler()=[](DWORD error){Log("CRASH GetVersionExW failed error="+std::to_string(error));};auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
+ logName=path;Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);ConfigureUnsupported(Log);Hollowwake::LegacyFatalLogger()=[](const char* message){Log(std::string("CRASH ")+message);};Hollowwake::SystemInfoFailureHandler()=[](DWORD error){Log("CRASH GetVersionExW failed error="+std::to_string(error));};auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
  if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);

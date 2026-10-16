@@ -18,8 +18,10 @@ __declspec(dllexport) DWORD WINAPI FixtureNotificationCounts(){return processAtt
 static DWORD WINAPI Work(void* value){auto tls=static_cast<unsigned char**>((void*)__readgsqword(0x58))[_tls_index];return tls&&tls[0]==0x62?(*static_cast<DWORD*>(value)^0x621):0xffffffff;}
 __declspec(dllexport) int WINAPI OriginalEntry(){
  auto tls=static_cast<unsigned char**>((void*)__readgsqword(0x58))[_tls_index];if(!tls||tls[0]!=0x62||processAttach!=1)return -1;
+ #ifndef HW_PROXY_FIXTURE
  DWORD64 image=0;if(!RtlLookupFunctionEntry((DWORD64)&OriginalEntry,&image,nullptr)||!image)return -2;
  HMODULE actual=nullptr;if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,(LPCWSTR)&OriginalEntry,&actual)||(DWORD64)actual!=image)return -3;
+ #endif
  DWORD input=payload;auto thread=CreateThread(nullptr,0,Work,&input,0,nullptr);if(!thread)return -4;if(WaitForSingleObject(thread,10000)!=WAIT_OBJECT_0)return -5;DWORD result=0;if(!GetExitCodeThread(thread,&result))return -6;CloseHandle(thread);return (int)result;
 }
 }
