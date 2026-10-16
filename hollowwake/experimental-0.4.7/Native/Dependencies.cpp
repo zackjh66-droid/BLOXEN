@@ -18,7 +18,7 @@
 #else
 #include "KnownModules.h"
 #endif
-struct Image {BYTE* base;SIZE_T size;IMAGE_NT_HEADERS64 header;bool importsReady=false,initialized=false,initializing=false,metadataOnly=false;};
+struct Image {std::wstring path;BYTE* base;SIZE_T size;IMAGE_NT_HEADERS64 header;bool importsReady=false,initialized=false,initializing=false,metadataOnly=false;};
 static std::vector<std::pair<std::string,Image*>> initOrder;
 static std::map<std::string,std::unique_ptr<Image>> images;static std::wstring root;
 static void*(*resolve)(const char*,const char*);static void*(*queryExport)(const char*,const char*);static void(*writeLog)(const std::string&);static unsigned failures=0,donorSlot=1,depth=0;
@@ -37,7 +37,7 @@ static Image* Load(const std::string& key,const KnownModule& known){
  auto dos=(IMAGE_DOS_HEADER*)bytes.data();if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<64||!Fits(dos->e_lfanew,sizeof(IMAGE_NT_HEADERS64),bytes.size()))Bad("invalid dependency DOS header");auto nt=(IMAGE_NT_HEADERS64*)(bytes.data()+dos->e_lfanew);auto& o=nt->OptionalHeader;
  if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||o.Magic!=IMAGE_NT_OPTIONAL_HDR64_MAGIC||nt->FileHeader.SizeOfOptionalHeader!=sizeof(IMAGE_OPTIONAL_HEADER64)||o.NumberOfRvaAndSizes<16||o.SizeOfImage>512*1024*1024||o.SizeOfHeaders>bytes.size()||o.SizeOfHeaders>o.SizeOfImage||nt->FileHeader.NumberOfSections>96)Bad("invalid dependency PE limits");
  auto sections=IMAGE_FIRST_SECTION(nt);if(!Fits((BYTE*)sections-bytes.data(),nt->FileHeader.NumberOfSections*sizeof(*sections),bytes.size()))Bad("invalid dependency section table");
- auto value=std::unique_ptr<Image>(new Image{});value->size=o.SizeOfImage;value->header=*nt;value->base=(BYTE*)VirtualAllocFromApp(nullptr,value->size,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!value->base)BadApi("VirtualAllocFromApp dependency allocation failed");Image* m=value.get();images[key]=std::move(value);memcpy(m->base,bytes.data(),o.SizeOfHeaders);
+ auto value=std::unique_ptr<Image>(new Image{});value->path=root+L"\\"+known.path;value->size=o.SizeOfImage;value->header=*nt;value->base=(BYTE*)VirtualAllocFromApp(nullptr,value->size,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!value->base)BadApi("VirtualAllocFromApp dependency allocation failed");Image* m=value.get();images[key]=std::move(value);memcpy(m->base,bytes.data(),o.SizeOfHeaders);
  for(unsigned i=0;i<nt->FileHeader.NumberOfSections;++i){auto& s=sections[i];if(!Fits(s.PointerToRawData,s.SizeOfRawData,bytes.size())||!Fits(s.VirtualAddress,s.SizeOfRawData,m->size)||!Fits(s.VirtualAddress,s.Misc.VirtualSize,m->size))Bad("invalid dependency section");memcpy(m->base+s.VirtualAddress,bytes.data()+s.PointerToRawData,s.SizeOfRawData);}
  // These exact CRT shims have no entry point, instructions, TLS or imports.
  // Resolve their bounded export strings as immutable data: no preferred-address
@@ -70,7 +70,7 @@ static void* Export(const char* dll,const char* symbol,bool query){
 
 void* ResolveDependency(const char* dll,const char* symbol){return Export(dll,symbol,false);}
 void* QueryDependencyExport(const char* dll,const char* symbol){if(!dll)return nullptr;std::string key=dll;std::transform(key.begin(),key.end(),key.begin(),[](char c){return (char)tolower((unsigned char)c);});if(images.find(key)==images.end())return nullptr;return Export(dll,symbol,true);}
-bool FindGuestDependency(const std::string& name,GuestModuleRecord& out){auto i=images.find(name);if(i==images.end()||!i->second->importsReady)return false;auto& m=*i->second;out.handle=reinterpret_cast<HMODULE>(m.base);out.size=m.size;out.initialized=m.initialized||m.initializing||m.metadataOnly;for(auto& k:known)if(!_stricmp(k.name,name.c_str())){out.path=root+L"\\"+k.path;break;}return true;}
+bool FindGuestDependency(const std::string& name,GuestModuleRecord& out){auto i=images.find(name);if(i==images.end()||!i->second->importsReady)return false;auto& m=*i->second;out.handle=reinterpret_cast<HMODULE>(m.base);out.size=m.size;out.initialized=m.initialized||m.initializing||m.metadataOnly;out.path=m.path;return true;}
 bool FindGuestDependencyAddress(ULONG_PTR address,GuestModuleRecord& out){for(auto& pair:images){auto& m=*pair.second;if(address>=(ULONG_PTR)m.base&&address-(ULONG_PTR)m.base<m.size)return FindGuestDependency(pair.first,out);}return false;}
 bool InitializeDependencies(){
  for(auto& pair:initOrder){auto& m=*pair.second;if(m.initialized)continue;if(!m.importsReady)return false;m.initializing=true;

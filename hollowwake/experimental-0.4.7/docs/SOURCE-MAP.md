@@ -8,3 +8,5 @@
 The Sites source commit is recorded in the verification report. The pinned hosted Windows source commit identifies the actual compiled native/XAML code; later documentation/packaging-only commits are listed separately when applicable. No downloaded game code executes in hosted verification.
 
 Live public website/backend: https://hollowwake.jihnjohn10.chatgpt.site . The existing private owner portal is preserved and omitted from public source metadata. A random URL is not authorization. Recovery email is still unavailable pending an authorized mail service.
+
+- `Native/ModuleLoader.cpp`: restricted guest module namespace and dynamic optional export lookup; `Native/tests/FixtureModules.cpp`: executable owned-code checks; `docs/MODULE-LOADING.md`: exact compatibility scope.
