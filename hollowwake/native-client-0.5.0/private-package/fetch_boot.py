@@ -35,7 +35,7 @@ def fetch(manifest,destination):
  try:return ranged_fetch(manifest,destination)
  except RangeUnavailable:
   m=json.loads(Path(manifest).read_text());out=Path(destination);archive=out.parent/'Original-6.21.private.zip'
-  if shutil.disk_usage(out.parent).free<m['archiveBytes']+2*1024**3:raise ValueError('Range refused and insufficient free disk for verified full archive')
+  if shutil.disk_usage(out.parent).free<18*1024**3:raise ValueError('Range refused and insufficient free disk for verified full archive')
   if archive.exists():raise ValueError('Refusing overwrite of preserved private archive')
   digest=hashlib.sha256();total=0;opener=urllib.request.build_opener(NoRedirect())
   with opener.open(urllib.request.Request(m['source'],headers={'User-Agent':'Hollowwake-PrivateStaticBuild/0.5'}),timeout=90) as response,archive.open('xb') as output:
@@ -44,9 +44,10 @@ def fetch(manifest,destination):
     chunk=response.read(4*1024**2)
     if not chunk:break
     total+=len(chunk)
-    if total>m['archiveBytes']:raise ValueError('Full archive exceeds pinned size')
+    if total>16*1024**3:raise ValueError('Full archive exceeds16GiB analysis cap')
     output.write(chunk);digest.update(chunk)
-  if total!=m['archiveBytes'] or digest.hexdigest()!='bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5':raise ValueError('Full archive size/hash mismatch')
+  observed=digest.hexdigest();sameArchive=total==m['archiveBytes'] and observed=='bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5'
+  print(json.dumps({'observedArchiveBytes':total,'observedArchiveSha256':observed,'matchesOriginalArchive':sameArchive,'validation':'All selected files still require exact pinned SHA256; a repacked mirror is not pristine-source evidence'}))
   with zipfile.ZipFile(archive) as package:
    infos=package.infolist()
    if len(infos)>100000 or sum(i.file_size for i in infos)>64*1024**3:raise ValueError('Archive inventory exceeds expected bounds')
@@ -57,7 +58,7 @@ def fetch(manifest,destination):
     names[name]=i
    for item in m['files']:
     info=names.get(item['path'])
-    if not info or info.file_size!=item['bytes'] or info.compress_size!=item['compressed'] or info.compress_type!=item['method']:raise ValueError('Selected ZIP metadata differs from pinned inventory')
+    if not info or info.file_size!=item['bytes'] or info.compress_type not in [0,8]:raise ValueError('Selected ZIP entry absent or unsupported; no unverified file is staged')
     target=out/item['path'];target.parent.mkdir(parents=True,exist_ok=True);digest=hashlib.sha256();total=0
     with package.open(info) as source,target.open('wb') as output:
      while True:
@@ -67,6 +68,6 @@ def fetch(manifest,destination):
       if total>item['bytes']:raise ValueError('Selected expansion exceeds bounds')
       output.write(chunk);digest.update(chunk)
     if total!=item['bytes'] or digest.hexdigest()!=item['sha256']:raise ValueError('Selected source hash mismatch')
-  return {'files':len(m['files']),'fullArchiveHashVerified':True,'executed':False}
+  return {'files':len(m['files']),'matchesOriginalArchive':sameArchive,'allSelectedHashesMatched':True,'executed':False}
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('manifest');p.add_argument('output');a=p.parse_args();print(json.dumps(fetch(a.manifest,a.output)))

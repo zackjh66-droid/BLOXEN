@@ -3,7 +3,7 @@ Mirrors are the exact 6.21 entries in llamaqwerty/fortnite-builds-archive.
 Every selected file must still match the previously inspected SHA-256 inventory.
 """
 from pathlib import Path
-import argparse,json,urllib.request,shutil,subprocess,hashlib,os,re
+import argparse,json,urllib.request,shutil,subprocess,hashlib,os,re,time,zipfile,zlib
 from fetch_boot import fetch,NoRedirect
 MIRRORS=['https://public.simplyblk.xyz/6.21.rar','https://builds.rebootfn.org/6.21.rar']
 def file_hash(path):
@@ -22,15 +22,16 @@ def fallback(manifest,destination):
   archive=out.parent/('Mirror-'+str(index)+'.private.rar')
   try:
    if shutil.disk_usage(out.parent).free<18*1024**3:raise RuntimeError('Mirror download needs18GiB free before transfer')
-   with opener.open(urllib.request.Request(url,headers={'User-Agent':'Hollowwake-PrivateStaticBuild/0.5'}),timeout=90) as response,archive.open('xb') as output:
-    if response.status!=200:raise ValueError('Mirror download blocked')
-    size=0
-    while True:
-     chunk=response.read(4*1024**2)
-     if not chunk:break
-     size+=len(chunk)
-     if size>16*1024**3:raise ValueError('Mirror archive exceeds16GiB cap')
-     output.write(chunk)
+   curl=Path(os.environ.get('SystemRoot','C:/Windows'))/'System32/curl.exe'
+   if not curl.is_file():raise RuntimeError('OS Schannel curl not available; TLS verification remains required')
+   # Schannel builds a valid chain using Windows/AIA. Do not disable verification
+   # to work around Python's missing intermediate CA error observed in CI.
+   process=subprocess.Popen([str(curl),'--fail','--silent','--show-error','--proto','=https','--max-time','480','--output',str(archive),url],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+   while process.poll() is None:
+    if archive.exists() and archive.stat().st_size>16*1024**3:process.kill();process.communicate();raise ValueError('Mirror archive exceeds16GiB cap')
+    time.sleep(.2)
+   stdout,stderr=process.communicate()
+   if process.returncode:raise RuntimeError('Verified OS HTTPS download failed: '+stderr.decode(errors='replace')[:160])
    listing=subprocess.run([str(tool),'l','-slt','-sccUTF-8',str(archive)],capture_output=True,text=True,encoding='utf-8',check=True).stdout
    records=[]
    for block in listing.split('\n\n'):
@@ -67,6 +68,6 @@ def fallback(manifest,destination):
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('manifest');p.add_argument('output');a=p.parse_args()
  try:result=fetch(a.manifest,a.output)
- except (OSError,ValueError,RuntimeError) as e:
+ except (OSError,ValueError,RuntimeError,zipfile.BadZipFile,zlib.error) as e:
   print(json.dumps({'primarySourceFailure':type(e).__name__,'message':str(e)[:180]}));result=fallback(a.manifest,a.output)
  print(json.dumps(result))
