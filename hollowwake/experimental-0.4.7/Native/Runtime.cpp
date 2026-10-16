@@ -53,7 +53,7 @@ void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
 static void* QueryBuiltinImport(const char* dll,const char* name){
  if(auto p=ResolveModuleLoaderImport(dll,name))return p;
- if(!_stricmp(dll,"msvcrt.dll"))if(auto p=Hollowwake::ResolveNativeSystemImport(dll,name))return p;
+ if(!_stricmp(dll,"msvcrt.dll")&&Hollowwake::NativeLegacyCrtAvailable())return Hollowwake::ResolveNativeSystemImport(dll,name);
  if(auto p=Hollowwake::ResolveLegacyStartupImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveKernelStartupImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveLegacyCrtImport(dll,name))return p;

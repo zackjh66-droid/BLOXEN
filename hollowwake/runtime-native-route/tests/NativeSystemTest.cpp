@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cstring>
+#include "NativeDemand.generated.h"
 static void Check(bool condition,const char* message){if(!condition)throw std::runtime_error(message);}
 int main(){try{
  using namespace Hollowwake;
@@ -22,5 +23,7 @@ int main(){try{
  bool legacy=NativeLegacyCrtAvailable();if(legacy){
   auto alloc=reinterpret_cast<void*(__cdecl*)(size_t)>(ResolveNativeSystemImport("msvcrt.dll","malloc"));auto grow=reinterpret_cast<void*(__cdecl*)(void*,size_t)>(ResolveNativeSystemImport("msvcrt.dll","realloc"));auto free=reinterpret_cast<void(__cdecl*)(void*)>(ResolveNativeSystemImport("msvcrt.dll","free"));Check(alloc&&grow&&free,"Legacy family incomplete");auto p=static_cast<unsigned char*>(alloc(32));Check(p,"System legacy allocation failed");memset(p,0x62,32);p=static_cast<unsigned char*>(grow(p,96));Check(p,"System legacy reallocation failed");for(int i=0;i<32;++i)Check(p[i]==0x62,"System legacy allocation preservation failed");free(p);
  }
+ unsigned present=0,missing=0;for(auto& d:demands){if(ResolveNativeSystemImport(d.dll,d.symbol))++present;else{++missing;std::cout<<"NATIVE_ABSENT "<<d.dll<<"!"<<d.symbol<<"\n";}}
+ std::cout<<"DEMAND present="<<present<<" missing="<<missing<<"; hosted Windows availability only, not Xbox behavior\n";
  std::cout<<"PASS actual OS GetStartupInfoW ABI+canaries, real thread task+exit code, missing exports and scope rejection; legacyFamily="<<(legacy?"tested":"unavailable; fallback required")<<"\n";return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
