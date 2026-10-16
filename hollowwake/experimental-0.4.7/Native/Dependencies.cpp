@@ -12,13 +12,14 @@
 #include <stdexcept>
 #include "Dependencies.h"
 #include "ModuleLoader.h"
+#include "../../runtime-native-route/GuestThreads.h"
 #include "ForwardOnly.h"
 #ifdef HW_DEPENDENCY_FIXTURE
 #include "FixtureModules.generated.h"
 #else
 #include "KnownModules.h"
 #endif
-struct Image {std::wstring path;BYTE* base;SIZE_T size;IMAGE_NT_HEADERS64 header;bool importsReady=false,initialized=false,initializing=false,metadataOnly=false;};
+struct Image {std::wstring path;BYTE* base;SIZE_T size;IMAGE_NT_HEADERS64 header;bool importsReady=false,initialized=false,initializing=false,metadataOnly=false;Hollowwake::GuestTlsSeed seed=nullptr;};
 static std::vector<std::pair<std::string,Image*>> initOrder;
 static std::map<std::string,std::unique_ptr<Image>> images;static std::wstring root;
 static void*(*resolve)(const char*,const char*);static void*(*queryExport)(const char*,const char*);static void(*writeLog)(const std::string&);static unsigned failures=0,donorSlot=1,depth=0;
@@ -47,7 +48,7 @@ static Image* Load(const std::string& key,const KnownModule& known){
   m->metadataOnly=true;m->importsReady=true;writeLog("DEP forward-only metadata verified (no code/relocation/initializers): "+key);return m;
  }
  INT64 delta=(INT64)m->base-(INT64)o.ImageBase;auto reloc=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];if(delta&&!reloc.Size)Bad("dependency cannot relocate");for(DWORD used=0;delta&&used<reloc.Size;){auto b=(IMAGE_BASE_RELOCATION*)At(*m,reloc.VirtualAddress+used,8);if(b->SizeOfBlock<8||b->SizeOfBlock>reloc.Size-used||b->SizeOfBlock%2)Bad("bad dependency relocation");auto entries=(WORD*)At(*m,reloc.VirtualAddress+used+8,b->SizeOfBlock-8);for(DWORD j=0;j<(b->SizeOfBlock-8)/2;++j){auto type=entries[j]>>12;if(type==IMAGE_REL_BASED_DIR64)*(ULONGLONG*)At(*m,b->VirtualAddress+(entries[j]&4095),8)+=delta;else if(type!=IMAGE_REL_BASED_ABSOLUTE)Bad("unknown dependency relocation");}used+=b->SizeOfBlock;}
- auto tls=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];if(tls.Size){if(tls.Size<40||donorSlot>=32)Bad("dependency TLS limits");auto t=(IMAGE_TLS_DIRECTORY64*)At(*m,tls.VirtualAddress,40);auto start=t->StartAddressOfRawData-(ULONGLONG)m->base;auto size=t->EndAddressOfRawData-t->StartAddressOfRawData;if(t->EndAddressOfRawData<t->StartAddressOfRawData||!Fits(start,size,m->size)||start>MAXDWORD)Bad("dependency TLS bounds");wchar_t donorName[64];swprintf_s(donorName,L"HollowwakeTlsSlot%02u.dll",donorSlot++);auto donor=LoadPackagedLibrary(donorName,0);if(!donor)BadApi("LoadPackagedLibrary dependency TLS donor unavailable");auto bind=(BOOL(WINAPI*)(const void*,SIZE_T,SIZE_T,void*,const PIMAGE_TLS_CALLBACK*,unsigned))GetProcAddress(donor,"BindGuest");auto index=(DWORD(WINAPI*)())GetProcAddress(donor,"GuestTlsIndex");if(!bind||!index||!bind(At(*m,(DWORD)start,(SIZE_T)size),(SIZE_T)size,t->SizeOfZeroFill,m->base,nullptr,0))Bad("dependency TLS binding failed");auto idx=t->AddressOfIndex-(ULONGLONG)m->base;if(idx>MAXDWORD)Bad("dependency TLS index bounds");*(DWORD*)At(*m,(DWORD)idx,4)=index();
+ auto tls=o.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];if(tls.Size){if(tls.Size<40||donorSlot>=32)Bad("dependency TLS limits");auto t=(IMAGE_TLS_DIRECTORY64*)At(*m,tls.VirtualAddress,40);auto start=t->StartAddressOfRawData-(ULONGLONG)m->base;auto size=t->EndAddressOfRawData-t->StartAddressOfRawData;if(t->EndAddressOfRawData<t->StartAddressOfRawData||!Fits(start,size,m->size)||start>MAXDWORD)Bad("dependency TLS bounds");wchar_t donorName[64];swprintf_s(donorName,L"HollowwakeTlsSlot%02u.dll",donorSlot++);auto donor=LoadPackagedLibrary(donorName,0);if(!donor)BadApi("LoadPackagedLibrary dependency TLS donor unavailable");auto bind=(BOOL(WINAPI*)(const void*,SIZE_T,SIZE_T,void*,const PIMAGE_TLS_CALLBACK*,unsigned))GetProcAddress(donor,"BindGuest");auto index=(DWORD(WINAPI*)())GetProcAddress(donor,"GuestTlsIndex");m->seed=(Hollowwake::GuestTlsSeed)GetProcAddress(donor,"InitializeGuestThread");if(!m->seed||!bind||!index||!bind(At(*m,(DWORD)start,(SIZE_T)size),(SIZE_T)size,t->SizeOfZeroFill,m->base,nullptr,0))Bad("dependency TLS binding failed");auto idx=t->AddressOfIndex-(ULONGLONG)m->base;if(idx>MAXDWORD)Bad("dependency TLS index bounds");*(DWORD*)At(*m,(DWORD)idx,4)=index();
   if(t->AddressOfCallBacks){auto cb=t->AddressOfCallBacks-(ULONGLONG)m->base;if(cb>MAXDWORD)Bad("dependency TLS callbacks bounds");if(*(ULONGLONG*)At(*m,(DWORD)cb,8)){writeLog("DEP TLS callbacks deferred until dependency initialization: "+key);}}
  }
  // Register exports before resolving imports so dependency cycles can be mapped.
@@ -73,9 +74,16 @@ void* QueryDependencyExport(const char* dll,const char* symbol){if(!dll)return n
 bool FindGuestDependency(const std::string& name,GuestModuleRecord& out){auto i=images.find(name);if(i==images.end()||!i->second->importsReady)return false;auto& m=*i->second;out.handle=reinterpret_cast<HMODULE>(m.base);out.size=m.size;out.initialized=m.initialized||m.initializing||m.metadataOnly;out.path=m.path;return true;}
 bool FindGuestDependencyAddress(ULONG_PTR address,GuestModuleRecord& out){for(auto& pair:images){auto& m=*pair.second;if(address>=(ULONG_PTR)m.base&&address-(ULONG_PTR)m.base<m.size)return FindGuestDependency(pair.first,out);}return false;}
 bool InitializeDependencies(){
+ struct Scope {bool success=false;Scope(){Hollowwake::BeginGuestInitialization();}~Scope(){Hollowwake::EndGuestInitialization(success);}} scope;
  for(auto& pair:initOrder){auto& m=*pair.second;if(m.initialized)continue;if(!m.importsReady)return false;m.initializing=true;
-  auto td=m.header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];if(td.Size){auto t=(IMAGE_TLS_DIRECTORY64*)At(m,td.VirtualAddress,40);if(t->AddressOfCallBacks){ULONGLONG offset=t->AddressOfCallBacks-(ULONGLONG)m.base;if(offset>MAXDWORD)return false;bool ended=false;for(unsigned i=0;i<32;++i){auto callback=*(ULONGLONG*)At(m,(DWORD)offset+i*8,8);if(!callback){ended=true;break;}if(callback<(ULONGLONG)m.base||callback-(ULONGLONG)m.base>=m.size)return false;writeLog("EXECUTE dependency TLS callback: "+pair.first);((PIMAGE_TLS_CALLBACK)callback)(m.base,DLL_PROCESS_ATTACH,nullptr);}if(!ended)return false;}}
-  DWORD entry=m.header.OptionalHeader.AddressOfEntryPoint;if(entry){writeLog("EXECUTE dependency DLL_PROCESS_ATTACH: "+pair.first);if(!((BOOL(WINAPI*)(HINSTANCE,DWORD,LPVOID))At(m,entry,1))((HINSTANCE)m.base,DLL_PROCESS_ATTACH,nullptr))return false;}m.initialized=true;m.initializing=false;
- }return true;
+  auto td=m.header.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];std::vector<PIMAGE_TLS_CALLBACK> callbacks;
+  if(td.Size){auto t=(IMAGE_TLS_DIRECTORY64*)At(m,td.VirtualAddress,40);if(t->AddressOfCallBacks){ULONGLONG offset=t->AddressOfCallBacks-(ULONGLONG)m.base;if(offset>MAXDWORD)return false;bool ended=false;for(unsigned i=0;i<32;++i){auto callback=*(ULONGLONG*)At(m,(DWORD)offset+i*8,8);if(!callback){ended=true;break;}if(callback<(ULONGLONG)m.base||callback-(ULONGLONG)m.base>=m.size)return false;callbacks.push_back((PIMAGE_TLS_CALLBACK)callback);}if(!ended)return false;}}
+  DWORD entry=m.header.OptionalHeader.AddressOfEntryPoint;auto dllEntry=entry?(Hollowwake::GuestDllEntry)At(m,entry,1):nullptr;
+  Hollowwake::RegisterGuestThreadModule((HMODULE)m.base,td.Size!=0,m.seed,callbacks,dllEntry);
+  for(auto callback:callbacks){writeLog("EXECUTE dependency TLS callback: "+pair.first);callback(m.base,DLL_PROCESS_ATTACH,nullptr);}
+  if(dllEntry){writeLog("EXECUTE dependency DLL_PROCESS_ATTACH: "+pair.first);if(!dllEntry((HINSTANCE)m.base,DLL_PROCESS_ATTACH,nullptr))return false;}
+  m.initialized=true;m.initializing=false;Hollowwake::MarkGuestThreadModuleReady((HMODULE)m.base);
+ }scope.success=true;return true;
 }
+
 std::string DescribeDependencyAddress(unsigned long long address){for(auto& item:images){auto& m=*item.second;if(address>=(ULONGLONG)m.base&&address-(ULONGLONG)m.base<m.size)return item.first+" RVA="+std::to_string(address-(ULONGLONG)m.base);}return "native host/fixture or external module";}

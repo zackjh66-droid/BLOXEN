@@ -24,6 +24,7 @@
 #include "Dependencies.h"
 #include "ModuleLoader.h"
 #include "../../runtime-native-route/NativeSystem.h"
+#include "../../runtime-native-route/GuestThreads.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false,guestStarted=false;
@@ -53,6 +54,7 @@ void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
 static void* QueryBuiltinImport(const char* dll,const char* name){
  if(auto p=ResolveModuleLoaderImport(dll,name))return p;
+ if(auto p=Hollowwake::ResolveGuestThreadImport(dll,name))return p;
  if(!_stricmp(dll,"msvcrt.dll")&&Hollowwake::NativeLegacyCrtAvailable())return Hollowwake::ResolveNativeSystemImport(dll,name);
  if(auto p=Hollowwake::ResolveLegacyStartupImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveKernelStartupImport(dll,name))return p;
@@ -95,7 +97,8 @@ static int MemoryPolicy(const wchar_t* path){
  FlushInstructionCache(GetCurrentProcess(),p,sizeof(code));int result=((int(*)())p)();VirtualFree(p,0,MEM_RELEASE);Log("POLICY original code returned="+std::to_string(result));return result;
 }
 static int Attempt(const wchar_t* root){
- Log("ATTEMPT_BEGIN runtime=0.4.7.0 original-client import/initialization attempt");
+ Log("ATTEMPT_BEGIN runtime=native-route/thread-lifecycle original-client import/initialization attempt");
+ Hollowwake::ConfigureGuestThreads(Log);
  ConfigureDependencies(root,Import,Log,QueryImport);ConfigureGuestModules(QueryImport,Log,Hollowwake::NativeSystemFacadeAvailable);
  if(consumed)Fail("Restart the app before another mapping attempt");
  std::wstring file=std::wstring(root)+L"\\6.21\\FortniteGame\\Binaries\\Win64\\FortniteClient-Win64-Shipping.exe";
