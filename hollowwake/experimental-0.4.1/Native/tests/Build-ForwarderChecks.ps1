@@ -1,0 +1,19 @@
+param([string]$OutputDirectory)
+$ErrorActionPreference='Stop';$tests=$PSScriptRoot;$native=Split-Path $tests -Parent
+New-Item -ItemType Directory -Force $OutputDirectory|Out-Null;Push-Location $OutputDirectory
+try{
+ & cl.exe /nologo /c /O2 /GS- /Zl (Join-Path $tests 'FixtureTarget.cpp') /Fo:FixtureTarget.obj 2>&1|Tee-Object fixture-compile.log;if($LASTEXITCODE){throw 'Original forwarder target compilation failed'}
+ & link.exe /DLL /NOENTRY /NODEFAULTLIB /MACHINE:X64 /DYNAMICBASE /FIXED:NO FixtureTarget.obj /OUT:FixtureTarget.dll 2>&1|Tee-Object target-link.log;if($LASTEXITCODE){throw 'Relocatable original target link failed'}
+ & link.exe /DLL /NOENTRY /NODEFAULTLIB /MACHINE:X64 /BASE:0x180000000 /FIXED FixtureTarget.obj /OUT:FixtureFixedCode.dll 2>&1|Tee-Object fixed-code-link.log;if($LASTEXITCODE){throw 'Fixed-code negative fixture link failed'}
+ foreach($name in @('FixtureFirst','FixtureSecond')){
+  @("LIBRARY $name",'EXPORTS',' Answer=FixtureTarget.Answer @1')|Set-Content ($name+'.def')
+  & link.exe /DLL /NOENTRY /NODEFAULTLIB /MACHINE:X64 /BASE:0x180000000 /FIXED ("/DEF:"+$name+'.def') ("/OUT:"+$name+'.dll') 2>&1|Tee-Object ($name+'-link.log');if($LASTEXITCODE){throw 'Forward-only fixture link failed'}
+ }
+ $header='struct KnownModule {const wchar_t* path;const char* name;const char* hash;};'+[Environment]::NewLine+'static const KnownModule known[]={'+[Environment]::NewLine
+ foreach($name in @('FixtureFirst.dll','FixtureSecond.dll','FixtureTarget.dll','FixtureFixedCode.dll')){
+  $hash=(Get-FileHash $name -Algorithm SHA256).Hash.ToLowerInvariant();$header+='{L"'+$name+'","'+$name+'","'+$hash+'"},'+[Environment]::NewLine
+ };$header+='};';[IO.File]::WriteAllText((Join-Path $OutputDirectory 'FixtureModules.generated.h'),$header)
+ & cl.exe /nologo /MD /EHsc /std:c++17 /DHW_DEPENDENCY_FIXTURE "/I$OutputDirectory" (Join-Path $tests 'ForwarderTest.cpp') (Join-Path $native 'Dependencies.cpp') windowsapp.lib bcrypt.lib /Fe:ForwarderTest.exe 2>&1|Tee-Object harness-build.log;if($LASTEXITCODE){throw 'Production-resolver fixture harness compilation failed'}
+ & .\ForwarderTest.exe $OutputDirectory 2>&1|Tee-Object forwarder-test.log;if($LASTEXITCODE){throw 'Production forwarder resolver contract failed'}
+ '{"productionResolverUsed":true,"fixedBaseCollisionEstablished":true,"forwardOnlyNameAndOrdinalResolved":true,"realMappedTargetReturn":621,"fixedExecutableRejected":true,"downloadedCodeExecuted":false}'|Set-Content forwarder-test.json
+}finally{Pop-Location}

@@ -1,0 +1,27 @@
+name: Hollowwake client runtime blockers
+on:
+  workflow_dispatch:
+    inputs:
+      run_checks:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  checks:
+    if: ${{ inputs.run_checks }}
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compile bridge and execute original mapped TLS fixture only
+        shell: powershell
+        run: .\hollowwake\client-runtime\Build-Checks.ps1 -OutputDirectory "$env:GITHUB_WORKSPACE\artifacts\client-runtime"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hollowwake-client-runtime-checks
+          path: artifacts/client-runtime/
+          retention-days: 3
