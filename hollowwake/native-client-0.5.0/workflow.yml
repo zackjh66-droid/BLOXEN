@@ -47,8 +47,6 @@ jobs:
         with:
           name: hollowwake-native-client-050-x64
           path: |
-            artifacts/native-client-050/**/*.appx
-            artifacts/native-client-050/**/*.cer
             artifacts/native-client-050/**/*.json
             artifacts/native-client-050/**/*.log
             artifacts/native-client-050/native-imports-unresolved.txt

@@ -1,0 +1,20 @@
+{
+  "name": "hollowwake-companion",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env backend/server.mjs",
+    "migrate": "node --env-file-if-exists=.env backend/migrate.mjs",
+    "test": "node --test --test-concurrency=1 tests/*.test.mjs",
+    "check": "node tools/check-source.mjs"
+  },
+  "dependencies": {
+    "better-auth": "1.7.10",
+    "nodemailer": "10.1.1",
+    "qrcode": "1.5.4"
+  }
+}

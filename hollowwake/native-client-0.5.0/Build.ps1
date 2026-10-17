@@ -28,6 +28,11 @@ if($PrivatePreparedDirectory){
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN32_WINNT=0x0A00 (Join-Path $source 'Native\DataFiles.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\DataFilesTest.cpp') kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$OutputDirectory\DataFilesTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-test-build.log')
 if($LASTEXITCODE){throw 'Data route test build failed'}
 & "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnDataFixture') 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-test.log');if($LASTEXITCODE){throw 'Actual data routing failed'}
+$csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
+& $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'ContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'tests\ContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test-build.log')
+if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
+& (Join-Path $OutputDirectory 'ContentTransferTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test.log')
+if($LASTEXITCODE){throw 'Shared content-transfer behavior failed'}
 $cert=New-SelfSignedCertificate -Type Custom -Subject 'CN=HollowwakeDevelopment' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -KeyUsage DigitalSignature -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
 Export-Certificate -Cert $cert -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer')|Out-Null
 $project=Join-Path $source 'App\Hollowwake.csproj'

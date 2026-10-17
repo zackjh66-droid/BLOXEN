@@ -1,0 +1,18 @@
+using System;using System.IO;using System.IO.Compression;using System.Text;using System.Security.Cryptography;using System.Threading;using System.Threading.Tasks;using Hollowwake.Services;
+class ContentTransferTest {
+ static string Hash(byte[] b){using(var h=SHA256.Create())return BitConverter.ToString(h.ComputeHash(b)).Replace("-","").ToLowerInvariant();}
+ static void Check(bool v,string why){if(!v)throw new Exception(why);}
+ static void Main(){Run().GetAwaiter().GetResult();}
+ static async Task Run(){var root=Path.Combine(Path.GetTempPath(),"HwOwnedContent-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);try{
+  var archive=Path.Combine(root,"own.zip");var payload=Encoding.UTF8.GetBytes("Original Hollowwake content-transfer fixture, not Fortnite.");var name="6.21/FortniteGame/Content/Hollowwake-owned-fixture.txt";
+  using(var z=ZipFile.Open(archive,ZipArchiveMode.Create)){using(var f=z.CreateEntry(name).Open())f.Write(payload,0,payload.Length);using(var f=z.CreateEntry("6.21/FortniteGame/Binaries/never-extract.exe").Open())f.WriteByte(1);}
+  var record=new ContentFile{Path=name,Bytes=payload.Length,Sha256=Hash(payload)};int checks=0;Func<Task> allow=()=>{++checks;return Task.CompletedTask;};var progress=new Progress<string>();var data=Path.Combine(root,"GameClean");
+  await ContentTransfer.ExtractVerified(archive,data,new[]{record},allow,progress,CancellationToken.None);var target=Path.Combine(data,name.Replace('/',Path.DirectorySeparatorChar));Check(File.ReadAllText(target)==Encoding.UTF8.GetString(payload),"Actual content bytes differ");Check(!File.Exists(Path.Combine(data,"6.21/FortniteGame/Binaries/never-extract.exe")),"Unselected executable was extracted");Check(checks>=2,"Authorization was not rechecked");
+  File.WriteAllText(target,"changed");await ContentTransfer.ExtractVerified(archive,data,new[]{record},allow,progress,CancellationToken.None);Check(Directory.GetFiles(Path.GetDirectoryName(target),"*.replaced-*").Length==1,"Changed copy was not retained");Check(await ContentTransfer.Matches(target,record.Bytes,record.Sha256,CancellationToken.None),"Replacement not hash verified");
+  record.Sha256=new string('0',64);bool rejected=false;try{await ContentTransfer.ExtractVerified(archive,Path.Combine(root,"bad"),new[]{record},allow,progress,CancellationToken.None);}catch(IOException){rejected=true;}Check(rejected&&!File.Exists(Path.Combine(root,"bad",name.Replace('/',Path.DirectorySeparatorChar))),"Hash mismatch became ready content");
+  foreach(var bad in new[]{"6.21/FortniteGame/Content/../a.pak","6.21/FortniteGame/Content/a.dll","6.21/FortniteGame/Content/CON.txt","6.21/FortniteGame/Content/a.pak:stream","6.21/FortniteGame/Content/a%2fp.pak"})Check(!ContentPlan.Safe(bad),"Unsafe path accepted: "+bad);
+  record.Sha256=Hash(payload);bool revoked=false;try{await ContentTransfer.ExtractVerified(archive,Path.Combine(root,"revoked"),new[]{record},()=>{throw new UnauthorizedAccessException("Owned revocation fixture");},progress,CancellationToken.None);}catch(UnauthorizedAccessException){revoked=true;}Check(revoked,"Revoked authorization ignored");
+  bool cancelled=false;var cancel=new CancellationTokenSource();cancel.Cancel();try{await ContentTransfer.ExtractVerified(archive,Path.Combine(root,"cancelled"),new[]{record},allow,progress,cancel.Token);}catch(OperationCanceledException){cancelled=true;}Check(cancelled,"Cancellation ignored");
+  Console.WriteLine("PASS actual owned content extraction, hashes, path/code rejection, retained replacements, authorization and cancellation. No game/Xbox execution.");
+ }finally{Directory.Delete(root,true);}}
+}

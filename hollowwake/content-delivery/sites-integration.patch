@@ -1,0 +1,12 @@
+Apply only through the supported existing Sites source workflow:
+1. Add backend/content621.mjs from Hollowwake's source.
+2. In backend/core.mjs import contentManifestResponse from './content621.mjs'.
+3. Before the existing /api/device/profile handler add:
+   if(path==='/api/device/content/6.21'&&request.method==='GET'){
+     await session(request,true);
+     return contentManifestResponse(config.contentManifest);
+   }
+4. In worker/index.mjs's existing config object add:
+   contentManifest: env.HOLLOWWAKE_CONTENT_MANIFEST_JSON
+5. Keep the manifest server-only. Leave unset until owner-reviewed inputs and permitted delivery are configured.
+No migrations, auth replacements, account resets or new admin credentials.

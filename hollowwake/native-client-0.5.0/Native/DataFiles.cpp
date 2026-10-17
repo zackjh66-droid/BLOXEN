@@ -25,7 +25,7 @@ bool Executable(const std::wstring& name){auto position=name.find_last_of(L'.');
 std::wstring Map(const wchar_t* name,bool writing){std::lock_guard<std::recursive_mutex> lock(gate);auto logical=Absolute(name);if(logical.empty())return {};
  auto exact=code.find(logical);if(exact!=code.end()){if(writing){SetLastError(ERROR_ACCESS_DENIED);return {};}return exact->second;}
  if(Executable(logical)){SetLastError(ERROR_ACCESS_DENIED);return {};}
- auto root=package+L"\\6.21";if(Under(logical,root)){auto target=data+L"\\6.21"+logical.substr(root.size());if(!writing){WIN32_FILE_ATTRIBUTE_DATA attrs={};if(!GetFileAttributesExFromAppW(target.c_str(),GetFileExInfoStandard,&attrs)&&GetFileAttributesExFromAppW(logical.c_str(),GetFileExInfoStandard,&attrs))return logical;}return target;}
+ auto root=package+L"\\6.21";if(writing&&(Under(logical,root+L"\\fortnitegame\\content")||Under(logical,data+L"\\6.21\\fortnitegame\\content")||Under(logical,root+L"\\engine\\binaries\\thirdparty\\cef3\\win64")||Under(logical,data+L"\\6.21\\engine\\binaries\\thirdparty\\cef3\\win64"))){SetLastError(ERROR_ACCESS_DENIED);return {};}if(Under(logical,root)){auto target=data+L"\\6.21"+logical.substr(root.size());if(!writing){WIN32_FILE_ATTRIBUTE_DATA attrs={};if(!GetFileAttributesExFromAppW(target.c_str(),GetFileExInfoStandard,&attrs)&&GetFileAttributesExFromAppW(logical.c_str(),GetFileExInfoStandard,&attrs))return logical;}return target;}
  if(Under(logical,data+L"\\6.21"))return logical;
  SetLastError(ERROR_ACCESS_DENIED);return {};
 }
