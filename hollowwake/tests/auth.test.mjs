@@ -112,11 +112,11 @@ test('expiry, denial, cancellation, invalid clients, and expired sessions are re
   assert.equal((await xbox.request('/api/device/profile', undefined, { bearer: tokens.body.access_token })).status, 401);
 });
 
-test('rate limits persist in SQL and cannot be bypassed by restarting application', async t => {
+test('human-code typos remain retryable while device issuance is rate limited in SQL', async t => {
   const f = await fixture(t); const browser = f.client('browser'); await f.register(browser, 'nightfall');
   let response;
   for (let i = 0; i < 9; i++) response = await browser.request('/api/link/verify', { user_code: 'AAAAAAAA' });
-  assert.equal(response.status, 429); assert.equal(response.headers.get('retry-after'), '600');
+  assert.equal(response.status, 400); assert.equal(response.body.error,'invalid_user_code');
   assert(f.app.db.prepare('SELECT COUNT(*) AS n FROM request_limit').get().n > 0);
   const xbox = f.client('xbox'); for (let i = 0; i < 11; i++) response = await xbox.request('/api/device/code', { client_id: 'hollowwake-uwp' });
   assert.equal(response.status, 429);
@@ -179,9 +179,11 @@ test('same database retains rate limits and device restoration after a service r
   await send('/api/link/verify', { user_code: code.user_code }, { cookie }); await send('/api/link/approve', { user_code: code.user_code }, { cookie });
   const tokens = (await send('/api/device/token', { device_code: code.device_code, client_id: 'hollowwake-uwp', grant_type: 'urn:ietf:params:oauth:grant-type:device_code' })).body;
   for (let i = 0; i < 8; i++) await send('/api/link/verify', { user_code: 'AAAAAAAA' }, { cookie });
+  for (let i = 0; i < 9; i++) assert.equal((await send('/api/device/code',{client_id:'hollowwake-uwp'})).response.status,200);
   app.close(); app = await createApplication(config); t.after(() => app.close());
   const restored = await send('/api/device/profile', undefined, { authorization: `Bearer ${tokens.access_token}` }); assert.equal(restored.response.status, 200); assert.equal(restored.body.publicUsername, 'persistent');
-  assert.equal((await send('/api/link/verify', { user_code: 'AAAAAAAA' }, { cookie })).response.status, 429);
+  assert.equal((await send('/api/link/verify', { user_code: 'AAAAAAAA' }, { cookie })).response.status, 400);
+  assert.equal((await send('/api/device/code',{client_id:'hollowwake-uwp'})).response.status,429);
 });
 
 test('human-code review distinguishes invalid and already redeemed codes without retaining secret codes', async t => {
