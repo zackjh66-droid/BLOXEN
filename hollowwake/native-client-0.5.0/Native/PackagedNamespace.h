@@ -8,3 +8,5 @@ bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relativePat
 bool ConfigurePackagedNamespace(const wchar_t* mainModule,const wchar_t* commandLine);
 void* ResolvePackagedNamespaceImport(const char* dll,const char* name);
 }
+
+namespace Hollowwake { char* __cdecl PackagedWinMainTail(); }

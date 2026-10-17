@@ -25,6 +25,7 @@
 #include "ModuleLoader.h"
 #include "NetworkBridge.h"
 #include "DataFiles.h"
+#include "StartupImport.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include "../../runtime-native-route/NativeProxyDispatch.h"
 #include "PackagedNamespace.h"
@@ -139,6 +140,8 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   if(!Hollowwake::ConfigurePackagedRoot(location->Data()))return E_INVALIDARG;
   for(unsigned fileIndex=0;fileIndex<files->Size;++fileIndex){auto item=files->GetAt(fileIndex)->GetObject();auto relative=item->GetNamedString(L"packageRelativePath");std::wstring path(relative->Data());if(path.empty()||path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return E_INVALIDARG;auto slash=path.find_last_of(L"/\\");auto name=path.substr(slash==std::wstring::npos?0:slash+1);std::wstring disk=std::wstring(location->Data())+L"\\"+path;std::ifstream dependency(disk,std::ios::binary|std::ios::ate);if(!dependency)return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);auto length=dependency.tellg();if(length<1024||length>512*1024*1024)return E_INVALIDARG;dependency.seekg(0);std::vector<BYTE> image((SIZE_T)length);if(!dependency.read((char*)image.data(),length))return E_FAIL;auto hash=item->GetNamedString(L"sha256");if(hash->Length()!=64)return E_INVALIDARG;BYTE expectedDependency[32];for(unsigned i=0;i<32;++i){auto nibble=[](wchar_t c)->int{return c>=L'0'&&c<=L'9'?c-L'0':c>=L'a'&&c<=L'f'?c-L'a'+10:-1;};int a=nibble(hash->Data()[i*2]),b=nibble(hash->Data()[i*2+1]);if(a<0||b<0)return E_INVALIDARG;expectedDependency[i]=(BYTE)(a*16+b);}if(!HashPinned(image,expectedDependency)){Log("NATIVE_LOAD_BLOCKED packaged dependency hash mismatch");return E_INVALIDARG;}if(!RegisterCodeFileAlias(item->GetNamedString(L"originalRelativePath")->Data(),path.c_str()))return E_INVALIDARG;if(!item->GetNamedBoolean(L"mainImage")&&!Hollowwake::RegisterPackagedDependency(name.c_str(),path.c_str(),item->GetNamedString(L"originalRelativePath")->Data()))return E_INVALIDARG;}
   auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
+  if(!BindWinMainCommandImport(module,"api-ms-win-crt-runtime-l1-1-0.dll",reinterpret_cast<void*>(&Hollowwake::PackagedWinMainTail))){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED _get_narrow_winmain_command_line binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
+  Log("NATIVE_STARTUP_BOUND image-local WinMain command import; host CRT globals unchanged");
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
   Log("NATIVE_ENTRY calling original client entry; no lobby success is inferred");auto result=entry();Log("NATIVE_ENTRY_RETURN value="+std::to_string(result));return result;
  }catch(Platform::Exception^ e){Log("NATIVE_LOAD_EXCEPTION HRESULT="+std::to_string(e->HResult));return e->HResult;}

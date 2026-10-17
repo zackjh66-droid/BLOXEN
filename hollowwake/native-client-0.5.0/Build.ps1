@@ -33,6 +33,8 @@ $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
 if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
 & (Join-Path $OutputDirectory 'ContentTransferTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test.log')
 if($LASTEXITCODE){throw 'Shared content-transfer behavior failed'}
+& (Join-Path $source 'tests\Test-StartupImport.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'startup-import-test.log')
+if($LASTEXITCODE){throw 'Startup import test failed'}
 $cert=New-SelfSignedCertificate -Type Custom -Subject 'CN=HollowwakeDevelopment' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -KeyUsage DigitalSignature -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
 Export-Certificate -Cert $cert -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer')|Out-Null
 $project=Join-Path $source 'App\Hollowwake.csproj'
