@@ -12,7 +12,7 @@ $id=[HwActivation]::Launch($package.PackageFamilyName+'!App','--native-preflight
 $data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\LocalState')
 $deadline=[DateTime]::UtcNow.AddSeconds(40)
 while([DateTime]::UtcNow-lt $deadline){
- if(Test-Path (Join-Path $data 'native-launch.log')){if((Get-Content (Join-Path $data 'native-launch.log') -Raw).Contains('NATIVE_PREFLIGHT total=')){break}}
+ if(Test-Path (Join-Path $data 'native-launch.log')){if((Get-Content (Join-Path $data 'native-launch.log') -Raw).Contains('NATIVE_PLATFORM_PREFLIGHT total=')){break}}
  Start-Sleep -Seconds 1
 }
 if(!(Test-Path (Join-Path $data 'native-imports-unresolved.txt'))){throw 'Integrated AppContainer native preflight did not produce exact-name report'}
