@@ -1,12 +1,76 @@
-Apply only through the supported existing Sites source workflow:
-1. Add backend/content621.mjs from Hollowwake's source.
-2. In backend/core.mjs import contentManifestResponse from './content621.mjs'.
-3. Before the existing /api/device/profile handler add:
-   if(path==='/api/device/content/6.21'&&request.method==='GET'){
-     await session(request,true);
-     return contentManifestResponse(config.contentManifest);
-   }
-4. In worker/index.mjs's existing config object add:
-   contentManifest: env.HOLLOWWAKE_CONTENT_MANIFEST_JSON
-5. Keep the manifest server-only. Leave unset until owner-reviewed inputs and permitted delivery are configured.
-No migrations, auth replacements, account resets or new admin credentials.
+--- a/backend/core.mjs
++++ b/backend/core.mjs
+@@ -1,3 +1,4 @@
++import {contentManifestResponse} from './content621.mjs';
+ import { createHmac } from 'node:crypto';
+ import QRCode from 'qrcode';
+ import { CLIENT_ID } from './auth-options.mjs';
+@@ -102,6 +103,7 @@
+         const inventory=await db.prepare('SELECT cosmetic_id AS cosmeticId,granted_at AS grantedAt FROM project_inventory WHERE user_id=? ORDER BY cosmetic_id').all(current.user.id);
+         return json({inventory,scope:'Hollowwake project records only; not connected to the Fortnite client',fortniteIntegration:false});
+       }
++      if(path==='/api/device/content/6.21'&&request.method==='GET'){await session(request,true);return contentManifestResponse(config.contentManifest);}
+       if (path === '/api/device/profile' && request.method === 'GET') {
+         const current = await session(request, true);
+         return json({ accountId: current.user.id, publicUsername: current.user.username || current.user.name, sessionExpiresAt: current.session.expiresAt,
+--- a/worker/index.mjs
++++ b/worker/index.mjs
+@@ -8,7 +8,7 @@
+   const origin = new URL(env.PUBLIC_ORIGIN).origin;
+   if (!origin.startsWith('https://') && !env.LOCAL_TEST) throw Error('HTTPS required');
+   if (!env.BETTER_AUTH_SECRET || env.BETTER_AUTH_SECRET.length < 32) throw Error('Missing authentication secret');
+-  const config = { origin, local: Boolean(env.LOCAL_TEST), secret: env.BETTER_AUTH_SECRET, emailDelivery: env.MAIL_API_KEY ? 'https-mail' : 'unavailable',
++  const config = { contentManifest:env.HOLLOWWAKE_CONTENT_MANIFEST_JSON, origin, local: Boolean(env.LOCAL_TEST), secret: env.BETTER_AUTH_SECRET, emailDelivery: env.MAIL_API_KEY ? 'https-mail' : 'unavailable',
+     requireEmailVerification: Boolean(env.MAIL_API_KEY), deviceExpires: '10m', pollInterval: '5s', sessionSeconds: 7*86400, sessionUpdateSeconds: 86400, maxDeviceDays: 30 };
+   // No SMTP/TCP on Workers. This explicit HTTPS adapter needs an authorized mail account.
+   const send = async message => {
+--- /dev/null
++++ b/backend/content621.mjs
+@@ -0,0 +1,22 @@
++// Authenticated device-only metadata. No game bytes, project tokens or private URLs are embedded.
++import {createHash} from 'node:crypto';
++export const CONTENT_BUILD='6.21-CL-4526925';
++const ARCHIVE='https://public-build-archives-bucket.erafn.dev/6.21.zip';
++const ARCHIVE_SHA='bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5';
++const allowed=/\.(pak|sig|mp4|srt|png|jpg|bmp|txt|bin|dat)$/i;
++export function contentPath(path){
++ return typeof path==='string'&&path.length<512&&/^(6\.21\/FortniteGame\/Content\/|6\.21\/Engine\/Binaries\/ThirdParty\/CEF3\/Win64\/)/.test(path)&&allowed.test(path)&&!/[\\:\x00-\x1f%]/.test(path)&&path.split('/').every(x=>x&&x!=='.'&&x!=='..'&&!/[. ]$/.test(x)&&! /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(x));
++}
++export function validateContentManifest(value){
++ if(!value||value.schema!==1||value.build!==CONTENT_BUILD||!value.archive||value.archive.url!==ARCHIVE||value.archive.bytes!==12528679454||value.archive.sha256!==ARCHIVE_SHA||!Array.isArray(value.files)||!value.files.length||value.files.length>10000)throw Error('Invalid content manifest');
++ let total=0;const seen=new Set();
++ const files=value.files.map(f=>{if(!contentPath(f.path)||seen.has(f.path.toLowerCase())||!Number.isSafeInteger(f.bytes)||f.bytes<0||f.bytes>12*1024**3||! /^[0-9a-f]{64}$/.test(f.sha256))throw Error('Invalid content record');seen.add(f.path.toLowerCase());total+=f.bytes;return{path:f.path,bytes:f.bytes,sha256:f.sha256};}).sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
++ if(total>64*1024**3)throw Error('Content expansion exceeds limit');
++ const normalized={schema:1,build:CONTENT_BUILD,archive:{url:ARCHIVE,bytes:12528679454,sha256:ARCHIVE_SHA},files};
++ return {...normalized,expandedBytes:total,manifestId:createHash('sha256').update(JSON.stringify(normalized)).digest('hex')};
++}
++export function contentManifestResponse(value){
++ if(!value)return new Response(JSON.stringify({error:'content_not_configured',message:'An owner-approved private content manifest has not been configured.'}),{status:503,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}});
++ try{return Response.json({...validateContentManifest(typeof value==='string'?JSON.parse(value):value),expiresAt:Date.now()+15*60*1000},{headers:{'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});}
++ catch{return Response.json({error:'invalid_content_configuration'},{status:503,headers:{'Cache-Control':'no-store'}});}
++}
+--- a/tests/worker.test.mjs
++++ b/tests/worker.test.mjs
+@@ -8,6 +8,7 @@
+ const origin='https://hollowwake.test';
+ const temporary=await mkdtemp(join(tmpdir(),'hollowwake-d1-'));
+ const config={scriptPath:'dist/server/index.js',modules:true,compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],cf:false,log:new Log(LogLevel.NONE),d1Databases:{DB:'hollowwake-test'},resourcePersistencePath:temporary,unsafeEnableSharedStorage:true,bindings:{PUBLIC_ORIGIN:origin,BETTER_AUTH_SECRET:randomBytes(48).toString('hex')}};
++config.bindings.HOLLOWWAKE_CONTENT_MANIFEST_JSON="{\"schema\": 1, \"build\": \"6.21-CL-4526925\", \"archive\": {\"url\": \"https://public-build-archives-bucket.erafn.dev/6.21.zip\", \"bytes\": 12528679454, \"sha256\": \"bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5\"}, \"files\": [{\"path\": \"6.21/FortniteGame/Content/Hollowwake-owned-fixture.txt\", \"bytes\": 0, \"sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}]}";
+ let mf;
+ async function request(path,data,cookie,token,{device=false}={}){
+  const headers={...(data===undefined?{}:{'Content-Type':'application/json'}),...(cookie?{Cookie:cookie,...(device?{}:{Origin:origin})}:{}),...(token?{Authorization:'Bearer '+token}:{})};
+@@ -42,12 +43,13 @@
+  let q=await request('/api/device/token',{client_id:'hollowwake-uwp',device_code:issued.device_code,grant_type:'urn:ietf:params:oauth:grant-type:device_code'});assert.notEqual(q.r.status,200);
+  q=await request('/api/link/verify',{user_code:issued.user_code},alice);assert.equal(q.b.error,'code_already_used');
+  q=await request('/api/device/profile',undefined,'__cf_bm=harmless_platform_cookie',token);assert.equal(q.r.status,200);assert.equal(q.b.publicUsername,'worker_alice');
++ q=await request('/api/device/content/6.21');assert.equal(q.r.status,401);q=await request('/api/device/content/6.21',undefined,alice);assert.equal(q.r.status,401);q=await request('/api/device/content/6.21',undefined,null,token);assert.equal(q.r.status,200);assert.equal(q.b.files.length,1);assert.equal(q.r.headers.get('cache-control'),'no-store');
+  await mf.dispose();mf=new Miniflare(convertV4MiniflareOptions(config));await mf.ready;
+  q=await request('/api/device/renew',{},null,token);assert.equal(q.r.status,200);
+  q=await request('/api/devices',undefined,alice);assert.equal(q.r.status,200);const id=q.b.devices[0].id;
+  q=await request('/api/devices/revoke',{id},bob);assert.equal(q.r.status,404);
+  q=await request('/api/devices/revoke',{id},alice);assert.equal(q.r.status,200);
+- q=await request('/api/device/profile',undefined,null,token);assert.equal(q.r.status,401);
++ q=await request('/api/device/profile',undefined,null,token);assert.equal(q.r.status,401);q=await request('/api/device/content/6.21',undefined,null,token);assert.equal(q.r.status,401);
+ });
+ test('code typos and existing legacy lockout do not block a subsequent valid approval',async()=>{
+  db=await mf.getD1Database('DB');

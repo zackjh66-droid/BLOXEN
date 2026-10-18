@@ -18,7 +18,7 @@ The two-part route is adopted as a continuation of Hollowwake's native packaging
 
 Current live website remains https://hollowwake.jihnjohn10.chatgpt.site . Its working accounts/admin/backend remain unchanged. The content endpoint is implemented and tested in the Node backend source; it is not claimed deployed.
 
-For the existing Sites Worker, copy backend/content621.mjs and the small authenticated endpoint insertion into its existing backend/core.mjs, and set config.contentManifest from server-side env.HOLLOWWAKE_CONTENT_MANIFEST_JSON in worker/index.mjs. Keep every existing auth option, D1 binding, owner check and runtime secret. Do not put that variable into public browser assets. Never upload game bytes to a public Site. Only configure metadata and any hosting route after applicable distribution permission is established.
+For the existing Sites Worker, copy backend/content621.mjs and the small authenticated endpoint insertion into its existing backend/core.mjs, and set config.contentManifest from server-side env.HOLLOWWAKE_CONTENT_MANIFEST_JSON in worker/index.mjs. Keep every existing auth option, D1 binding, owner check and runtime secret. Do not put that variable into public browser assets. Never upload game bytes to a public Site. The metadata may describe the already-authorized archive source; it does not authorize publishing the underlying game bytes.
 
 Sites' required source helper scripts/site-workflow.mjs is absent in this environment and not readable at either tested skill-resource location. No unsupported replacement deployment or private credential disclosure was attempted. A supported Sites source checkout/publishing helper is needed to deploy the backend change safely.
 
@@ -29,3 +29,5 @@ The current native preflight still returns HRESULT 0x8007007F before LoadPackage
 A per-image binder for the exact _get_narrow_winmain_command_line import is now called in the real native load path before original entry; it redirects that image's import without changing host CRT globals. It does not prove the rest of conventional EXE CRT startup is safe. Full device/context/swapchain identity/presentation, remaining window/input semantics and a verified libcurl/MCP endpoint plus short-lived Fortnite grant handoff remain unfinished. Existing /client621 profile/catalog prototype and Hollowwake website login are not evidence of Fortnite login. Original loading, character rendering and lobby have not executed. Matchmaking stays unavailable. Xbox execution remains unverified.
 
 These are remaining implementation requirements, not a request for a user PC or manual compilation. Source and build logs are delivered; no game-ready download is claimed.
+
+Verification details are in TEST-REPORT.md. The standalone backend and offline Sites candidate passed their respective tests; no production deployment or game-ready package is claimed.

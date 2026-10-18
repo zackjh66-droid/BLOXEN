@@ -1,0 +1,40 @@
+{
+  "project": "Hollowwake",
+  "repository": "zackjh66-droid/BLOXEN",
+  "branch": "hollowwake/native-system-route",
+  "sourceCommit": "4f715dfc87828c0183f2a58ac3be190013c13c06",
+  "nodeAuthContentTests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "offlineSitesWorkerTests": {
+    "passed": 17,
+    "failed": 0,
+    "deployed": false
+  },
+  "hostedFinalCheckRun": 39081091409,
+  "hostedChecks": "PASS compile, signature, real owned transfer/startup, native API audit and UIA",
+  "historicalPrivateGamePackageRun": 38965324618,
+  "historicalPrivatePackage": "PASS signed and content-audited, not executed, not retained as public artifact",
+  "currentPrivateInputRun": 39080697539,
+  "currentPrivateInput": "FAIL invalid/truncated ZIP, TLS alternate, 404 alternate",
+  "contentManifest": {
+    "files": 139,
+    "expandedBytes": 26449827840,
+    "private": true,
+    "gameBytesPublished": false
+  },
+  "nativePreflight": {
+    "result": "0x8007007F",
+    "redirectedPairs": 843,
+    "missing": 208,
+    "additionalUnverifiedOSPairs": 838
+  },
+  "originalGameExecuted": false,
+  "originalLobbyReached": false,
+  "xboxTested": false,
+  "priorCompanionLinking": "user-reported Xbox success",
+  "newGameReadyPackageReleased": false,
+  "liveWebsite": "https://hollowwake.jihnjohn10.chatgpt.site",
+  "accountsAdminRollbackPreserved": true
+}
