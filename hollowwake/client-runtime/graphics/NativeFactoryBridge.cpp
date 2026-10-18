@@ -6,6 +6,7 @@
 #include <mutex>
 #include <cstring>
 #include <set>
+#include <new>
 using Microsoft::WRL::ComPtr;
 namespace Hollowwake { namespace {
 using Create=HRESULT(STDMETHODCALLTYPE*)(IDXGIFactory*,IUnknown*,DXGI_SWAP_CHAIN_DESC*,IDXGISwapChain**);
@@ -33,8 +34,10 @@ static HRESULT Patch(void* object,unsigned index,void* replacement){
  // private image mapping. No original DLL file, foreign process, page of code,
  // protection policy or security setting is changed. Refusal is propagated.
  MEMORY_BASIC_INFORMATION info={};if(!VirtualQuery(address,&info,sizeof(info))||info.State!=MEM_COMMIT||(info.Protect&(PAGE_EXECUTE|PAGE_EXECUTE_READ|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY|PAGE_GUARD|PAGE_NOACCESS)))return E_ACCESSDENIED;
- DWORD prior=0;if(!VirtualProtectFromApp(address,sizeof(void*),PAGE_READWRITE,&prior))return HRESULT_FROM_WIN32(GetLastError());
- void* original=*address;slots.emplace(address,Slot{address,original,replacement});
+ // Allocate tracking before changing page permissions. Allocation failure must
+ // not strand a native provider's dispatch page writable.
+ void* original=*address;try{slots.emplace(address,Slot{address,original,replacement});}catch(const std::bad_alloc&){return E_OUTOFMEMORY;}
+ DWORD prior=0;if(!VirtualProtectFromApp(address,sizeof(void*),PAGE_READWRITE,&prior)){auto error=GetLastError();slots.erase(address);return HRESULT_FROM_WIN32(error);}
  void* observed=InterlockedCompareExchangePointer(reinterpret_cast<PVOID volatile*>(address),replacement,original);
  if(observed!=original){slots.erase(address);DWORD ignored=0;VirtualProtectFromApp(address,sizeof(void*),prior,&ignored);return HRESULT_FROM_WIN32(ERROR_RETRY);}
  DWORD ignored=0;if(!VirtualProtectFromApp(address,sizeof(void*),prior,&ignored)){
@@ -53,7 +56,7 @@ void ConfigureNativeFactoryBridge(IUnknown* window,BOOL(WINAPI*validate)(HWND)){
 HRESULT BridgeDeviceFactories(ID3D11Device* device){
  if(!device)return E_INVALIDARG;ComPtr<IDXGIDevice> dxgi;auto hr=device->QueryInterface(IID_PPV_ARGS(&dxgi));if(FAILED(hr))return hr;ComPtr<IDXGIAdapter> adapter;hr=dxgi->GetAdapter(&adapter);if(FAILED(hr))return hr;ComPtr<IDXGIFactory> factory;hr=adapter->GetParent(IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;
  std::lock_guard<std::mutex> lock(gate);if(!presentationWindow||!guestWindow)return E_UNEXPECTED;
- std::set<void**> existing;for(auto& entry:slots)existing.insert(entry.first);
+ std::set<void**> existing;try{for(auto& entry:slots)existing.insert(entry.first);}catch(const std::bad_alloc&){return E_OUTOFMEMORY;}
  auto failed=[&](HRESULT error){
   // Preserve pre-existing devices, but roll back every new dispatch change if
   // another required interface is refused. No half-installed successful bridge.
