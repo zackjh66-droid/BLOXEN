@@ -22,15 +22,17 @@ static int __cdecl Entry(){
  if(SUCCEEDED(sta))CoUninitialize();
  return child!=caller&&tls&&(initial==CO_E_NOTINITIALIZED||(initial==S_OK&&apartment==APTTYPE_MTA&&qualifier==APTTYPEQUALIFIER_IMPLICIT_MTA))&&sta==S_OK&&reserved==1048576&&notifications.load()>0?621:-2;
 }
+static int __cdecl EarlyExit(){ExitThread(77);return 0;}
 static void Log(const std::string& value){std::cout<<value<<"\n";}
 int main(int argc,char** argv){
  if(argc!=2)return 10;caller=GetCurrentThreadId();localValue=99;
  auto initialized=CoInitializeEx(nullptr,COINIT_MULTITHREADED);if(FAILED(initialized))return 11;
  callerSta=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);if(callerSta!=RPC_E_CHANGED_MODE)return 13;
  int result=-1;auto hr=RunNativeClientThread(Entry,1048576,&result,Log);
+ int earlyResult=123;bool early=RunNativeClientThread(EarlyExit,1048576,&earlyResult,Log)==HRESULT_FROM_WIN32(ERROR_PROCESS_ABORTED)&&earlyResult==123;
  bool invalid=RunNativeClientThread(Entry,1,&result,nullptr)==E_INVALIDARG;
  CoUninitialize();
- bool passed=SUCCEEDED(hr)&&result==621&&localValue==99&&invalid;
- std::ofstream out(argv[1]);out<<"{\"scope\":\"Original native entry-thread fixture, no Fortnite or Xbox execution\",\"passed\":"<<(passed?"true":"false")<<",\"hresult\":"<<(unsigned long)hr<<",\"entryResult\":"<<result<<",\"initialComResult\":"<<(unsigned long)initial<<",\"initialApartment\":"<<(int)apartment<<",\"initialQualifier\":"<<(int)qualifier<<",\"callerStaResult\":"<<(unsigned long)callerSta<<",\"staResult\":"<<(unsigned long)sta<<",\"reservedStackBytes\":"<<reserved<<",\"tlsThreadNotifications\":"<<notifications.load()<<",\"separateTlsValue\":"<<(tls&&localValue==99?"true":"false")<<",\"invalidReservationRejected\":"<<(invalid?"true":"false")<<"}";
+ bool passed=SUCCEEDED(hr)&&result==621&&localValue==99&&invalid&&early;
+ std::ofstream out(argv[1]);out<<"{\"scope\":\"Original native entry-thread fixture, no Fortnite or Xbox execution\",\"passed\":"<<(passed?"true":"false")<<",\"hresult\":"<<(unsigned long)hr<<",\"entryResult\":"<<result<<",\"initialComResult\":"<<(unsigned long)initial<<",\"initialApartment\":"<<(int)apartment<<",\"initialQualifier\":"<<(int)qualifier<<",\"callerStaResult\":"<<(unsigned long)callerSta<<",\"staResult\":"<<(unsigned long)sta<<",\"reservedStackBytes\":"<<reserved<<",\"tlsThreadNotifications\":"<<notifications.load()<<",\"separateTlsValue\":"<<(tls&&localValue==99?"true":"false")<<",\"earlyThreadExitRejected\":"<<(early?"true":"false")<<",\"invalidReservationRejected\":"<<(invalid?"true":"false")<<"}";
  return passed?0:12;
 }

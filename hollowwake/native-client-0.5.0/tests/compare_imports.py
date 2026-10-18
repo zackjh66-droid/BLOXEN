@@ -16,4 +16,9 @@ platform=json.loads((out/'native-platform-imports.json').read_text(encoding='utf
 expected=json.loads((root/'tests/platform-import-baseline.json').read_text())
 assert platform['total']==838 and {r['name'] for r in platform['pairs']}=={r['name'] for r in expected['imports']},'Unredirected fixed inventory differs'
 result={'scope':'Hosted Windows AppContainer resolution; behavior tested only by named owned fixtures; Xbox not tested','redirectedInventory':843,'baselineSha256':hashlib.sha256(raw).hexdigest(),'before':208,'after':len(after),'mainBefore':sum(map(main,known)),'mainAfter':sum(map(main,after)),'beforeByModule':dict(collections.Counter(n.split('!')[0] for n in known)),'afterByModule':dict(collections.Counter(n.split('!')[0] for n in after)),'newBindings':sorted(set(known)-after),'stillMissing':[known[n] for n in sorted(after)],'unredirected':{'total':838,'missing':platform['missing'],'normalMissing':platform['normalMissing'],'mainMissing':platform['mainMissing'],'exportsPresentAreNotBehaviorProof':True},'gameExecuted':False,'xboxTested':False}
+checkpoint=json.loads((root/'tests/startup-checkpoint.json').read_text())
+previous={r['name'] for r in checkpoint['missingImports']}
+assert checkpoint['redirectedInventory']==843 and len(previous)==193 and previous<=set(known) and after<=previous
+result['startupCheckpoint']={'sourceCommit':checkpoint['sourceCommit'],'before':len(previous),'mainBefore':sum(map(main,previous)),'after':len(after),'mainAfter':sum(map(main,after)),'newBindings':sorted(previous-after)}
+result['baselineCanonicalSha256']=hashlib.sha256(json.dumps(baseline,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 (out/'import-comparison.json').write_text(json.dumps(result,indent=2));print(json.dumps({k:result[k] for k in ['redirectedInventory','before','after','mainBefore','mainAfter','unredirected']}))
