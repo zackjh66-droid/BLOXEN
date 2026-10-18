@@ -24,6 +24,7 @@
 #include "Dependencies.h"
 #include "ModuleLoader.h"
 #include "NetworkBridge.h"
+#include "ReadOnlyPlatform.h"
 #include "DataFiles.h"
 #include "StartupImport.h"
 #include "PlatformAudit.h"
@@ -119,6 +120,7 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 static void* PackagedRoute(const char* dll,const char* name){
  if(auto p=ResolveDataFileImport(dll,name))return p;
  if(auto p=ResolveNetworkImport(dll,name))return p;
+ if(auto p=ResolveReadOnlyPlatformImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
  if(auto p=ResolveControllerImport(dll,name))return p;

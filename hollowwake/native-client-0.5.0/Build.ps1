@@ -19,6 +19,9 @@ if($LASTEXITCODE){throw 'Production pointer/display test compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NetworkBridge.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\NetworkTest.cpp') kernel32.lib ws2_32.lib runtimeobject.lib /Fe:"$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test-build.log')
 if($LASTEXITCODE){throw 'Network test build failed'}
 & "$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test.log');if($LASTEXITCODE){throw 'Network behavior failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\ReadOnlyPlatform.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\ReadOnlyPlatformTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\ReadOnlyPlatformTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'readonly-platform-build.log')
+if($LASTEXITCODE){throw 'Read-only platform query compilation failed'}
+& "$OutputDirectory\ReadOnlyPlatformTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'readonly-platform-test.log');if($LASTEXITCODE){throw 'Actual OS proxy query behavior failed'}
 & (Join-Path $source 'tests\Test-DataExports.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-export-test.log')
 if($LASTEXITCODE){throw 'Native DATA export fixture failed'}
 & (Join-Path $source 'tests\Test-ClientProxies.ps1') -OutputDirectory $OutputDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib') 2>&1|Tee-Object (Join-Path $OutputDirectory 'client-proxy-build.log')
