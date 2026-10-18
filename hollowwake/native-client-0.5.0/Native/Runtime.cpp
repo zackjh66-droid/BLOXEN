@@ -65,27 +65,48 @@ void* ResolveControllerImport(const char*,const char*);
 void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
 extern "C" void __cdecl HWConfigurePointer(BOOL(__cdecl*)(int,int),BOOL(__cdecl*)(int));
+extern "C" void __cdecl HWConfigureCursor(BOOL(__cdecl*)(UINT,int));
+static bool explicitCursor=false;
 static Platform::Agile<Windows::UI::Core::CoreCursor> savedPointer;
 static Platform::Agile<Windows::UI::Core::CoreWindow> pointerCore;
-static HRESULT PointerOnUi(bool visibility,int x,int y){
+static HRESULT PointerOnUi(int operation,int x,int y){
  auto core=pointerCore.Get();
  if(!core)return E_UNEXPECTED;
- try{if(visibility){if(x){core->PointerCursor=savedPointer.Get()?savedPointer.Get():ref new Windows::UI::Core::CoreCursor(Windows::UI::Core::CoreCursorType::Arrow,0);}else{if(core->PointerCursor)savedPointer=core->PointerCursor;core->PointerCursor=nullptr;}}
+ try{if(operation==2){
+  using Windows::UI::Core::CoreCursorType;CoreCursorType type;
+  switch(x){case 0:savedPointer=nullptr;explicitCursor=true;core->PointerCursor=nullptr;return S_OK;
+   case 32512:type=CoreCursorType::Arrow;break;case 32513:type=CoreCursorType::IBeam;break;case 32514:type=CoreCursorType::Wait;break;case 32515:type=CoreCursorType::Cross;break;case 32516:type=CoreCursorType::UpArrow;break;
+   case 32642:type=CoreCursorType::SizeNorthwestSoutheast;break;case 32643:type=CoreCursorType::SizeNortheastSouthwest;break;case 32644:type=CoreCursorType::SizeWestEast;break;case 32645:type=CoreCursorType::SizeNorthSouth;break;case 32646:type=CoreCursorType::SizeAll;break;
+   case 32648:type=CoreCursorType::UniversalNo;break;case 32649:type=CoreCursorType::Hand;break;case 32651:type=CoreCursorType::Help;break;default:return E_INVALIDARG;}
+  auto next=ref new Windows::UI::Core::CoreCursor(type,0);core->PointerCursor=y?next:nullptr;savedPointer=next;explicitCursor=true;return S_OK;
+ }
+ if(operation==1){if(x){core->PointerCursor=explicitCursor?savedPointer.Get():(savedPointer.Get()?savedPointer.Get():ref new Windows::UI::Core::CoreCursor(Windows::UI::Core::CoreCursorType::Arrow,0));}else{if(core->PointerCursor)savedPointer=core->PointerCursor;core->PointerCursor=nullptr;}}
  else core->PointerPosition=Windows::Foundation::Point((float)x,(float)y);return S_OK;}catch(Platform::Exception^ e){return e->HResult;}
 }
-static BOOL PointerOperation(bool visibility,int x,int y){
+static BOOL PointerOperation(int operation,int x,int y){
  auto dispatcher=gameDispatcher.Get();if(!dispatcher){SetLastError(ERROR_NOT_READY);return FALSE;}
  HRESULT hr;
- if(dispatcher->HasThreadAccess)hr=PointerOnUi(visibility,x,y);
+ if(dispatcher->HasThreadAccess)hr=PointerOnUi(operation,x,y);
  else{struct Request{std::promise<HRESULT> result;std::atomic<bool> active{true};};auto request=std::make_shared<Request>();auto result=request->result.get_future();
-  try{dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,ref new Windows::UI::Core::DispatchedHandler([request,visibility,x,y](){request->result.set_value(request->active.load()?PointerOnUi(visibility,x,y):E_ABORT);}));}catch(Platform::Exception^ e){SetLastError(HRESULT_CODE(e->HResult));return FALSE;}
+  try{dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,ref new Windows::UI::Core::DispatchedHandler([request,operation,x,y](){request->result.set_value(request->active.load()?PointerOnUi(operation,x,y):E_ABORT);}));}catch(Platform::Exception^ e){SetLastError(HRESULT_CODE(e->HResult));return FALSE;}
   if(result.wait_for(std::chrono::seconds(3))!=std::future_status::ready){request->active=false;SetLastError(WAIT_TIMEOUT);return FALSE;}hr=result.get();
  }
  if(FAILED(hr)){SetLastError(HRESULT_CODE(hr));return FALSE;}return TRUE;
 }
-static BOOL __cdecl WarpHostPointer(int x,int y){return PointerOperation(false,x,y);}
-static BOOL __cdecl ShowHostPointer(int show){return PointerOperation(true,show,0);}
+static BOOL __cdecl WarpHostPointer(int x,int y){return PointerOperation(0,x,y);}
+static BOOL __cdecl ShowHostPointer(int show){return PointerOperation(1,show,0);}
+static BOOL __cdecl SelectHostCursor(UINT shape,int visible){return PointerOperation(2,(int)shape,visible);}
 
+
+extern "C" __declspec(dllexport) int __cdecl HWStockCursorContract(){
+ if(!gameDispatcher.Get()||!gameDispatcher.Get()->HasThreadAccess)return -1;
+ using Load=HCURSOR(WINAPI*)(HINSTANCE,LPCWSTR);using Set=HCURSOR(WINAPI*)(HCURSOR);
+ auto load=reinterpret_cast<Load>(ResolveWindowImport("user32.dll","LoadCursorW"));auto set=reinterpret_cast<Set>(ResolveWindowImport("user32.dll","SetCursor"));auto core=pointerCore.Get();
+ if(!load||!set||!core)return -2;auto hand=load(nullptr,(LPCWSTR)32649),arrow=load(nullptr,(LPCWSTR)32512);if(!hand||!arrow)return -3;
+ set(hand);if(!core->PointerCursor||core->PointerCursor->Type!=Windows::UI::Core::CoreCursorType::Hand)return -4;
+ set(nullptr);if(core->PointerCursor)return -5;set(arrow);if(!core->PointerCursor||core->PointerCursor->Type!=Windows::UI::Core::CoreCursorType::Arrow)return -6;
+ Log("PASS real CoreWindow cursor: resolved LoadCursorW/SetCursor -> Hand -> null -> Arrow");return 621;
+}
 static void* QueryBuiltinImport(const char* dll,const char* name){
  if(auto p=ResolveModuleLoaderImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveGuestThreadImport(dll,name))return p;
@@ -131,7 +152,7 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  logName=path;auto packageDirectory=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;auto appData=Windows::Storage::ApplicationData::Current->LocalFolder->Path;std::wstring gameData=std::wstring(appData->Data())+L"\\GameClean";if(!ConfigureDataFiles(packageDirectory->Data(),gameData.c_str()))return E_INVALIDARG;Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);ConfigureUnsupported(Log);Hollowwake::LegacyFatalLogger()=[](const char* message){Log(std::string("CRASH ")+message);};Hollowwake::SystemInfoFailureHandler()=[](DWORD error){Log("CRASH GetVersionExW failed error="+std::to_string(error));};auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
- if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
+ if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
 extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){

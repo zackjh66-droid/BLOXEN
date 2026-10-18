@@ -23,6 +23,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWMemoryPolicy(string path);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWAttemptPackagedClient();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWPreflightClient();
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWStockCursorContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern bool HWConfigureNetwork(string hostname,ushort port);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWClockContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWSystemInfoContract();
@@ -40,6 +41,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWMouseDelta(int dx,int dy);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWKeyDetails(uint key,uint scan,int down,int repeat,int extended,int menu,int wasDown);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWCharacterDetails(uint code,uint scan);
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWTouch(uint id,int x100,int y100,uint flags,uint milliseconds);
         private bool importBusy,loadBusy,policyReady;
         private string LaunchLog {get{return Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-launch.log");}}
         private readonly SessionStore store = new SessionStore();
@@ -54,7 +56,7 @@ namespace Hollowwake
         {
             InitializeComponent();
             var core=CoreWindow.GetForCurrentThread();core.SizeChanged+=(s,e)=>{if(policyReady)HWViewport((int)e.Size.Width,(int)e.Size.Height);};core.Activated+=(s,e)=>{HWHostActivation(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);};core.KeyDown+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,1,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.KeyUp+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,0,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWCharacterDetails(e.KeyCode,e.KeyStatus.ScanCode);};
-            core.PointerMoved += ForwardPointer; core.PointerPressed += ForwardPointer; core.PointerReleased += ForwardPointer; core.PointerWheelChanged += ForwardPointer;
+            core.PointerMoved += ForwardPointer; core.PointerPressed += (s,e)=>ForwardPointer(s,e,2); core.PointerReleased += (s,e)=>ForwardPointer(s,e,4); core.PointerWheelChanged += ForwardPointer;
             // Relative motion comes from the real host mouse device, never inferred from a warped cursor.
             var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
             if(mouse != null) mouse.MouseMoved += (s,e) => { if(policyReady) HWMouseDelta(e.MouseDelta.X,e.MouseDelta.Y); };
@@ -63,9 +65,15 @@ namespace Hollowwake
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; await CancelLinkAsync(); };
         }
-        private void ForwardPointer(CoreWindow sender, PointerEventArgs args)
+        private void ForwardPointer(CoreWindow sender, PointerEventArgs args){ForwardPointer(sender,args,1);}
+        private void ForwardPointer(CoreWindow sender, PointerEventArgs args,uint touchPhase)
         {
-            if(!policyReady || args.CurrentPoint.PointerDevice.PointerDeviceType != Windows.Devices.Input.PointerDeviceType.Mouse) return;
+            if(!policyReady) return;
+            if(args.CurrentPoint.PointerDevice.PointerDeviceType == Windows.Devices.Input.PointerDeviceType.Touch){
+                var point=args.CurrentPoint;uint flags=touchPhase;
+                HWTouch(point.PointerId,(int)Math.Round(point.Position.X*100),(int)Math.Round(point.Position.Y*100),flags,unchecked((uint)(point.Timestamp/1000)));return;
+            }
+            if(args.CurrentPoint.PointerDevice.PointerDeviceType != Windows.Devices.Input.PointerDeviceType.Mouse) return;
             var p=args.CurrentPoint; var b=p.Properties;
             uint buttons=(b.IsLeftButtonPressed?1u:0u)|(b.IsRightButtonPressed?2u:0u)|(b.IsMiddleButtonPressed?4u:0u)|(b.IsXButton1Pressed?8u:0u)|(b.IsXButton2Pressed?16u:0u);
             HWPointer((int)p.Position.X,(int)p.Position.Y,buttons,b.IsHorizontalMouseWheel?0:b.MouseWheelDelta);
@@ -87,7 +95,7 @@ namespace Hollowwake
                 catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
                 finally{if(File.Exists(pending))File.Delete(pending);}
             }
-            if(App.NativePreflight){await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";Log_Click(this,new RoutedEventArgs());return;}
+            if(App.NativePreflight){if(HWStockCursorContract()!=621)throw new InvalidOperationException("Actual CoreWindow cursor API contract failed");await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";Log_Click(this,new RoutedEventArgs());return;}
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try
