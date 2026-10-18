@@ -1,4 +1,5 @@
 #pragma once
-// Actual OS read-only proxy/keyboard-layout queries. No HTTP request creation,
-// desktop HWND passthrough, input injection or account/login implementation.
+// Actual OS proxy/keyboard-layout queries and native icon/cursor resources.
+// File resources go through the existing game-content namespace. No HTTP request
+// creation, virtual HWND passthrough, input injection or login implementation.
 void* ResolveReadOnlyPlatformImport(const char* dll,const char* symbol);

@@ -14,7 +14,7 @@ if($LASTEXITCODE){throw 'OS ordinal reference read failed'}
 if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
 & "$OutputDirectory\NativeClientThreadTest.exe" (Join-Path $OutputDirectory 'native-thread-results.json') 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-test.log');if($LASTEXITCODE){throw 'Native entry-thread behavior failed'}
 # Focused production window/network checks; no game code or repeated graphics demos.
-& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib user32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
 if($LASTEXITCODE){throw 'Window state test build failed'}
 & "$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test.log');if($LASTEXITCODE){throw 'Window state behavior failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowInputTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowInputTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-input-build.log')

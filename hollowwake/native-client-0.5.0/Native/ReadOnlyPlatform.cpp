@@ -44,8 +44,8 @@ void* ResolveReadOnlyPlatformImport(const char* dll,const char* name){
   // HWNDs. They do not send input, open a window,
   // changes the keyboard layout or connects to an external service.
   // Resource operations below accept real OS HBITMAP/HICON/HDC/module handles.
-  // They never receive a virtual HWND. In particular GetDC/BeginPaint and file
-  // loading remain absent: those require the window/content namespace bridges.
+  // They never receive a virtual HWND. GetDC/BeginPaint remain absent because
+  // they require a window surface. File decoding uses the content bridge above.
   if(!strcmp(name,"LoadImageW"))return UserResources().module&&GetProcAddress(UserResources().module,name)?reinterpret_cast<void*>(&LoadGameImage):nullptr;
   if(!strcmp(name,"LoadCursorFromFileW"))return UserResources().module&&GetProcAddress(UserResources().module,name)?reinterpret_cast<void*>(&LoadGameCursor):nullptr;
   const char* allowed[]={"GetKeyboardLayout","MapVirtualKeyW","GetProcessWindowStation","GetUserObjectInformationW",
