@@ -1,0 +1,706 @@
+{
+  "schema": 1,
+  "build": "6.21-CL-4526925",
+  "archive": {
+    "url": "https://public-build-archives-bucket.erafn.dev/6.21.zip",
+    "bytes": 12528679454,
+    "sha256": "bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5"
+  },
+  "files": [
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/cef.pak",
+      "bytes": 6003861,
+      "sha256": "c26ff7260312b10cf2659e048a0c7d8989f8e63a1069802265e47d2f67e65d85"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/cef_100_percent.pak",
+      "bytes": 279905,
+      "sha256": "5db46cebb4085976d52d9d27280fad10b64bdf50b768d3a61b23fc1cda01ed14"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/cef_200_percent.pak",
+      "bytes": 386884,
+      "sha256": "5de8af5fec935ffd1227b4d2c2be1afaba3aeaa334e842ab3f86a63bcf999e26"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/cef_extensions.pak",
+      "bytes": 3565138,
+      "sha256": "0268ed1497f3951662efffb7f14a388c65fd14a1b4e477e8380a31dd9cc6872f"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/devtools_resources.pak",
+      "bytes": 5183550,
+      "sha256": "86ca2607ee8256a55a7aa0b30b7ff3a3bef5c1c095d2e4310e7efda257bfd1c1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/am.pak",
+      "bytes": 317735,
+      "sha256": "644d8494114542e0cc62f09c325b1504bfa8e63fbfa7e32f8d9e70375d21e5b6"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ar.pak",
+      "bytes": 314031,
+      "sha256": "78a728f45c5f0e245153656c277f452d7fa9670bf7d947f41d2a5b4434d21b91"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/bg.pak",
+      "bytes": 366595,
+      "sha256": "966f12b6bdfbccec17b3aaf41cd267b3b50adc08ebb9d4052bc056cf4a9a3c92"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/bn.pak",
+      "bytes": 478939,
+      "sha256": "baab6045ab40c9d0b9f684a70296d759033501981bc9dcd7d6f320e7ecefa4c0"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ca.pak",
+      "bytes": 228122,
+      "sha256": "fcf071199dff9eadf87088c8604a4e7feeb746b52f7a2250a4b4708c7c3253e1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/cs.pak",
+      "bytes": 231572,
+      "sha256": "f6cbb6464f7a89c133d66c919c48227a6fa10285b3ccb5d87581f168584f6574"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/da.pak",
+      "bytes": 207739,
+      "sha256": "4834233e031169260acb8864a4fd6a35bd9f295f74ba39c88e56b8850d145c20"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/de.pak",
+      "bytes": 226211,
+      "sha256": "b2b3f9a080951e1b42447f6fab93ba70f3f18dfb2618b3bb7a9bcd03ac21f1d5"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/el.pak",
+      "bytes": 402687,
+      "sha256": "73245db3afa2d270533773e35f15cda1d4d09a8fe6f2f8a05bd9b117c760b8d5"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/en-GB.pak",
+      "bytes": 186958,
+      "sha256": "3cb1ae145de1892ce5c1dc4ecc00a247f32de71d04c3720de49c800c48be6073"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/en-US.pak",
+      "bytes": 186991,
+      "sha256": "de2958f810539e85e770f4dec86ff880dc0223cd36071d5b1ab4eea2052b6fa0"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/es-419.pak",
+      "bytes": 224532,
+      "sha256": "0e97ee85938625a9a317cd35b66501b02ce56bba0e36ab79d59e76bad6635aa9"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/es.pak",
+      "bytes": 228808,
+      "sha256": "4515a47223a992a72d4cf5cb6f1b290eecc499e96b00e01c71942e20ba8e12d4"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/et.pak",
+      "bytes": 202214,
+      "sha256": "9b3839f55f186318e257a07149a07caa2a2171b8a740cd251c245323c8a7524f"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/fa.pak",
+      "bytes": 321134,
+      "sha256": "a0e38afc45902bae2e2ead3e51972495558fd75e420ad8a05752c76c5c3df5a3"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/fi.pak",
+      "bytes": 211980,
+      "sha256": "a31ce159b03a3ea1dc144d14e31b5525bddc28e9bce366713c7e90580ef3df8c"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/fil.pak",
+      "bytes": 232070,
+      "sha256": "4128934b8dc6fbc90d7d68bd926bd63006ed9869f77ec9a7b78434903fadd18e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/fr.pak",
+      "bytes": 243625,
+      "sha256": "7d2f5a575e6090cc15d28ca2c20723310528278f89bacb31c0cb5d918fec929e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/gu.pak",
+      "bytes": 451818,
+      "sha256": "b62fe556a941b1ca2cc89bc36508694fb61cf145a2e2bcc505ef1aabb9a60993"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/he.pak",
+      "bytes": 265463,
+      "sha256": "600fc783659a765efb3086a992f1f5c7e780687bd4cab67fca41c8115582e57d"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/hi.pak",
+      "bytes": 460810,
+      "sha256": "8e5021c07399ae0f28a4b3816f6606fe161347e65d1a7d01f5ed57ba4377a535"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/hr.pak",
+      "bytes": 217428,
+      "sha256": "ba334953f117ade947420c5f58fd21623a1979b4a7821267bdeff7e1d0ca8c26"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/hu.pak",
+      "bytes": 239083,
+      "sha256": "c449703b65f0796b298cb2f932166cbc0acecb2a061e2d3c823724825877f4aa"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/id.pak",
+      "bytes": 201977,
+      "sha256": "788c6504013495df3ade34f2a8fb81c1fea1bb49351879d56f587680f807a78e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/it.pak",
+      "bytes": 220397,
+      "sha256": "39c6b3f68f5bd3dabffc7b907e9cc026ee037d5cb9dc36fb1f3dec38f299af29"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ja.pak",
+      "bytes": 270807,
+      "sha256": "f9fa579100cbe58df0f06f39bf7c4719aea9af8d6b5e01bf7b91a9793b653154"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/kn.pak",
+      "bytes": 519415,
+      "sha256": "8339140afdec8f08aba5cf4c87474bd4e4e420293c6332833b9821dc713de290"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ko.pak",
+      "bytes": 230850,
+      "sha256": "4eb2136286e136dd0c0490e8163607fa8f5dc3eb804802ca5ca05302d5691745"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/lt.pak",
+      "bytes": 234416,
+      "sha256": "80fd3e71172cfd78d360eaa9b7a157beaa5c128ac64a1fb784cec49701b88207"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/lv.pak",
+      "bytes": 234204,
+      "sha256": "73c17bc97d8173949aab0a9748d86b934c14e0418ee8ec314102a5fed40ec5d2"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ml.pak",
+      "bytes": 567612,
+      "sha256": "db9928f514679e50a41e19bbbc582042ec8ca9fb6cd8088abe594af56b83bb18"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/mr.pak",
+      "bytes": 456368,
+      "sha256": "05d3620c0fcb083647fae506a4e084add864434c5e9d35b23671e6aecf733de1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ms.pak",
+      "bytes": 208619,
+      "sha256": "29800443a6afc617029c61c5f825814ecc08ee2ae50f4d06cd3d233a1cf78154"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/nb.pak",
+      "bytes": 205047,
+      "sha256": "ece4d7ffe733ee39d1d12f4999fdcd4cc33c96fbf93f86d64c0a93253737f9fc"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/nl.pak",
+      "bytes": 215699,
+      "sha256": "d1803e3c6d64050fc5a16c5168a99e3165b1137a2a676af2709c3ae13083cac5"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/pl.pak",
+      "bytes": 225555,
+      "sha256": "ffcad2748416d25b0e23114e620bfec21be3c8c0dbd7fce3495535cb42e30da8"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/pt-BR.pak",
+      "bytes": 221133,
+      "sha256": "649de1c7b2b78d4a647ee3426e36ab93a379c5e7060933419d5f28493236efa3"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/pt-PT.pak",
+      "bytes": 223472,
+      "sha256": "335df6ef67e6f7346426f7f108498cdf0c49b748ceeab4eb4f4a53eed3882ae9"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ro.pak",
+      "bytes": 229091,
+      "sha256": "2807da4230c77df6188ce6607486d499290ecf8daca118b3925fc2a3dd52f902"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ru.pak",
+      "bytes": 351003,
+      "sha256": "2667857778df720e0768c05c55eb46485f5477169dc716e3b1b5bdbf8fea2c86"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/sk.pak",
+      "bytes": 237218,
+      "sha256": "fea92269172e1e38ba3d1e3400d1de989364bab5d49334aed5352e24b8cb640b"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/sl.pak",
+      "bytes": 217919,
+      "sha256": "2fc6a7bbac450cb583bef9b12d21ca43a31205865faf2352982a29adeb44fc4e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/sr.pak",
+      "bytes": 341731,
+      "sha256": "9a0e5008633ebe6270bd3101f09a764dff12b4f4118c763f9998c3f432b6b829"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/sv.pak",
+      "bytes": 206145,
+      "sha256": "935d6d3968fa20c7e6e10865e8ecee15a2bb8363a28e4470fbea8e16942b085e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/sw.pak",
+      "bytes": 209319,
+      "sha256": "fe2502a37371ea88acc8d6e75c16e764cc1212f9ed4142079a0d5dbe8e7f2669"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/ta.pak",
+      "bytes": 527387,
+      "sha256": "70049a6dd560d54b94705e084d638c231f324aad726122d013396f9e976f8f0c"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/te.pak",
+      "bytes": 503299,
+      "sha256": "b959a78fb5cfc0239eb94f15530402ce9aee0ca61ab7e0d763edb3ead0423fd1"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/th.pak",
+      "bytes": 438108,
+      "sha256": "25e4775efabcc22b87e02c393cebd85ef39fe24790a9c83b96dcddab80501ba6"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/tr.pak",
+      "bytes": 221774,
+      "sha256": "0fe9c7b8849c9e386c34215e7544afbaac04360896e6dd79d206511ab6a78e37"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/uk.pak",
+      "bytes": 358245,
+      "sha256": "d31fa0678019ffe21d693ab809800a127d9585c9d21eba55094299396c61d448"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/vi.pak",
+      "bytes": 254300,
+      "sha256": "6c42b4810b9ff2bc6deece746385d0ab8bba1c4ac213be8bf6007dbe990b8059"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/zh-CN.pak",
+      "bytes": 190714,
+      "sha256": "24938e63e4d487c96bc74d17a76629c837db11dc3adbf4cba58c90cdd6ae5645"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/Resources/locales/zh-TW.pak",
+      "bytes": 192079,
+      "sha256": "7bedce5280dd86b5ed52b950a0b39b5349e7e8b3123e23027230469341327e0e"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/icudtl.dat",
+      "bytes": 10130560,
+      "sha256": "51b93e0bc7e6d697ccc29703e2ebc9210c231c931fe764c372e5ba0d26098d3b"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/natives_blob.bin",
+      "bytes": 246209,
+      "sha256": "20210a0e530832a0267d584015eecb331c2ac0d841faf7b36feb9d326c32c113"
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/snapshot_blob.bin",
+      "bytes": 1562112,
+      "sha256": "8d6b166f4fb2a3910f0dd1958850cbf101a8f4b60823e324d57626383561dd19"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Legal/FortniteThirdPartySoftware.txt",
+      "bytes": 36935,
+      "sha256": "93be364985f5be64f4f6295cd34d12f49bb6c22e71b5acef70745548c5c3149e"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/AirStrike.mp4",
+      "bytes": 2067777,
+      "sha256": "9f2ea46eea8892eb2821a3b765d17ce1d9a5bdafe68ef04f4bc3b0ce7e0011ce"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/CGUpgrade.mp4",
+      "bytes": 2005846,
+      "sha256": "0c6b48fbde83b53e4b6896601c6dadc1d6d544940a9b327e5d866d967483a7ca"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/CPUpgrade.mp4",
+      "bytes": 1596423,
+      "sha256": "1fbb9dc05fc1c888bc9092c0dc7739f78596d52b8a80841d8be1daa275ab7efa"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Events/Blockbuster_2018.mp4",
+      "bytes": 12561443,
+      "sha256": "5ae104c96602475ac721316f56d91a90dc14b2411d0269a11896466b41c6a58e"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Events/HE2017.mp4",
+      "bytes": 53254626,
+      "sha256": "9eff621ac5cfd9a61afe211753522ddac6be542a94d157a16ac1929db1f8a112"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Events/Into_The_Storm_2018.mp4",
+      "bytes": 15765104,
+      "sha256": "9d77a9e7605d0dca828c316e5cb063a270d29b6f7ce856f251463522c7aae8fa"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Events/Spring2018.mp4",
+      "bytes": 12856063,
+      "sha256": "c6dac5db2416a8ed7e7f81361bd161e5c502b6fe026af47865cca6a7bd26da5f"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Events/Winter2017.mp4",
+      "bytes": 48540885,
+      "sha256": "758675da8f7c035d0c988d2ca9f9b93cbbeb2df17f9627f1a20c3d10d5c2f3d0"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/FNBR_Season4_CineScreen_V1.mp4",
+      "bytes": 17736995,
+      "sha256": "470ad4b79570d1522f2a3c3dec31ceaf1b28abb04cf0b7d023bd6f3362b07cbf"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/FireMode_3DTouch.mp4",
+      "bytes": 4447022,
+      "sha256": "98b93ef9d31b3d190f79fb8167613fedd29550fc0bf7385e241fdd31b8d1de76"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/FireMode_AutoFire.mp4",
+      "bytes": 1466712,
+      "sha256": "5783176813766eeb5342c7bfedc836b611bb74fcbf5da14e82d170fd2776e84d"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/FireMode_DedicatedButton.mp4",
+      "bytes": 1043807,
+      "sha256": "b058821331fe849501f6ea625fe03420c6e1a51682b31bc8320fd8c572b27ef8"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/FireMode_TapToFire.mp4",
+      "bytes": 1050344,
+      "sha256": "3973c3674d717d48704a77e191570e3e916ca3e81c8d47929ccc31d7fb06c138"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Fortnite_ConstructorPreview.mp4",
+      "bytes": 13970315,
+      "sha256": "1e642f0f7f79471d79c84225b531dbdd091a9b59fdae690007a5cef5913f91af"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HarvestTool1.mp4",
+      "bytes": 2233764,
+      "sha256": "70d4ef51df6cd282adaf6285334090b4209ba425f319c1ce6f6ae515a66a2ca1"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HarvestTool2.mp4",
+      "bytes": 3124202,
+      "sha256": "1c3b584e81def80ee5449f6f271a48d8537df93efd678c8842195dfc9ff24411"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HarvestTool3.mp4",
+      "bytes": 2188139,
+      "sha256": "146fa5eeafb767e954e940f936dc7fa28c1a0395bd5edb2b1ec86848dd6d91e2"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HarvestTool4.mp4",
+      "bytes": 2380268,
+      "sha256": "dc1563765560fbe1ef9b0258cba1dfcdb636ad52cb1ab6e3df6b68b3a08a6abf"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HarvestTool5.mp4",
+      "bytes": 2038430,
+      "sha256": "0304073fe187b528a9807feabfdffd6516b303e61691e21437ef92c05ceab3cb"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HarvestTool6.mp4",
+      "bytes": 3864610,
+      "sha256": "9e6cb30e8d4ed10e44bbd55b289df30d1bfb3f1adb6916f7eef809b30110110e"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HombaseReturn_OutpostIntro.mp4",
+      "bytes": 129156098,
+      "sha256": "97ed19c52326679e7aa8d8e7bb8735a9a7fa3f92f384b29176969f4fd4997ddd"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HombaseReturn_OutpostIntro_en.mp4",
+      "bytes": 4532714,
+      "sha256": "cae741b87523ca8a7daf6a5a5c55012b695df2bea8ea627ad2f6f51762e0dd16"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/HoverTurret.mp4",
+      "bytes": 1653833,
+      "sha256": "94c80a3341fbe30c2aa808faceaa3e64d1bde8414cc4e1dba6c993ccdbbe03d1"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Movie_Axe_RightAttack.mp4",
+      "bytes": 1434682,
+      "sha256": "8a52f3e3a849df032e4b19de7f673e0e325f312a9ea7a75ab8fc0cc3e80ded46"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Movie_Hammer_RightAttack.mp4",
+      "bytes": 1097896,
+      "sha256": "1107b49791aec14fc09fa85bd52333270b667ea61e6352a7f8741b0310bf6e95"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Movie_Sword_RightAttack.mp4",
+      "bytes": 1183673,
+      "sha256": "d452986580358dde36e86a743488595c7c2d6fb508d9a2fdfeb64d127ecf8f4f"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Movie_Wall_Upgrade.mp4",
+      "bytes": 1940952,
+      "sha256": "1f3084285d8973b038a097c46eee360974c3efd226fbc78232e43151ff5487b8"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Movie_Weak_Spot.mp4",
+      "bytes": 1942584,
+      "sha256": "abbacfcea240ed89aba35e1932d6039d0f57b187be8fbbbcea2eba353b7771a9"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/OnBoarding/Tutorial_Build.mp4",
+      "bytes": 20124104,
+      "sha256": "957d04c1a99b6af36ca95ee79f0a42406c62e9fb08add93792ba17f8abf58801"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/OnBoarding/Tutorial_BuildForts.mp4",
+      "bytes": 21492626,
+      "sha256": "efd6d7a8e83feb1ea456bac42ebc774b2c2e82f2fa0a29b626f6573b56a22be9"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/OnBoarding/Tutorial_Crafting.mp4",
+      "bytes": 24417438,
+      "sha256": "e8994bb4ede3a5edb9ab932479ce84cdab3ff10b774c5bed3c794d99027973e6"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/OnBoarding/Tutorial_Editing.mp4",
+      "bytes": 14607742,
+      "sha256": "d40e1c44d52e821da34d3067be37e08c846a5002e2112fd9229b52bee65ee074"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/OnBoarding/Tutorial_Harvesting.mp4",
+      "bytes": 20404109,
+      "sha256": "5c5644beead247ee9701b88b7ade51e80b86766105035d00234bf41997de9aa6"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Onboarding_Appended_Intro.mp4",
+      "bytes": 248571156,
+      "sha256": "a0c2cbca8a36bb8aeadba8ba5b91824fd5b528b94f301395fe1fe53104be9b24"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Onboarding_Appended_Intro_VO.mp4",
+      "bytes": 8515853,
+      "sha256": "6258f3a437b8f78b8d59b22a48c73e5c6452474acda5052a415e94c457828e02"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Onboarding_Flow_Appended_Intro_Movie_01_Loc.srt",
+      "bytes": 2743,
+      "sha256": "171368396fcb0ce7b1e9037b7250ccfb812240124c6bf1752621d709cc8e80f0"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/PMine.mp4",
+      "bytes": 3038904,
+      "sha256": "839ddc38de9bbafee2d3a62da6d789ebff6c6f2aa20f929bd3475e6f232a2b24"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Preview_Gadget_AdrenalineRush.mp4",
+      "bytes": 10268933,
+      "sha256": "9d80c0662bacfa2bf6c99be1ebcdf485f489b773fb809f280ce3fa571ea2a9f8"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Preview_Gadget_Banner.mp4",
+      "bytes": 8928567,
+      "sha256": "e4d829c66b02ce337741e8630c9df65cedb7179bab78213e0f480974b50c6f0e"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Preview_Hero_Ninja.mp4",
+      "bytes": 43724688,
+      "sha256": "7395376b5331c9a19e97afcd80796a59e5cb9a363c8687486bf0ee0b4c7b6d7e"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Preview_Hero_Outlander.mp4",
+      "bytes": 7982444,
+      "sha256": "31aedf013f0cfbeb03bf9d302951b0b5adfdd5b1a9ed0ee5a46595c6e619bcfd"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Preview_Wall_Upgrade_2.mp4",
+      "bytes": 4091361,
+      "sha256": "97b7ce9a70b4360dc3c378e8298a55e3fff427b13a2a44b394a1a151c7520ab7"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/RPCollection.mp4",
+      "bytes": 1767774,
+      "sha256": "2a0d1145e8738729957544b430ce97f6ead60e8602e8541333d8dd9ae40d0ae5"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/SRT/FNBR_IntoTheStorm_SRT.en.srt",
+      "bytes": 127,
+      "sha256": "e998edb2aca65260265c6df21498864eeb88c352ce832d286dfe82a5a4b2ae26"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/SatelliteConnection.mp4",
+      "bytes": 47505173,
+      "sha256": "f0ac0ddcc62a516344aa8b3dd17813e57ac4cb3bf82803fa3e100f2f9b6959a9"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/SatelliteConnection_en.mp4",
+      "bytes": 1601970,
+      "sha256": "2228a40324ba39545c09dd570b5bd9a87af76e8bd075652b6a5063cb2fbc56bb"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Season5/RiskyReelsContestWinner_Final.mp4",
+      "bytes": 73079472,
+      "sha256": "359176a8b839018745f36dcc5bbbe28f722560928c699e7a9705b722ca497a8b"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Season6/FNBR_DeimosTrailer_Console.mp4",
+      "bytes": 44756147,
+      "sha256": "6b80ff992557a5353669284c000721b908516a0fef8de8a23f696c0959ea5145"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Season6/FNBR_DeimosTrailer_Phone.mp4",
+      "bytes": 14278130,
+      "sha256": "62a587de93b2d0ca391fda78e5866eddf7d509c3dfb17bb60fd8f1a62c2152f2"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/SlowField.mp4",
+      "bytes": 2144413,
+      "sha256": "d7f21b82ca7576b1e8e4892ef5a3c28cb28cb8ceef4b313d88c6769395f40685"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Soldier.mp4",
+      "bytes": 4911461,
+      "sha256": "2fe05ad03844a06603db78fc474c0aa0b2d4e0000ee2b3f546d93369ca05125b"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/SupplyDrop.mp4",
+      "bytes": 2313587,
+      "sha256": "3405a88274bce92707b6c9abfd2a765b0e5a271a85f1bcd8357811a8d9f2d9cc"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/Teleport.mp4",
+      "bytes": 3251977,
+      "sha256": "b9df605ef591fcb2954c8f2ca944904b78e3c22720fa5ba122a16ad295fefd43"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/DeliverGoods_v1.mp4",
+      "bytes": 1888461,
+      "sha256": "bca09ae1b0c4f2b1fd744947fadf1858e0b1cbee5273c08ef2e02bdaf7a73993"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/LaunchBalloon.mp4",
+      "bytes": 10518428,
+      "sha256": "5f2c82daf757de53628a1fd8d1d451d508f19874fc0bb54ed9e6ae3b54469126"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/LaunchRocket_v1.mp4",
+      "bytes": 16640632,
+      "sha256": "e2d7d6dec2c5a0d7905112cb1d0606a1da3e512a4280d673370a5b94354e76bd"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/LaunchRocket_v2.mp4",
+      "bytes": 27475975,
+      "sha256": "71652184f143107bb5d074772200ef4e724f29d8226a5fdbce3ef7ce097da137"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/OutpostVictory.mp4",
+      "bytes": 8547386,
+      "sha256": "3803d0ed51201d6460620f73208b4c52409395d9cf16e1ac202dfeb5c21e98c1"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/PowerReactor_v1.mp4",
+      "bytes": 1888461,
+      "sha256": "bca09ae1b0c4f2b1fd744947fadf1858e0b1cbee5273c08ef2e02bdaf7a73993"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/RetrieveData_v1.mp4",
+      "bytes": 8152144,
+      "sha256": "e6d38dd207f7eabc2d1325d852cb5cd4719ab6cd9e5dbd7d81de0413eafa4ede"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/SeverTether_v1.mp4",
+      "bytes": 10649011,
+      "sha256": "17791f53522fcf0745b25e63037fabffc5ef3efa40746fb93fa517f997023a04"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/mission_failure_generic.mp4",
+      "bytes": 4450133,
+      "sha256": "c5d305d7e0a1b5740a846bfb22c6ffb227fcec8df7041a9b7557e4b02b6b9e90"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Movies/VictoryMovies/mission_success_generic.mp4",
+      "bytes": 6778500,
+      "sha256": "84fe8c1239f9fe6f0ca1970b51ade5105560b3ca7b37bfd1019cf19a66085d4a"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/PackagedReplays/placeholder.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0-WindowsClient.pak",
+      "bytes": 4896551984,
+      "sha256": "2a65258aab71645224f743e2c35f2dcf28a67353bd33474f0fc1bfa44fbc22c5"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0-WindowsClient.sig",
+      "bytes": 298932,
+      "sha256": "432e309ad31a78d84162ca3ac20dca80e36fe35e6ae193b60ca02a686d1a8527"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s1-WindowsClient.pak",
+      "bytes": 4299954253,
+      "sha256": "6633c1e0e4e3f6fafc2413120d82b86ec7d3cdccc1afbf61cd36547a19ee0130"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s1-WindowsClient.sig",
+      "bytes": 262520,
+      "sha256": "04b72a8784bae162c27dd763ab43ef5f95ac44d57cb37d88a4f3ee66248224a4"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s2-WindowsClient.pak",
+      "bytes": 4302082032,
+      "sha256": "52e976e03bd1c854a51a10a2da38715ae865d679c85168419254b2aa51f46078"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s2-WindowsClient.sig",
+      "bytes": 262648,
+      "sha256": "f224ba97ab884861ac58bcfef5077694d79ee3146bce3dd48616c42444cf49b2"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s3-WindowsClient.pak",
+      "bytes": 4318606370,
+      "sha256": "863d54675554a162abd16e201c85ad9274e52f55276c35793d64da384d8bc348"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s3-WindowsClient.sig",
+      "bytes": 263656,
+      "sha256": "31a094579522558018ee051d2bea4fd47d2705da44b01bb529a977c80db6354c"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s4-WindowsClient.pak",
+      "bytes": 4371735051,
+      "sha256": "72367618441dee04d7c71480ab46dc94f48bb8c81ea06bb7cae166c88ac9bc18"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s4-WindowsClient.sig",
+      "bytes": 266900,
+      "sha256": "ba9680bf41ea72c860b19e10ba16b09c388d69b326b5a67c8ab96fe958f3fece"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s5-WindowsClient.pak",
+      "bytes": 3139473951,
+      "sha256": "1c889f5ca14d071d32f06d4e6184ed8cc004227194dde998264902aca9760b32"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Paks/pakchunk0_s5-WindowsClient.sig",
+      "bytes": 191688,
+      "sha256": "f2364973ef14f641d118512ff2d652971333cbb3e81f4a61349d32234e5d5dd9"
+    },
+    {
+      "path": "6.21/FortniteGame/Content/Splash/Splash.bmp",
+      "bytes": 1417016,
+      "sha256": "1a304c792cecf66d5e1b9705f4a8752bf953442d86a6598cf9d3850f1cfb6731"
+    }
+  ]
+}

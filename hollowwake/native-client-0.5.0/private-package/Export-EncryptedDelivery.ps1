@@ -41,6 +41,13 @@ these UI steps have not been checked on hardware here. This classification does
 not make a desktop EXE compatible. Microsoft documents foreground app/game
 memory allocations at https://learn.microsoft.com/en-us/windows/uwp/xbox-apps/system-resource-allocation .
 
+Boot code is included; do not import boot DLLs into LocalState for this route.
+Content download/full import uses 139 pinned data files (26,449,827,840 bytes)
+and a 12,528,679,454-byte original ZIP. Allow about 40 GB free for first import.
+You may supply that exact ZIP as LocalState/Original-6.21.zip through your
+authorized app-file import method; every byte/hash is checked. No content
+download success is claimed until the full transfer and checks finish.
+
 Link only your Hollowwake account. Use the client-launch action once. Record
 whether an original Fortnite loading screen appears, the exact first error, or
 whether the host closes. After reopening, use launch logs. Device Portal's app
