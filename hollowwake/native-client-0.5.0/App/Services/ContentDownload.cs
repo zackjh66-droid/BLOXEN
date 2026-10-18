@@ -27,6 +27,13 @@ namespace Hollowwake.Services {
   public static async Task Run(ApiClient api,string projectToken,IProgress<string> progress,CancellationToken token){
    // A missing deployment endpoint must not turn into an account bypass.
    await api.SendAsync("/api/device/profile",null,projectToken,token);ContentPlan plan;bool fromPackage=false;
+   string installed=Windows.ApplicationModel.Package.Current.InstalledLocation.Path;
+   if(File.Exists(Path.Combine(installed,"bundled-content.json"))){
+    var marker=JsonObject.Parse(File.ReadAllText(Path.Combine(installed,"bundled-content.json")));plan=await Packaged();
+    if(marker.GetNamedNumber("schema")!=1||marker.GetNamedString("build")!=plan.Build||marker.GetNamedString("mode")!="installed-package-only"||marker.GetNamedString("contentPlanSha256")!=plan.Id||marker.GetNamedNumber("files")!=plan.Files.Count||marker.GetNamedNumber("expandedBytes")!=plan.Validate())throw new IOException("Bundled content marker differs from signed content inventory.");
+    long lastAuthorization=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();Func<Task> check=async()=>{long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastAuthorization>=30000){await api.SendAsync("/api/device/profile",null,projectToken,token);lastAuthorization=now;}};
+    await Task.Run(()=>ContentTransfer.VerifyInstalled(installed,plan.Files,check,progress,token));await api.SendAsync("/api/device/profile",null,projectToken,token);progress.Report("Bundled content verified; no game-content download required.");return;
+   }
    try{plan=Parse(await api.SendAsync("/api/device/content/6.21",null,projectToken,token));}
    catch(ApiException error)when(CatalogUnavailable(error)){plan=await Packaged();fromPackage=true;progress.Report("Using content hashes from the signed package; linked-account authorization remains required.");}
    long lastCheck=0;Func<Task> authorize=async()=>{long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastCheck<30000&&now<plan.ExpiresAt)return;await api.SendAsync("/api/device/profile",null,projectToken,token);if(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()>=plan.ExpiresAt){if(fromPackage){plan.ExpiresAt=now+15*60*1000;}else{var renewed=Parse(await api.SendAsync("/api/device/content/6.21",null,projectToken,token));if(renewed.Id!=plan.Id)throw new IOException("Content manifest changed during transfer; restart the download.");plan.ExpiresAt=renewed.ExpiresAt;}}lastCheck=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();};

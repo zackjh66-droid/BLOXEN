@@ -11,7 +11,7 @@
 #include <cwchar>
 #include <algorithm>
 namespace {
-std::recursive_mutex gate;std::wstring package,data,cwd;std::map<std::wstring,std::wstring> code;
+std::recursive_mutex gate;std::wstring package,data,cwd;bool bundledContent=false;std::map<std::wstring,std::wstring> code;
 std::wstring Fold(std::wstring value){for(auto& c:value){if(c==L'/')c=L'\\';if(c>=L'A'&&c<=L'Z')c+=32;}if(value.compare(0,4,L"\\\\?\\")==0)value=value.substr(4);return value;}
 bool Under(const std::wstring& path,const std::wstring& root){return !root.empty()&&(path==root||path.compare(0,root.size()+1,root+L"\\")==0);}
 std::wstring Absolute(const wchar_t* value,bool preserveCase=false){if(!value||wcsnlen_s(value,32768)==32768){SetLastError(ERROR_INVALID_PARAMETER);return {};}
@@ -23,9 +23,10 @@ std::wstring Absolute(const wchar_t* value,bool preserveCase=false){if(!value||w
 }
 bool Executable(const std::wstring& name){auto position=name.find_last_of(L'.');auto ext=position==std::wstring::npos?L"":name.substr(position);for(auto bad:{L".exe",L".dll",L".sys",L".com",L".bat",L".cmd",L".ps1",L".vbs",L".msi",L".appx",L".msix"})if(ext==bad)return true;return false;}
 std::wstring Map(const wchar_t* name,bool writing){std::lock_guard<std::recursive_mutex> lock(gate);auto logical=Absolute(name);if(logical.empty())return {};
+ if(!writing&&bundledContent&&(Under(logical,data+L"\\6.21\\fortnitegame\\content")||Under(logical,data+L"\\6.21\\engine\\binaries\\thirdparty\\cef3\\win64")))logical=package+logical.substr(data.size());
  auto exact=code.find(logical);if(exact!=code.end()){if(writing){SetLastError(ERROR_ACCESS_DENIED);return {};}return exact->second;}
  if(Executable(logical)){SetLastError(ERROR_ACCESS_DENIED);return {};}
- auto root=package+L"\\6.21";if(writing&&(Under(logical,root+L"\\fortnitegame\\content")||Under(logical,data+L"\\6.21\\fortnitegame\\content")||Under(logical,root+L"\\engine\\binaries\\thirdparty\\cef3\\win64")||Under(logical,data+L"\\6.21\\engine\\binaries\\thirdparty\\cef3\\win64"))){SetLastError(ERROR_ACCESS_DENIED);return {};}if(Under(logical,root)){auto target=data+L"\\6.21"+logical.substr(root.size());if(!writing){WIN32_FILE_ATTRIBUTE_DATA attrs={};if(!GetFileAttributesExFromAppW(target.c_str(),GetFileExInfoStandard,&attrs)&&GetFileAttributesExFromAppW(logical.c_str(),GetFileExInfoStandard,&attrs))return logical;}return target;}
+ auto root=package+L"\\6.21";if(!writing&&bundledContent&&(Under(logical,root+L"\\fortnitegame\\content")||Under(logical,root+L"\\engine\\binaries\\thirdparty\\cef3\\win64")))return logical;if(writing&&(Under(logical,root+L"\\fortnitegame\\content")||Under(logical,data+L"\\6.21\\fortnitegame\\content")||Under(logical,root+L"\\engine\\binaries\\thirdparty\\cef3\\win64")||Under(logical,data+L"\\6.21\\engine\\binaries\\thirdparty\\cef3\\win64"))){SetLastError(ERROR_ACCESS_DENIED);return {};}if(Under(logical,root)){auto target=data+L"\\6.21"+logical.substr(root.size());if(!writing){WIN32_FILE_ATTRIBUTE_DATA attrs={};if(!GetFileAttributesExFromAppW(target.c_str(),GetFileExInfoStandard,&attrs)&&GetFileAttributesExFromAppW(logical.c_str(),GetFileExInfoStandard,&attrs))return logical;}return target;}
  if(Under(logical,data+L"\\6.21"))return logical;
  SetLastError(ERROR_ACCESS_DENIED);return {};
 }
@@ -60,7 +61,7 @@ std::wstring MapReadOnlyImageFile(const wchar_t* name){
  if(Executable(logical)){SetLastError(ERROR_ACCESS_DENIED);return {};}
  return Map(name,false);
 }
-bool ConfigureDataFiles(const wchar_t* packageRoot,const wchar_t* localRoot){std::lock_guard<std::recursive_mutex> lock(gate);if(!packageRoot||!localRoot)return false;auto p=Fold(packageRoot),d=Fold(localRoot);while(!p.empty()&&p.back()==L'\\')p.pop_back();while(!d.empty()&&d.back()==L'\\')d.pop_back();if(p.empty()||d.empty()||p==d)return false;if(!package.empty())return package==p&&data==d;package=p;data=d;cwd=package+L"\\6.21\\fortnitegame\\binaries\\win64";return true;}
+bool ConfigureDataFiles(const wchar_t* packageRoot,const wchar_t* localRoot){std::lock_guard<std::recursive_mutex> lock(gate);if(!packageRoot||!localRoot)return false;auto p=Fold(packageRoot),d=Fold(localRoot);while(!p.empty()&&p.back()==L'\\')p.pop_back();while(!d.empty()&&d.back()==L'\\')d.pop_back();if(p.empty()||d.empty()||p==d)return false;if(!package.empty())return package==p&&data==d;package=p;data=d;WIN32_FILE_ATTRIBUTE_DATA marker={};bundledContent=GetFileAttributesExFromAppW((package+L"\\bundled-content.json").c_str(),GetFileExInfoStandard,&marker)&&!(marker.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY);cwd=package+L"\\6.21\\fortnitegame\\binaries\\win64";return true;}
 bool RegisterCodeFileAlias(const wchar_t* original,const wchar_t* physical){std::lock_guard<std::recursive_mutex> lock(gate);if(!original||!physical||package.empty())return false;auto o=Fold(original),p=Fold(physical);for(auto path:{o,p})if(path.empty()||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;if(!Executable(o)||!Executable(p))return false;auto key=package+L"\\"+o,value=package+L"\\"+p;auto old=code.find(key);if(old!=code.end())return old->second==value;code[key]=value;code[value]=value;return true;}
 void* ResolveDataFileImport(const char* dll,const char* name){if(!dll||!name||(_stricmp(dll,"kernel32.dll")&&_stricmp(dll,"kernelbase.dll")&&_strnicmp(dll,"api-ms-win-core-file",20)&&_strnicmp(dll,"api-ms-win-core-processenvironment-",33)))return nullptr;
 #define API(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)

@@ -33,6 +33,11 @@ namespace Hollowwake.Services {
    using(var stream=File.OpenRead(path))using(var sha=SHA256.Create()){byte[] b=new byte[1048576];int n;while((n=await stream.ReadAsync(b,0,b.Length,token))>0)sha.TransformBlock(b,0,n,b,0);sha.TransformFinalBlock(new byte[0],0,0);return Hex(sha.Hash)==expected;}
   }
   static string Destination(string root,string relative){if(!ContentPlan.Safe(relative))throw new IOException("Unsafe content path.");var prefix=System.IO.Path.GetFullPath(root).TrimEnd(System.IO.Path.DirectorySeparatorChar)+System.IO.Path.DirectorySeparatorChar;var result=System.IO.Path.GetFullPath(System.IO.Path.Combine(prefix,relative.Replace('/',System.IO.Path.DirectorySeparatorChar)));if(!result.StartsWith(prefix,StringComparison.OrdinalIgnoreCase))throw new IOException("Content path escapes destination.");return result;}
+  public static async Task VerifyInstalled(string root,IList<ContentFile> files,Func<Task> authorize,IProgress<string> progress,CancellationToken token){
+   var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);int done=0;
+   foreach(var file in files){token.ThrowIfCancellationRequested();if(!ContentPlan.Safe(file.Path)||!ContentPlan.Hash(file.Sha256)||file.Bytes<0||!seen.Add(file.Path))throw new IOException("Invalid bundled content record.");await authorize();if(!await Matches(Destination(root,file.Path),file.Bytes,file.Sha256,token))throw new IOException("Installed content missing or changed: "+file.Path+". Reinstall the complete private package; no download fallback was used.");progress.Report("Verifying installed content "+(++done)+" / "+files.Count);}
+   if(done==0)throw new IOException("Empty bundled content inventory.");await authorize();
+  }
   // Used by both the real app and owned-fixture tests. No file is ready before its actual hash passes.
   public static async Task ExtractVerified(string archive,string root,IList<ContentFile> files,Func<Task> authorize,IProgress<string> progress,CancellationToken token){
    var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);var audit=new List<string>();

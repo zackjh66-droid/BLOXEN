@@ -1,7 +1,11 @@
-param([string]$OutputDirectory,[string]$PrivatePreparedDirectory)
+param([string]$OutputDirectory,[string]$PrivatePreparedDirectory,[string]$PrivateContentDirectory)
 $ErrorActionPreference='Stop';$source=$PSScriptRoot;$repo=Split-Path $source -Parent
+if($PrivateContentDirectory-and !$PrivatePreparedDirectory){throw 'Bundled content requires the real private prepared native client'}
+if(Test-Path (Join-Path $source 'App\bundled-content.json')){throw 'Use a fresh source checkout; stale bundled content marker exists'}
 if(!$OutputDirectory){$OutputDirectory=Join-Path $source 'artifacts'}
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
+python (Join-Path $source 'tests\BundledContentTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'bundled-staging-test.log')
+if($LASTEXITCODE){throw 'Bundled staging/hash behavior failed'}
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe';$vs=& $vswhere -latest -products '*' -property installationPath;$msbuild=Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
 & $msbuild (Join-Path $source 'Native\Native.vcxproj') /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-build.log')
 if($LASTEXITCODE){throw 'Native client integration compilation failed'}
@@ -46,9 +50,14 @@ if($PrivatePreparedDirectory){
  Copy-Item (Join-Path $PrivatePreparedDirectory 'GamePayload\*') (Join-Path $source 'App') -Recurse -Force
  $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.1.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
+if($PrivateContentDirectory){
+ python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
+ if($LASTEXITCODE){throw 'Private bundled content preparation failed'}
+}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN32_WINNT=0x0A00 (Join-Path $source 'Native\DataFiles.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\DataFilesTest.cpp') kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$OutputDirectory\DataFilesTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-test-build.log')
 if($LASTEXITCODE){throw 'Data route test build failed'}
 & "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnDataFixture') 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-test.log');if($LASTEXITCODE){throw 'Actual data routing failed'}
+& "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnedBundledDataFixture') bundled 2>&1|Tee-Object (Join-Path $OutputDirectory 'bundled-data-test.log');if($LASTEXITCODE){throw 'Actual bundled-data routing failed'}
 $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
 & $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'ContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'tests\ContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test-build.log')
 if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
@@ -70,6 +79,18 @@ $package=[IO.Compression.ZipFile]::OpenRead($appx.FullName)
 try {
  if(!($package.Entries|Where-Object FullName -eq 'HollowwakeClientRuntime.dll')){throw 'Native runtime absent from package'}
  if(!($package.Entries|Where-Object FullName -eq 'AppxSignature.p7x')){throw 'Package signature missing'}
+ if($PrivateContentDirectory){
+  $contentPlan=Get-Content (Join-Path $source 'App\ContentPlan621.json') -Raw|ConvertFrom-Json
+  if(!$package.GetEntry('bundled-content.json')){throw 'Bundled content mode marker absent'}
+  foreach($record in $contentPlan.files){
+   $entry=$package.GetEntry($record.path)
+   if(!$entry-or $entry.Length-ne $record.bytes){throw 'Bundled content omitted or resized by packaging'}
+   $stream=$entry.Open();$algorithm=[Security.Cryptography.SHA256]::Create()
+   try{$actual=([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$algorithm.Dispose()}
+   if($actual-ne $record.sha256){throw 'Packaged game content differs from inspected file hash'}
+  }
+  @{result='PASS signed package contains all pinned data files';files=$contentPlan.files.Count;trimmedFiles=@();gameExecuted=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'bundled-content-audit.json')
+ }
  if($PrivatePreparedDirectory){
   $plan=Get-Content (Join-Path $PrivatePreparedDirectory 'plan.json') -Raw|ConvertFrom-Json
   foreach($record in $plan.files){
@@ -83,7 +104,7 @@ try {
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }
 }finally{$package.Dispose()}
-@{result='PASS compiled and development signature verified';xboxTested=$false;fortniteExecuted=$false;gamePayloadIncluded=[bool]$PrivatePreparedDirectory;route='HWAttemptPackagedClient';nativePathWired=$true}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-results.json')
+@{result='PASS compiled and development signature verified';xboxTested=$false;fortniteExecuted=$false;gamePayloadIncluded=[bool]$PrivatePreparedDirectory;allContentBundled=[bool]$PrivateContentDirectory;route='HWAttemptPackagedClient';nativePathWired=$true}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-results.json')
 if(!$PrivatePreparedDirectory){
  & (Join-Path $source 'Test-NativePreflight.ps1') -PackagePath $appx.FullName -OutputDirectory $OutputDirectory
  python (Join-Path $source 'tests\compare_imports.py') $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'import-comparison.log')
