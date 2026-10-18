@@ -1,5 +1,5 @@
 // Original single-CoreWindow Win32 message bridge. No native desktop HWND APIs.
-// Multiple top-level windows, raw input, IME and monitor APIs are not implemented.
+// One fullscreen surface; partial raw mouse support. Desktop child windows/IME remain unsupported.
 #include <windows.h>
 #include <string>
 #include <vector>
@@ -9,6 +9,10 @@
 #include <condition_variable>
 #include <cstring>
 #include <algorithm>
+#include <climits>
+static void ReleaseRaw(LPARAM);
+static void ResetRaw();
+static void ClearRawFocus();
 using Proc=LRESULT(CALLBACK*)(HWND,UINT,WPARAM,LPARAM);
 struct ClassW {UINT style;Proc proc;int clsExtra,wndExtra;HINSTANCE instance;HICON icon;HCURSOR cursor;HBRUSH brush;LPCWSTR menu,name;};
 struct Msg {HWND window;UINT message;WPARAM wp;LPARAM lp;DWORD time;POINT point;DWORD privateData;};
@@ -35,16 +39,16 @@ static HWND WINAPI Create(DWORD ex,LPCWSTR name,LPCWSTR title,DWORD style,int x,
 static BOOL WINAPI Post(HWND h,UINT message,WPARAM wp,LPARAM lp){std::lock_guard<std::recursive_mutex> l(mutex);if(h&&!Valid(h)){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}return Push(h,message,wp,lp);}
 static void WINAPI Quit(int code){std::lock_guard<std::recursive_mutex> l(mutex);Push(nullptr,0x12,code,0);}
 static BOOL WINAPI Peek(Msg* out,HWND h,UINT min,UINT max,UINT flags){if(!out||flags&~1){SetLastError(ERROR_NOT_SUPPORTED);return FALSE;}std::lock_guard<std::recursive_mutex> l(mutex);for(auto i=queue.begin();i!=queue.end();++i){if((!h||h==i->window)&&(!min&&!max||(min<=i->message&&i->message<=max))){*out=*i;if(flags&1)queue.erase(i);return TRUE;}}return FALSE;}
-static LRESULT WINAPI Dispatch(const Msg* msg){if(!msg)return 0;Proc proc=nullptr;{std::lock_guard<std::recursive_mutex> l(mutex);if(Valid(msg->window))proc=window->proc;}return proc?proc(msg->window,msg->message,msg->wp,msg->lp):0;}
+static LRESULT WINAPI Dispatch(const Msg* msg){if(!msg)return 0;Proc proc=nullptr;{std::lock_guard<std::recursive_mutex> l(mutex);if(Valid(msg->window))proc=window->proc;}auto result=proc?proc(msg->window,msg->message,msg->wp,msg->lp):0;if(msg->message==0xff)ReleaseRaw(msg->lp);return result;}
 static BOOL WINAPI Rect(HWND h,RECT* out){std::lock_guard<std::recursive_mutex> l(mutex);if(!out||!Valid(h)){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}*out={0,0,width,height};return TRUE;}
-static BOOL WINAPI Destroy(HWND h){Proc proc;{std::lock_guard<std::recursive_mutex> l(mutex);if(!Valid(h)||window->destroying){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}window->destroying=true;proc=window->proc;}proc(h,2,0,0);proc(h,0x82,0,0);{std::lock_guard<std::recursive_mutex> l(mutex);if(focused==h)focused=nullptr;if(captured==h)captured=nullptr;window.reset();queue.erase(std::remove_if(queue.begin(),queue.end(),[&](const Msg& m){return m.window==h;}),queue.end());}return TRUE;}
-static LRESULT WINAPI Default(HWND h,UINT message,WPARAM,LPARAM){if(message==0x81)return TRUE;if(message==0x10){Destroy(h);return 0;}if(message==0x83||message>=0x400)return 0;SetLastError(ERROR_NOT_SUPPORTED);return 0;}
+static BOOL WINAPI Destroy(HWND h){Proc proc;{std::lock_guard<std::recursive_mutex> l(mutex);if(!Valid(h)||window->destroying){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}window->destroying=true;proc=window->proc;}proc(h,2,0,0);proc(h,0x82,0,0);{std::lock_guard<std::recursive_mutex> l(mutex);if(focused==h)focused=nullptr;if(captured==h)captured=nullptr;ResetRaw();window.reset();queue.erase(std::remove_if(queue.begin(),queue.end(),[&](const Msg& m){return m.window==h;}),queue.end());}return TRUE;}
+static LRESULT WINAPI Default(HWND h,UINT message,WPARAM,LPARAM lp){if(message==0xff){ReleaseRaw(lp);return 0;}if(message==0x81)return TRUE;if(message==0x10){Destroy(h);return 0;}if(message==0x83||message>=0x400)return 0;SetLastError(ERROR_NOT_SUPPORTED);return 0;}
 static BOOL WINAPI Get(Msg* out,HWND h,UINT min,UINT max){if(!out){SetLastError(ERROR_INVALID_PARAMETER);return -1;}std::unique_lock<std::recursive_mutex> l(mutex);for(;;){for(auto i=queue.begin();i!=queue.end();++i)if(i->message==0x12||((!h||h==i->window)&&(!min&&!max||(min<=i->message&&i->message<=max)))){*out=*i;queue.erase(i);return out->message==0x12?0:1;}wake.wait(l);}}
 static SHORT WINAPI KeyState(int key){std::lock_guard<std::recursive_mutex> l(mutex);return key>=0&&key<256&&keys[key]?(SHORT)0x8000:0;}
 
 // State is scoped to the single virtual fullscreen CoreWindow. These are not
 // desktop HWNDs, monitor handles or assertions that every USER32 API is supported.
-extern "C" __declspec(dllexport) void __cdecl HWHostActivation(int active){std::lock_guard<std::recursive_mutex> l(mutex);hostActive=active!=0;if(!hostActive){memset(keys,0,sizeof(keys));focused=nullptr;captured=nullptr;}if(window&&window->alive){Push(Handle(),0x1c,hostActive,0);Push(Handle(),6,hostActive?1:0,0);if(hostActive&&window->visible&&window->enabled){focused=Handle();Push(Handle(),7,0,0);}}}
+extern "C" __declspec(dllexport) void __cdecl HWHostActivation(int active){std::lock_guard<std::recursive_mutex> l(mutex);hostActive=active!=0;if(!hostActive){ClearRawFocus();memset(keys,0,sizeof(keys));focused=nullptr;captured=nullptr;}if(window&&window->alive){Push(Handle(),0x1c,hostActive,0);Push(Handle(),6,hostActive?1:0,0);if(hostActive&&window->visible&&window->enabled){focused=Handle();Push(Handle(),7,0,0);}}}
 static BOOL WINAPI Is(HWND h){std::lock_guard<std::recursive_mutex> l(mutex);return Valid(h);}
 static BOOL WINAPI Enabled(HWND h){std::lock_guard<std::recursive_mutex> l(mutex);return Valid(h)&&window->enabled;}
 static BOOL WINAPI Iconic(HWND h){std::lock_guard<std::recursive_mutex> l(mutex);if(!Valid(h))SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}
@@ -119,8 +123,15 @@ using MonitorProc=BOOL(CALLBACK*)(HMONITOR,HDC,RECT*,LPARAM);
 static BOOL WINAPI Monitors(HDC dc,const RECT* clip,MonitorProc proc,LPARAM data){std::lock_guard<std::recursive_mutex> l(mutex);if(dc||!proc||width<=0||height<=0){SetLastError(ERROR_NOT_SUPPORTED);return FALSE;}RECT r={0,0,width,height};if(clip){r.left=(std::max)(r.left,clip->left);r.top=(std::max)(r.top,clip->top);r.right=(std::min)(r.right,clip->right);r.bottom=(std::min)(r.bottom,clip->bottom);}if(r.left>=r.right||r.top>=r.bottom)return TRUE;return proc((HMONITOR)&virtualMonitor,nullptr,&r,data);}
 static int WINAPI Metrics(int value){std::lock_guard<std::recursive_mutex> l(mutex);switch(value){case 0:case 16:case 78:return width;case 1:case 17:case 79:return height;case 76:case 77:return 0;case 80:return width>0&&height>0?1:0;default:SetLastError(ERROR_NOT_SUPPORTED);return 0;}}
 
+#include "WindowInput.h"
+static void ReleaseRaw(LPARAM token){std::lock_guard<std::recursive_mutex> l(mutex);rawPackets.erase((ULONG_PTR)token);}
+static void ClearRawFocus(){rawPackets.clear();pointerButtons=0;queue.erase(std::remove_if(queue.begin(),queue.end(),[](const Msg& m){return m.message==0xff;}),queue.end());}
+static void ResetRaw(){ClearRawFocus();mouseRegistered=false;mouseRegistration={};}
+
 void* ResolveWindowImport(const char* dll,const char* name){if(_stricmp(dll,"USER32.dll"))return nullptr;
  #define ENTRY(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
+ ENTRY("GetRawInputData",RawData);ENTRY("GetRawInputDeviceList",RawDevices);ENTRY("GetRawInputDeviceInfoA",RawDeviceInfoA);ENTRY("RegisterRawInputDevices",RegisterRaw);ENTRY("GetRegisteredRawInputDevices",RegisteredRaw);ENTRY("GetCursorPos",CursorPosition);ENTRY("SetCursorPos",WarpCursor);ENTRY("ShowCursor",CursorVisibility);
+ ENTRY("EnumDisplayDevicesW",DisplayDevicesW);ENTRY("EnumDisplayDevicesA",DisplayDevicesA);ENTRY("EnumDisplaySettingsW",DisplaySettings);ENTRY("ChangeDisplaySettingsExW",ChangeSettingsEx);ENTRY("ChangeDisplaySettingsW",ChangeSettings);
  ENTRY("DestroyWindow",Destroy);ENTRY("DefWindowProcW",Default);ENTRY("GetMessageW",Get);ENTRY("RegisterClassW",Register);ENTRY("CreateWindowExW",Create);ENTRY("PostMessageW",Post);ENTRY("PostQuitMessage",Quit);ENTRY("PeekMessageW",Peek);ENTRY("DispatchMessageW",Dispatch);ENTRY("GetClientRect",Rect);ENTRY("GetWindowRect",Rect);ENTRY("GetAsyncKeyState",KeyState);ENTRY("GetKeyState",KeyState);
  ENTRY("IsWindow",Is);ENTRY("IsWindowEnabled",Enabled);ENTRY("IsIconic",Iconic);ENTRY("IsZoomed",Zoomed);ENTRY("GetParent",Parent);ENTRY("IsChild",Child);ENTRY("EnableWindow",Enable);ENTRY("ShowWindow",Show);ENTRY("GetFocus",Focus);ENTRY("SetFocus",SetFocusBridge);ENTRY("GetActiveWindow",Active);ENTRY("GetForegroundWindow",Active);ENTRY("SetActiveWindow",SetActive);ENTRY("SetForegroundWindow",Foreground);ENTRY("GetCapture",Capture);ENTRY("SetCapture",SetCaptureBridge);ENTRY("ReleaseCapture",ReleaseCaptureBridge);ENTRY("GetWindowLongPtrW",GetLong);ENTRY("GetWindowLongW",GetLong32);ENTRY("SetWindowLongPtrW",SetLong);ENTRY("SetWindowLongW",SetLong32);ENTRY("GetWindowThreadProcessId",Owner);ENTRY("SetWindowTextW",Text);ENTRY("ClientToScreen",Coordinates);ENTRY("ScreenToClient",Coordinates);ENTRY("WindowFromPoint",FromPoint);ENTRY("UnregisterClassW",Unregister);ENTRY("MonitorFromWindow",MonitorWindow);ENTRY("MonitorFromPoint",MonitorPoint);ENTRY("MonitorFromRect",MonitorRect);ENTRY("GetMonitorInfoW",MonitorInformation);ENTRY("EnumDisplayMonitors",Monitors);ENTRY("GetSystemMetrics",Metrics);
  ENTRY("AdjustWindowRectEx",Adjust);ENTRY("SetWindowPos",PositionWindow);ENTRY("GetWindowPlacement",GetPlacement);ENTRY("SetWindowPlacement",PutPlacement);ENTRY("GetWindowInfo",Info);ENTRY("GetTopWindow",Top);ENTRY("SetParent",Reparent);ENTRY("SystemParametersInfoW",Parameters);

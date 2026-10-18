@@ -36,6 +36,8 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWGraphicsContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWUnsupportedContract();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWTlsContract();
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWPointer(int x,int y,uint buttons,int wheel);
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWMouseDelta(int dx,int dy);
         private bool importBusy,loadBusy,policyReady;
         private string LaunchLog {get{return Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-launch.log");}}
         private readonly SessionStore store = new SessionStore();
@@ -50,10 +52,21 @@ namespace Hollowwake
         {
             InitializeComponent();
             var core=CoreWindow.GetForCurrentThread();core.SizeChanged+=(s,e)=>{if(policyReady)HWViewport((int)e.Size.Width,(int)e.Size.Height);};core.Activated+=(s,e)=>{HWHostActivation(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);};core.KeyDown+=(s,e)=>{if(policyReady)HWKey((uint)e.VirtualKey,1);};core.KeyUp+=(s,e)=>{if(policyReady)HWKey((uint)e.VirtualKey,0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWChar(e.KeyCode);};
+            core.PointerMoved += ForwardPointer; core.PointerPressed += ForwardPointer; core.PointerReleased += ForwardPointer; core.PointerWheelChanged += ForwardPointer;
+            // Relative motion comes from the real host mouse device, never inferred from a warped cursor.
+            var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
+            if(mouse != null) mouse.MouseMoved += (s,e) => { if(policyReady) HWMouseDelta(e.MouseDelta.X,e.MouseDelta.Y); };
             Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
             Loaded += async (s, e) => { if (!ready) { ready = true; await InitializeAsync(); } };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; await CancelLinkAsync(); };
+        }
+        private void ForwardPointer(CoreWindow sender, PointerEventArgs args)
+        {
+            if(!policyReady || args.CurrentPoint.PointerDevice.PointerDeviceType != Windows.Devices.Input.PointerDeviceType.Mouse) return;
+            var p=args.CurrentPoint; var b=p.Properties;
+            uint buttons=(b.IsLeftButtonPressed?1u:0u)|(b.IsRightButtonPressed?2u:0u)|(b.IsMiddleButtonPressed?4u:0u)|(b.IsXButton1Pressed?8u:0u)|(b.IsXButton2Pressed?16u:0u);
+            HWPointer((int)p.Position.X,(int)p.Position.Y,buttons,b.IsHorizontalMouseWheel?0:b.MouseWheelDelta);
         }
         private void Show(StackPanel panel)
         {
@@ -224,7 +237,7 @@ namespace Hollowwake
         }
         private async void Log_Click(object sender,RoutedEventArgs e){
             string native="",policy="",managed="";
-            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log","native-imports-unresolved.txt"}){
+            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log","native-imports-unresolved.txt","native-platform-imports.json"}){
                 try{var content=await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync(name));if(name=="native-launch.log")native=content;else if(name=="runtime-policy.txt")policy=content;else managed+=name+"\n"+content+"\n";}catch{}
             }
             int start=native.LastIndexOf("ATTEMPT_BEGIN",StringComparison.Ordinal);string latest=start>=0?native.Substring(start):native;
@@ -258,7 +271,7 @@ namespace Hollowwake
             await dialog.ShowAsync();
         }
         private static string[] DiagnosticRows(string text){var rows=new System.Collections.Generic.List<string>();foreach(var raw in text.Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){var line=raw.TrimEnd('\r');for(int offset=0;offset<line.Length;offset+=40)rows.Add(line.Substring(offset,Math.Min(40,line.Length-offset)));}return rows.Count>0?rows.ToArray():new[]{"No records."};}
-        private static bool IsFailureLine(string line){return line.StartsWith("NATIVE_STARTUP_FAILED ")||line.StartsWith("CONTENT_FAILED ")||line.StartsWith("NATIVE_PROXY_BLOCKED ")||line.StartsWith("NATIVE_LOAD_BLOCKED ")||line.StartsWith("NATIVE_LOAD_FAILED ")||line.StartsWith("NATIVE_LOAD_EXCEPTION ")||line.StartsWith("NATIVE_CRASH ")||line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED ");}
+        private static bool IsFailureLine(string line){return line.StartsWith("NATIVE_PLATFORM_AUDIT_FAILED ")||line.StartsWith("NATIVE_STARTUP_FAILED ")||line.StartsWith("CONTENT_FAILED ")||line.StartsWith("NATIVE_PROXY_BLOCKED ")||line.StartsWith("NATIVE_LOAD_BLOCKED ")||line.StartsWith("NATIVE_LOAD_FAILED ")||line.StartsWith("NATIVE_LOAD_EXCEPTION ")||line.StartsWith("NATIVE_CRASH ")||line.StartsWith("DEP blocked ")||line.StartsWith("DEP ambiguous ")||line.StartsWith("DEP UNRESOLVED ")||line.StartsWith("STOP ")||line.StartsWith("CRASH ")||line.StartsWith("CALLED_UNSUPPORTED ");}
         private async Task RevokeTokenAsync(string token)
         {
             try { using (var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5))) await api.SendAsync("/api/device/logout", new JsonObject(), token, timeout.Token); } catch { }

@@ -26,6 +26,8 @@
 #include "NetworkBridge.h"
 #include "DataFiles.h"
 #include "StartupImport.h"
+#include "PlatformAudit.h"
+#include "PlatformImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include "../../runtime-native-route/NativeProxyDispatch.h"
 #include "PackagedNamespace.h"
@@ -61,6 +63,28 @@ static bool Hash(const std::vector<BYTE>& raw){
 void* ResolveControllerImport(const char*,const char*);
 void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
+extern "C" void __cdecl HWConfigurePointer(BOOL(__cdecl*)(int,int),BOOL(__cdecl*)(int));
+static Windows::UI::Core::CoreCursor^ savedPointer;
+static Platform::Agile<Windows::UI::Core::CoreWindow> pointerCore;
+static HRESULT PointerOnUi(bool visibility,int x,int y){
+ auto core=pointerCore.Get();
+ if(!core)return E_UNEXPECTED;
+ try{if(visibility){if(x){core->PointerCursor=savedPointer?savedPointer:ref new Windows::UI::Core::CoreCursor(Windows::UI::Core::CoreCursorType::Arrow,0);}else{if(core->PointerCursor)savedPointer=core->PointerCursor;core->PointerCursor=nullptr;}}
+ else core->PointerPosition=Windows::Foundation::Point((float)x,(float)y);return S_OK;}catch(Platform::Exception^ e){return e->HResult;}
+}
+static BOOL PointerOperation(bool visibility,int x,int y){
+ auto dispatcher=gameDispatcher.Get();if(!dispatcher){SetLastError(ERROR_NOT_READY);return FALSE;}
+ HRESULT hr;
+ if(dispatcher->HasThreadAccess)hr=PointerOnUi(visibility,x,y);
+ else{struct Request{std::promise<HRESULT> result;std::atomic<bool> active{true};};auto request=std::make_shared<Request>();auto result=request->result.get_future();
+  try{dispatcher->RunAsync(Windows::UI::Core::CoreDispatcherPriority::Normal,ref new Windows::UI::Core::DispatchedHandler([request,visibility,x,y](){request->result.set_value(request->active.load()?PointerOnUi(visibility,x,y):E_ABORT);}));}catch(Platform::Exception^ e){SetLastError(HRESULT_CODE(e->HResult));return FALSE;}
+  if(result.wait_for(std::chrono::seconds(3))!=std::future_status::ready){request->active=false;SetLastError(WAIT_TIMEOUT);return FALSE;}hr=result.get();
+ }
+ if(FAILED(hr)){SetLastError(HRESULT_CODE(hr));return FALSE;}return TRUE;
+}
+static BOOL __cdecl WarpHostPointer(int x,int y){return PointerOperation(false,x,y);}
+static BOOL __cdecl ShowHostPointer(int show){return PointerOperation(true,show,0);}
+
 static void* QueryBuiltinImport(const char* dll,const char* name){
  if(auto p=ResolveModuleLoaderImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveGuestThreadImport(dll,name))return p;
@@ -105,14 +129,18 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  logName=path;auto packageDirectory=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;auto appData=Windows::Storage::ApplicationData::Current->LocalFolder->Path;std::wstring gameData=std::wstring(appData->Data())+L"\\GameClean";if(!ConfigureDataFiles(packageDirectory->Data(),gameData.c_str()))return E_INVALIDARG;Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);ConfigureUnsupported(Log);Hollowwake::LegacyFatalLogger()=[](const char* message){Log(std::string("CRASH ")+message);};Hollowwake::SystemInfoFailureHandler()=[](DWORD error){Log("CRASH GetVersionExW failed error="+std::to_string(error));};auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
- if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
+ if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
 extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
  Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);
  {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
  unsigned unavailable=0;for(auto& item:clientDependencyImports)if(!HWResolvePackagedImport(item.dll,item.symbol))++unavailable;
- Log("NATIVE_PREFLIGHT total="+std::to_string(sizeof(clientDependencyImports)/sizeof(clientDependencyImports[0]))+" unresolved="+std::to_string(unavailable));return unavailable?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
+ Log("NATIVE_PREFLIGHT total="+std::to_string(sizeof(clientDependencyImports)/sizeof(clientDependencyImports[0]))+" unresolved="+std::to_string(unavailable));
+ auto slash=logName.find_last_of(L"/\\");if(slash==std::wstring::npos){Log("NATIVE_PLATFORM_AUDIT_FAILED no log directory");return E_UNEXPECTED;}
+ auto platform=AuditPlatformImports((logName.substr(0,slash+1)+L"native-platform-imports.json").c_str());
+ Log("NATIVE_PLATFORM_PREFLIGHT total="+std::to_string(sizeof(platformImportPairs)/sizeof(platformImportPairs[0]))+" unresolved="+std::to_string(platform)+"; export presence is not behavior or Xbox validation");
+ return unavailable||platform?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
 }
 
 static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{Log("NATIVE_CRASH code="+std::to_string(code)+" address="+std::to_string((ULONGLONG)data->ExceptionRecord->ExceptionAddress)+"; exception continues to OS");}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}

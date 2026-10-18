@@ -16,8 +16,12 @@ while([DateTime]::UtcNow-lt $deadline){
  Start-Sleep -Seconds 1
 }
 if(!(Test-Path (Join-Path $data 'native-imports-unresolved.txt'))){throw 'Integrated AppContainer native preflight did not produce exact-name report'}
-foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
+foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt','native-platform-imports.json')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
 $native=Get-Content (Join-Path $data 'native-launch.log') -Raw
+$platform=Get-Content (Join-Path $data 'native-platform-imports.json') -Raw|ConvertFrom-Json
+if($platform.total-ne 838-or $platform.pairs.Count-ne 838){throw 'Unredirected inventory changed or audit incomplete'}
+if($platform.gameExecuted-or $platform.xboxTested){throw 'Invalid platform audit scope claim'}
+
 $expected=@(Get-Content (Join-Path $PSScriptRoot 'Native\ClientDependencyImports.generated.h')|Where-Object {$_-match '^ \{'}).Count
 if(!$native.Contains('NATIVE_PREFLIGHT total='+$expected)){throw 'Unexpected dependency import inventory'}
 if($native.Contains('NATIVE_ENTRY calling')){throw 'Forbidden game execution in hosted preflight'}

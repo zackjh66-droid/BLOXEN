@@ -13,6 +13,9 @@ if($LASTEXITCODE){throw 'OS ordinal reference read failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
 if($LASTEXITCODE){throw 'Window state test build failed'}
 & "$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test.log');if($LASTEXITCODE){throw 'Window state behavior failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowInputTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowInputTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-input-build.log')
+if($LASTEXITCODE){throw 'Production pointer/display test compilation failed'}
+& "$OutputDirectory\WindowInputTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-input-test.log');if($LASTEXITCODE){throw 'Production pointer/display behavior failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NetworkBridge.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\NetworkTest.cpp') kernel32.lib ws2_32.lib runtimeobject.lib /Fe:"$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test-build.log')
 if($LASTEXITCODE){throw 'Network test build failed'}
 & "$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test.log');if($LASTEXITCODE){throw 'Network behavior failed'}
