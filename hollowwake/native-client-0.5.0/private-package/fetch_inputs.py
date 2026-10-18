@@ -5,6 +5,7 @@ Every selected file must still match the previously inspected SHA-256 inventory.
 from pathlib import Path
 import argparse,json,urllib.request,shutil,subprocess,hashlib,os,re,time,zipfile,zlib
 from fetch_boot import fetch,NoRedirect
+from fetch_code_prefix import fetch_code_prefix
 MIRRORS=['https://public.simplyblk.xyz/6.21.rar','https://builds.rebootfn.org/6.21.rar']
 def file_hash(path):
  result=hashlib.sha256()
@@ -72,7 +73,7 @@ def fallback(manifest,destination):
  raise RuntimeError('No verified private source available: '+json.dumps(failures))
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('manifest');p.add_argument('output');a=p.parse_args()
- try:result=fetch(a.manifest,a.output)
+ try:result=fetch_code_prefix(a.manifest,a.output)
  except (OSError,ValueError,RuntimeError,zipfile.BadZipFile,zlib.error) as e:
   print(json.dumps({'primarySourceFailure':type(e).__name__,'message':str(e)[:180]}));result=fallback(a.manifest,a.output)
  print(json.dumps(result))
