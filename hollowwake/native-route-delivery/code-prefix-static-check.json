@@ -1,0 +1,13 @@
+{
+  "source": "https://public-build-archives-bucket.erafn.dev/6.21.zip",
+  "codeFiles": 130,
+  "prefixBytes": 177635907,
+  "allSelectedHashesMatched": true,
+  "completeArchiveDownloaded": false,
+  "archiveSha256Claimed": false,
+  "executed": false,
+  "omittedNonCodeFiles": [
+    "6.21/FortniteGame/Content/Splash/Splash.bmp"
+  ],
+  "scope": "Preserved local original archive stream; hosted network transfer not tested by this check"
+}

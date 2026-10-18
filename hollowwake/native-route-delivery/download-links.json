@@ -1,0 +1,25 @@
+{
+  "commit": "27ed68a14b874bf18d3d192311cd8bf222e6f7f2",
+  "links": [
+    {
+      "file": "Hollowwake-Native-System-Source.zip",
+      "url": "https://raw.githubusercontent.com/zackjh66-droid/BLOXEN/27ed68a14b874bf18d3d192311cd8bf222e6f7f2/native-route-downloads/Hollowwake-Native-System-Source.zip",
+      "sha256": "338e4da3d8e386b44902008418bffd6fe554546ec7e470821d1ccdfd587412f7"
+    },
+    {
+      "file": "Native-System-Results.json",
+      "url": "https://raw.githubusercontent.com/zackjh66-droid/BLOXEN/27ed68a14b874bf18d3d192311cd8bf222e6f7f2/native-route-downloads/Native-System-Results.json",
+      "sha256": "34b1346fe270701f6cef9140e6910c60501b3b3a5b866a296c41e89db405d4c6"
+    },
+    {
+      "file": "NeoXS-Inspection.md",
+      "url": "https://raw.githubusercontent.com/zackjh66-droid/BLOXEN/27ed68a14b874bf18d3d192311cd8bf222e6f7f2/native-route-downloads/NeoXS-Inspection.md",
+      "sha256": "b5094fa25a033e8549587734d02f4cfe5f3e09754596a68a17b41e91596e339c"
+    },
+    {
+      "file": "ARTIFACTS.json",
+      "url": "https://raw.githubusercontent.com/zackjh66-droid/BLOXEN/27ed68a14b874bf18d3d192311cd8bf222e6f7f2/native-route-downloads/ARTIFACTS.json",
+      "sha256": "32c86b712863e4190a23ac07884880d8bc5beeab694a514d45af27ff3c39015e"
+    }
+  ]
+}

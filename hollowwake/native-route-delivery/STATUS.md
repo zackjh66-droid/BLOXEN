@@ -78,3 +78,56 @@ stage accepts only hash-pinned build inputs, prepares converted code and
 packages it through Build.ps1 -PrivatePreparedDirectory. Proprietary inputs
 and signing private keys are excluded from this source download. Client inputs
 must stay private; only recipient-encrypted private output may be uploaded.
+
+## Private acquisition failure and implemented correction
+
+Run 39094872423's public checks/signing passed, but its private stage failed:
+source ZIP transfer ended at 11,251,220,480 bytes (expected12,528,679,454),
+SHA2567c3b11ef676a343e7f1a95fd44da9dbba08ff6ebfcf724c143663564be65b892,
+not a complete usable ZIP. The RAR alternatives failed Schannel transfer/404.
+The overall workflow's green status did NOT mean private packaging succeeded;
+workflow-outcomes.json records privateInputPackaging=failure.
+
+The new fetch_code_prefix.py requests only the first177,635,907 bytes. It can
+handle a server ignoring Range by reading exactly that prefix, then closing.
+It does not describe this prefix as a complete ZIP or claim an archive hash.
+It verifies all130 selected EXE/DLL extents against the existing per-file SHA256
+pins before staging any output. Splash.bmp is not a native loader dependency;
+it remains part of the separately verified full game data. No dependency hash
+or import check was removed. Unknown redirects/ranges, truncated or corrupt
+code are rejected. Four owned transport fixtures passed, including corruption,
+truncation and incorrect-range refusal.
+
+Inspection against the preserved ZIP corrected one metadata error:
+libGLESv2.dll's compressed data starts at50,466,980, not50,476,980.
+All131 original selected file hashes/sizes/methods were independently verified.
+The corrected prefix acquisition against the preserved local archive passed;
+static conversion/dependency preparation reproduced all26 previous image hashes
+and11 proxy provider plans exactly. No game code was executed. The new hosted
+transfer/private build is run39095870275; consult its actual outcomes rather
+than inferring success from this local static check.
+
+## Actual private package delivered
+
+Run39095870275 completed public compilation/signature/AppContainer checks,
+private pinned-code acquisition, preparation, private APPX signing/content hash
+audit, and recipient-encrypted delivery successfully. It produced the actual
+Hollowwake_0.5.1.0_x64.appx (127,448,826 bytes), SHA256
+86dc1f339e9c40e82f4cdc54d84ec06650b149e93fee29420cff4ec7fbe33f0c.
+Identity Hollowwake.NativeClientExperiment is separate from the companion.
+
+The authorized recipient decrypted the delivery here and verified all26 image
+hashes, presence of all11 proxy providers, the expected x64/version/identity,
+package signature entry and the supplied public certificate self-signature.
+Hosted Windows signtool verified the actual APPX signature. The public source
+contains only these verification records; no decrypted game package or key was
+uploaded to the public repository. The private install ZIP also contains the
+three required x64 Microsoft dependencies and public certificate.
+
+This is a real-client integration experiment, NOT confirmed Fortnite execution.
+It has not reached the original entry point in hosting or been tested on Xbox.
+The linked Hollowwake account is not yet proven to log into the native game.
+Full data acquisition still depends on source availability or importing the
+exact original ZIP; the new code-prefix method fixes private build input
+acquisition, not a complete game-data transfer. Physical Xbox results are now
+needed to establish native loading/presentation and the first real failure.

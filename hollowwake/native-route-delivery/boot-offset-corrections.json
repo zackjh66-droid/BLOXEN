@@ -1,0 +1,12 @@
+{
+  "scope": "Preserved ZIP local headers plus per-file SHA256",
+  "changes": [
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libGLESv2.dll",
+      "before": 50476980,
+      "after": 50466980
+    }
+  ],
+  "allSelectedHashesVerified": true,
+  "executed": false
+}

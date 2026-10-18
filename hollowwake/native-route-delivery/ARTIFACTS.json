@@ -1,0 +1,14 @@
+{
+  "Hollowwake-Native-System-Source.zip": {
+    "bytes": 34424,
+    "sha256": "338e4da3d8e386b44902008418bffd6fe554546ec7e470821d1ccdfd587412f7"
+  },
+  "Native-System-Results.json": {
+    "bytes": 721,
+    "sha256": "34b1346fe270701f6cef9140e6910c60501b3b3a5b866a296c41e89db405d4c6"
+  },
+  "NeoXS-Inspection.md": {
+    "bytes": 4366,
+    "sha256": "b5094fa25a033e8549587734d02f4cfe5f3e09754596a68a17b41e91596e339c"
+  }
+}

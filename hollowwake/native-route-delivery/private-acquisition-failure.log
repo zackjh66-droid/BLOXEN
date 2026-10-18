@@ -1,0 +1,55 @@
+2026-10-18T03:49:50.5717850Z ##[group]Run for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+2026-10-18T03:49:50.5719023Z [36;1mfor /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64[0m
+2026-10-18T03:49:50.5719734Z [36;1mpython -m pip install --disable-pip-version-check pefile==2024.8.26[0m
+2026-10-18T03:49:50.5720372Z [36;1mpython hollowwake\native-client-0.5.0\private-package\fetch_inputs.py hollowwake\native-client-0.5.0\App\boot-inputs.json "%RUNNER_TEMP%\HollowwakePrivateInputs"[0m
+2026-10-18T03:49:50.5720904Z [36;1mif errorlevel 1 exit /b 1[0m
+2026-10-18T03:49:50.5721441Z [36;1mpython hollowwake\native-client-0.5.0\private-package\prepare.py "%RUNNER_TEMP%\HollowwakePrivateInputs\6.21" "%RUNNER_TEMP%\HollowwakePrivatePrepared"[0m
+2026-10-18T03:49:50.5721949Z [36;1mif errorlevel 1 exit /b 1[0m
+2026-10-18T03:49:50.5722566Z [36;1mpowershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%RUNNER_TEMP%\HollowwakePrivatePackage" -PrivatePreparedDirectory "%RUNNER_TEMP%\HollowwakePrivatePrepared"[0m
+2026-10-18T03:49:50.5737408Z shell: C:\Windows\system32\cmd.EXE /D /E:ON /V:OFF /S /C "CALL "{0}""
+2026-10-18T03:49:50.5737679Z ##[endgroup]
+2026-10-18T03:49:50.6732771Z **********************************************************************
+2026-10-18T03:49:50.6733220Z ** Visual Studio 2022 Developer Command Prompt v17.14.41
+2026-10-18T03:49:50.6734164Z ** Copyright (c) 2025 Microsoft Corporation
+2026-10-18T03:49:50.6734799Z **********************************************************************
+2026-10-18T03:49:53.9997157Z Collecting pefile==2024.8.26
+2026-10-18T03:49:54.1168545Z   Downloading pefile-2024.8.26-py3-none-any.whl.metadata (1.4 kB)
+2026-10-18T03:49:54.1348038Z Downloading pefile-2024.8.26-py3-none-any.whl (74 kB)
+2026-10-18T03:49:54.3942887Z Installing collected packages: pefile
+2026-10-18T03:49:54.4700974Z Successfully installed pefile-2024.8.26
+2026-10-18T04:01:19.1039212Z {"observedArchiveBytes": 11251220480, "observedArchiveSha256": "7c3b11ef676a343e7f1a95fd44da9dbba08ff6ebfcf724c143663564be65b892", "matchesOriginalArchive": false, "validation": "All selected files still require exact pinned SHA256; a repacked mirror is not pristine-source evidence"}
+2026-10-18T04:01:19.1040396Z {"primarySourceFailure": "BadZipFile", "message": "File is not a zip file"}
+2026-10-18T04:01:19.1043117Z Traceback (most recent call last):
+2026-10-18T04:01:19.1043676Z   File "D:\a\BLOXEN\BLOXEN\hollowwake\native-client-0.5.0\private-package\fetch_boot.py", line 35, in fetch
+2026-10-18T04:01:19.1045346Z     try:return ranged_fetch(manifest,destination)
+2026-10-18T04:01:19.1050388Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-18T04:01:19.1051157Z   File "D:\a\BLOXEN\BLOXEN\hollowwake\native-client-0.5.0\private-package\fetch_boot.py", line 22, in ranged_fetch
+2026-10-18T04:01:19.1052382Z     if response.status!=206 or response.headers.get('Content-Range')!=f'bytes {start}-{end}/{m["archiveBytes"]}':raise RangeUnavailable('Archive source did not provide the exact pinned range')
+2026-10-18T04:01:19.1053297Z                                                                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-18T04:01:19.1053787Z fetch_boot.RangeUnavailable: Archive source did not provide the exact pinned range
+2026-10-18T04:01:19.1054082Z 
+2026-10-18T04:01:19.1055342Z During handling of the above exception, another exception occurred:
+2026-10-18T04:01:19.1055690Z 
+2026-10-18T04:01:19.1055805Z Traceback (most recent call last):
+2026-10-18T04:01:19.1058088Z   File "D:\a\BLOXEN\BLOXEN\hollowwake\native-client-0.5.0\private-package\fetch_inputs.py", line 75, in <module>
+2026-10-18T04:01:19.1058802Z     try:result=fetch(a.manifest,a.output)
+2026-10-18T04:01:19.1059182Z                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-18T04:01:19.1059788Z   File "D:\a\BLOXEN\BLOXEN\hollowwake\native-client-0.5.0\private-package\fetch_boot.py", line 51, in fetch
+2026-10-18T04:01:19.1060430Z     with zipfile.ZipFile(archive) as package:
+2026-10-18T04:01:19.1060806Z          ^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-18T04:01:19.1061365Z   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\zipfile\__init__.py", line 1354, in __init__
+2026-10-18T04:01:19.1143836Z     self._RealGetContents()
+2026-10-18T04:01:19.1144319Z   File "C:\hostedtoolcache\windows\Python\3.12.10\x64\Lib\zipfile\__init__.py", line 1421, in _RealGetContents
+2026-10-18T04:01:19.1148314Z     raise BadZipFile("File is not a zip file")
+2026-10-18T04:01:19.1148739Z zipfile.BadZipFile: File is not a zip file
+2026-10-18T04:01:19.1149022Z 
+2026-10-18T04:01:19.1149253Z During handling of the above exception, another exception occurred:
+2026-10-18T04:01:19.1149603Z 
+2026-10-18T04:01:19.1149764Z Traceback (most recent call last):
+2026-10-18T04:01:19.1150297Z   File "D:\a\BLOXEN\BLOXEN\hollowwake\native-client-0.5.0\private-package\fetch_inputs.py", line 77, in <module>
+2026-10-18T04:01:19.1151093Z     print(json.dumps({'primarySourceFailure':type(e).__name__,'message':str(e)[:180]}));result=fallback(a.manifest,a.output)
+2026-10-18T04:01:19.1151618Z                                                                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-18T04:01:19.1152265Z   File "D:\a\BLOXEN\BLOXEN\hollowwake\native-client-0.5.0\private-package\fetch_inputs.py", line 72, in fallback
+2026-10-18T04:01:19.1152968Z     raise RuntimeError('No verified private source available: '+json.dumps(failures))
+2026-10-18T04:01:19.1154307Z RuntimeError: No verified private source available: [{"source": "https://public.simplyblk.xyz/6.21.rar", "error": "RuntimeError", "message": "Verified OS HTTPS download failed: curl: (56) schannel: server closed abruptly (missing close_notify)\r\n"}, {"source": "https://builds.rebootfn.org/6.21.rar", "error": "RuntimeError", "message": "Verified OS HTTPS download failed: curl: (22) The requested URL returned error: 404\r\n"}]
+2026-10-18T04:01:19.1401424Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,41 @@
+{
+  "result": "PASS private delivery static verification",
+  "identity": {
+    "Name": "Hollowwake.NativeClientExperiment",
+    "Publisher": "CN=HollowwakeDevelopment",
+    "Version": "0.5.1.0",
+    "ProcessorArchitecture": "x64"
+  },
+  "dependencies": [
+    {
+      "Name": "Windows.Universal",
+      "MinVersion": "10.0.17763.0",
+      "MaxVersionTested": "10.0.19041.0"
+    },
+    {
+      "Name": "Microsoft.VCLibs.140.00",
+      "MinVersion": "14.0.22929.0",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Name": "Microsoft.NET.Native.Framework.2.2",
+      "MinVersion": "2.2.29512.0",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    },
+    {
+      "Name": "Microsoft.NET.Native.Runtime.2.2",
+      "MinVersion": "2.2.28604.0",
+      "Publisher": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    }
+  ],
+  "gameImagesVerified": 26,
+  "proxyProvidersPresent": 11,
+  "signatureEntryPresent": true,
+  "certificateSelfSignatureVerified": true,
+  "appxSignatureVerifiedByHostedSigntool": true,
+  "gameExecuted": false,
+  "xboxTested": false,
+  "packageSha256": "86dc1f339e9c40e82f4cdc54d84ec06650b149e93fee29420cff4ec7fbe33f0c",
+  "packageBytes": 127448826,
+  "installZipSha256": "4a045197f7283b19ef69a3275f379c70f156bb1826d2bfe8b0e6a285a9fa2900"
+}

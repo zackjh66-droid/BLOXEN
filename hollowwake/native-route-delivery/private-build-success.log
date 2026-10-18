@@ -1,0 +1,6 @@
+2026-10-18T04:07:40.9727861Z Number of errors: 0
+2026-10-18T04:08:08.6266718Z {"source": "https://public-build-archives-bucket.erafn.dev/6.21.zip", "codeFiles": 130, "prefixBytes": 177635907, "allSelectedHashesMatched": true, "completeArchiveDownloaded": false, "archiveSha256Claimed": false, "executed": false, "omittedNonCodeFiles": ["6.21/FortniteGame/Content/Splash/Splash.bmp"]}
+2026-10-18T04:08:12.6438291Z {"images": 26, "proxies": 11, "externalPlatformDependencies": 73, "executed": false}
+2026-10-18T04:09:31.3551246Z Number of errors: 0
+2026-10-18T04:09:38.9327506Z PASS recipient-encrypted private delivery; bytes=133570550; original client not executed; no plaintext game files/private keys in artifact
+2026-10-18T04:09:44.0719016Z [36;1m@{publicPackage='success';privateInputPackaging='success';recipientEncryptedDelivery='success';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json[0m

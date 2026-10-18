@@ -1,0 +1,167 @@
+{
+  "result": "PASS static private inputs",
+  "images": 26,
+  "allPreparedImagesMatchManifest": true,
+  "originalMainUnchanged": true,
+  "convertedMainMatchesRuntimePin": true,
+  "originalClientExecuted": false,
+  "xboxTested": false,
+  "files": [
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/Fortnite621.imports.private.dll",
+      "bytes": 100733440,
+      "sha256": "3730f8c0ef1a7b4441f7f1dc5d86aa84b6a2ab5a689c50bf8e51374c4524dc27",
+      "main": true
+    },
+    {
+      "path": "ApexFramework_x64.dll",
+      "bytes": 1049488,
+      "sha256": "34149ecf578a4a59d87f7d81b9b6ef50a0c9a77f41b9c133b9abdfdb26d53cf0",
+      "main": false
+    },
+    {
+      "path": "dbghelp.dll",
+      "bytes": 1370000,
+      "sha256": "6154d82d4e8fb5c445ca53c21887b2b52a5bc535b320e3ac0d55febef9510281",
+      "main": false
+    },
+    {
+      "path": "discord-rpc.dll",
+      "bytes": 394128,
+      "sha256": "748e3b01e77f05f4f39598da7649263a2cb77a5b11ce8a5ad8a8c685194421b3",
+      "main": false
+    },
+    {
+      "path": "GfeSDK.dll",
+      "bytes": 4230032,
+      "sha256": "a8b73e04aa9334a55fb23729629c6894018ce3d7d50f983bd88d3f2b7d1c30bd",
+      "main": false
+    },
+    {
+      "path": "GFSDK_Aftermath_Lib.x64.dll",
+      "bytes": 123792,
+      "sha256": "9e3fd844c698eeb5289eae379649832171c8286cc6c18381bf3885e4bf3b4a33",
+      "main": false
+    },
+    {
+      "path": "libcef.dll",
+      "bytes": 98281360,
+      "sha256": "aa9f07f6cd759e8f0460ad2485fb12cc7ac99d55e9dd3e85420cfc2ffd6b1461",
+      "main": false
+    },
+    {
+      "path": "libvorbisfile_64.dll",
+      "bytes": 43920,
+      "sha256": "bc88ad7d74d3f64a6919c94d5d40cfeb57a31426af98fc0267ffcbfd20a8325e",
+      "main": false
+    },
+    {
+      "path": "msvcp140.dll",
+      "bytes": 666000,
+      "sha256": "b546588d2ea143baafe3d188d27ada4e2e93ca0802e128003bcae1dfa22dd1be",
+      "main": false
+    },
+    {
+      "path": "NvCloth_x64.dll",
+      "bytes": 271248,
+      "sha256": "7a175fb3f431fa2022a76ef8f5eb6bb7c1c54cf6d203a27c78c2d65be04993a0",
+      "main": false
+    },
+    {
+      "path": "oo2core_5_win64.dll",
+      "bytes": 941456,
+      "sha256": "faf4ee5597aa34280e1fe6fd46fec1cd056c007da99b4b8ca10b21673efcc5d7",
+      "main": false
+    },
+    {
+      "path": "PhysX3_x64.dll",
+      "bytes": 2111888,
+      "sha256": "cd06d7f83bff50e5983b20fa6bbf9adaf2fe99fa7a718028f950445efa76fb8b",
+      "main": false
+    },
+    {
+      "path": "PhysX3Common_x64.dll",
+      "bytes": 1602960,
+      "sha256": "ed798f2b7da8f6d5f06e4f20bc549c158516dcf34d8a127b1f591e6ed75ed7a3",
+      "main": false
+    },
+    {
+      "path": "PhysX3Cooking_x64.dll",
+      "bytes": 250768,
+      "sha256": "d100f4652bafaf7f9b9690296e76720fadd0ae5fbbae69cb47d73cfb96957336",
+      "main": false
+    },
+    {
+      "path": "PxFoundation_x64.dll",
+      "bytes": 60816,
+      "sha256": "fbfeca6342036bec52e7fbb5852442d5a692e1084ef58940eaf25b27392688c2",
+      "main": false
+    },
+    {
+      "path": "PxPvdSDK_x64.dll",
+      "bytes": 194960,
+      "sha256": "6c2605865c2f2feb1af9c579d59ae27d31f2bf0dd5293e4c93b6b0e8896a218f",
+      "main": false
+    },
+    {
+      "path": "SG_Com.dll",
+      "bytes": 3120016,
+      "sha256": "fb9fbf15e31d3649671b8185b29656da1a38a5b4edf3ac978b0e67e39eeaf34d",
+      "main": false
+    },
+    {
+      "path": "vcruntime140.dll",
+      "bytes": 79248,
+      "sha256": "a7abb4c36ec0d6037009fa1baea6e37c0bf14ddeab51a3f21f75896a7e290ba1",
+      "main": false
+    },
+    {
+      "path": "vivoxsdk_x64.dll",
+      "bytes": 5003664,
+      "sha256": "44ad8a0832e24b4613bf7c8aee671662341a9ebc50a180e1a411707077c25a7c",
+      "main": false
+    },
+    {
+      "path": "X3DAudio1_7.dll",
+      "bytes": 24976,
+      "sha256": "3689ab369d05b97a2c45c9208f4a135fcae27f5c9b600f66c9991d064c958ba2",
+      "main": false
+    },
+    {
+      "path": "XAPOFX1_5.dll",
+      "bytes": 77712,
+      "sha256": "bbf9c08688617720e59fd0a2defdf1a8acd2e156fc72bc03d6a68b56d160267b",
+      "main": false
+    },
+    {
+      "path": "chrome_elf.dll",
+      "bytes": 553872,
+      "sha256": "1e60f6e520c5495bd6ecd552768e6debd9e995d0c952b9591cbe0cc422c5eb2f",
+      "main": false
+    },
+    {
+      "path": "libogg_64.dll",
+      "bytes": 55184,
+      "sha256": "efe7be9e077c6acdd5aae08623f95531195999b958867fdbae5fa06daac5c21f",
+      "main": false
+    },
+    {
+      "path": "libvorbis_64.dll",
+      "bytes": 1720208,
+      "sha256": "b50a908df67fe5d063721ef6adc1fd6d8d46ad6e606581dd42d205a70119f1a8",
+      "main": false
+    },
+    {
+      "path": "concrt140.dll",
+      "bytes": 333200,
+      "sha256": "b5dcd6ba519f79070d92f1c8e3b1843e159dfd065c2f9cdcbad6c95149e89ade",
+      "main": false
+    },
+    {
+      "path": "ortp_x64.dll",
+      "bytes": 226192,
+      "sha256": "f5f8543d8deb728454a134a4911a8b4eda6d2cf3932a1da1b98a68488c4e5bd5",
+      "main": false
+    }
+  ]
+}

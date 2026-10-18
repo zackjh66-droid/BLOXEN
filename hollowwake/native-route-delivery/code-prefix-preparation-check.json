@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "scope": "Static conversion/dependency preparation from verified code prefix; no game executed",
+  "preparedImages": 26,
+  "sameImageHashesAsPreservedPreparation": true,
+  "proxyProviders": 11,
+  "gameExecuted": false,
+  "xboxTested": false
+}
