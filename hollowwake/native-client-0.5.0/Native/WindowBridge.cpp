@@ -26,6 +26,7 @@ static bool Push(HWND,UINT,WPARAM,LPARAM);
 static HWND Handle(){return reinterpret_cast<HWND>(window.get());}
 static bool Valid(HWND h){return window&&window->alive&&h==Handle();}
 extern "C" __declspec(dllexport) void __cdecl HWViewport(int w,int h){std::lock_guard<std::recursive_mutex> l(mutex);if(w<=0||h<=0||w>32767||h>32767){SetLastError(ERROR_INVALID_PARAMETER);return;}width=w;height=h;if(window&&window->alive)Push(Handle(),5,0,MAKELPARAM(width,height));}
+extern "C" __declspec(dllexport) HRESULT __cdecl HWReadViewport(UINT* x,UINT* y){std::lock_guard<std::recursive_mutex> l(mutex);if(!x||!y)return E_POINTER;if(width<=0||height<=0)return E_UNEXPECTED;*x=width;*y=height;return S_OK;}
 static bool Push(HWND target,UINT message,WPARAM wp,LPARAM lp){if(queue.size()>=4096){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return false;}queue.push_back({target,message,wp,lp,(DWORD)GetTickCount64(),{0,0},0});wake.notify_all();return true;}
 extern "C" __declspec(dllexport) void __cdecl HWKeyDetails(unsigned,unsigned,int,int,int,int,int);
 extern "C" __declspec(dllexport) void __cdecl HWCharacterDetails(unsigned,unsigned);

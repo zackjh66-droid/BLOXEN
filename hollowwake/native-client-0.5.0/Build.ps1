@@ -16,6 +16,9 @@ if($LASTEXITCODE){throw 'Window state test build failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowInputTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowInputTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-input-build.log')
 if($LASTEXITCODE){throw 'Production pointer/display test compilation failed'}
 & "$OutputDirectory\WindowInputTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-input-test.log');if($LASTEXITCODE){throw 'Production pointer/display behavior failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $repo 'client-runtime\graphics\CoreWindowBridge.cpp') (Join-Path $repo 'client-runtime\graphics\WindowedSwapChain.cpp') (Join-Path $source 'tests\SwapChainContractTest.cpp') kernel32.lib d3d11.lib dxgi.lib /Fe:"$OutputDirectory\SwapChainContractTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'swapchain-contract-build.log')
+if($LASTEXITCODE){throw 'Production swapchain contract compilation failed'}
+& "$OutputDirectory\SwapChainContractTest.exe" (Join-Path $OutputDirectory 'swapchain-contract-results.json') 2>&1|Tee-Object (Join-Path $OutputDirectory 'swapchain-contract-test.log');if($LASTEXITCODE){throw 'Actual swapchain behavior check failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NetworkBridge.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\NetworkTest.cpp') kernel32.lib ws2_32.lib runtimeobject.lib /Fe:"$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test-build.log')
 if($LASTEXITCODE){throw 'Network test build failed'}
 & "$OutputDirectory\NetworkTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'network-test.log');if($LASTEXITCODE){throw 'Network behavior failed'}

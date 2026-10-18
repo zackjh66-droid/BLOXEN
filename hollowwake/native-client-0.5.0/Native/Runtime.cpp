@@ -36,6 +36,7 @@
 #include "../../runtime-native-route/GuestThreads.h"
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
+#include "../../client-runtime/graphics/WindowedSwapChain.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false,guestStarted=false;
 std::string DescribeGuestAddress(unsigned long long address){if(mapped&&address>=(ULONGLONG)mapped&&address-(ULONGLONG)mapped<mappedSize)return "FortniteClient-Win64-Shipping.exe RVA="+std::to_string(address-(ULONGLONG)mapped);return DescribeDependencyAddress(address);}
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
@@ -64,6 +65,7 @@ static bool Hash(const std::vector<BYTE>& raw){
 void* ResolveControllerImport(const char*,const char*);
 void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
+extern "C" HRESULT __cdecl HWReadViewport(UINT*,UINT*);
 extern "C" void __cdecl HWConfigurePointer(BOOL(__cdecl*)(int,int),BOOL(__cdecl*)(int));
 extern "C" void __cdecl HWConfigureCursor(BOOL(__cdecl*)(UINT,int));
 static bool explicitCursor=false;
@@ -152,7 +154,7 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  logName=path;auto packageDirectory=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;auto appData=Windows::Storage::ApplicationData::Current->LocalFolder->Path;std::wstring gameData=std::wstring(appData->Data())+L"\\GameClean";if(!ConfigureDataFiles(packageDirectory->Data(),gameData.c_str()))return E_INVALIDARG;Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);ConfigureUnsupported(Log);Hollowwake::LegacyFatalLogger()=[](const char* message){Log(std::string("CRASH ")+message);};Hollowwake::SystemInfoFailureHandler()=[](DWORD error){Log("CRASH GetVersionExW failed error="+std::to_string(error));};auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
- if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);
+ if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);Hollowwake::SetChainViewportProvider(&HWReadViewport);
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
 extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){

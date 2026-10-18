@@ -4,7 +4,7 @@
 #include <dxgi1_2.h>
 namespace Hollowwake {
 // Call on the owning CoreWindow thread. window is the real CoreWindow IUnknown.
-HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CHAIN_DESC& desktop,IDXGISwapChain** result);
+HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CHAIN_DESC& desktop,IDXGISwapChain** result,IUnknown* virtualFactory=nullptr);
 HRESULT CreateCoreDeviceAndSwapChain(IUnknown* window,IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,const DXGI_SWAP_CHAIN_DESC* desc,IDXGISwapChain** swap,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context);
 }
 namespace Hollowwake {
@@ -20,11 +20,4 @@ namespace Hollowwake {
 // XAML owns its CoreWindow swap chain. A XAML host must explicitly select a
 // composition attachment callback instead of creating a second CoreWindow chain.
 void SetCompositionAttachment(HRESULT(*attach)(IDXGISwapChain*));
-}
-
-namespace Hollowwake {
-// Factory enumeration is valid before window binding; presentation still
-// requires an actual CoreWindow/composition attachment.
-HRESULT UnwrapCoreAdapter(IDXGIAdapter* adapter,IDXGIAdapter** result);
-HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context);
 }
