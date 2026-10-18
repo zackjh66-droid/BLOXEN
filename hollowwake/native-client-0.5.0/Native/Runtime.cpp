@@ -27,6 +27,7 @@
 #include "ReadOnlyPlatform.h"
 #include "DataFiles.h"
 #include "StartupImport.h"
+#include "NativeClientThread.h"
 #include "PlatformAudit.h"
 #include "PlatformImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
@@ -193,8 +194,16 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
   auto size=in.tellg();if(size!=100733440){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
   static const BYTE expected[32]={0x37,0x30,0xf8,0xc0,0xef,0x1a,0x7b,0x44,0x41,0xf7,0xf1,0xdc,0x5d,0x86,0xaa,0x84,0xb6,0xa2,0xab,0x5a,0x68,0x9c,0x50,0xbf,0x8e,0x51,0x37,0x4c,0x45,0x24,0xdc,0x27};
-  if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}bytes.clear();
-  if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",L"Fortnite621.imports.private.dll")){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
+  if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}auto clientDos=reinterpret_cast<const IMAGE_DOS_HEADER*>(bytes.data());
+  if(clientDos->e_magic!=IMAGE_DOS_SIGNATURE||clientDos->e_lfanew<64||!Range(clientDos->e_lfanew,sizeof(IMAGE_NT_HEADERS64),bytes.size()))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+  auto clientHeaders=reinterpret_cast<const IMAGE_NT_HEADERS64*>(bytes.data()+clientDos->e_lfanew);
+  auto stackReserve=clientHeaders->OptionalHeader.SizeOfStackReserve;
+  if(clientHeaders->Signature!=IMAGE_NT_SIGNATURE||clientHeaders->OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR64_MAGIC||stackReserve!=1048576||clientHeaders->OptionalHeader.SizeOfStackCommit!=4096)return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+  bytes.clear();
+  UINT launchWidth=0,launchHeight=0;auto sizeResult=HWReadViewport(&launchWidth,&launchHeight);if(FAILED(sizeResult))return sizeResult;
+  std::wstring launchCommand=L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX="+std::to_wstring(launchWidth)+L" -ResY="+std::to_wstring(launchHeight);
+  if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",launchCommand.c_str())){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
+  Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; no login credentials in command line");
   using AddHandler=PVOID(WINAPI*)(ULONG,PVECTORED_EXCEPTION_HANDLER);auto addHandler=reinterpret_cast<AddHandler>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","AddVectoredExceptionHandler"));if(!addHandler||!addHandler(1,NativeCrashRecord))Log("NATIVE_DIAGNOSTIC vectored crash recorder unavailable");
   Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
   std::wstring manifestPath=std::wstring(location->Data())+L"\\native-package-manifest.json";std::ifstream metadata(manifestPath,std::ios::binary);if(!metadata){Log("NATIVE_LOAD_BLOCKED private dependency manifest missing");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
@@ -205,7 +214,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   if(!BindWinMainCommandImport(module,"api-ms-win-crt-runtime-l1-1-0.dll",reinterpret_cast<void*>(&Hollowwake::PackagedWinMainTail))){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED _get_narrow_winmain_command_line binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   Log("NATIVE_STARTUP_BOUND image-local WinMain command import; host CRT globals unchanged");
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
-  Log("NATIVE_ENTRY calling original client entry; no lobby success is inferred");auto result=entry();Log("NATIVE_ENTRY_RETURN value="+std::to_string(result));return result;
+  int result=0;auto started=RunNativeClientThread(entry,static_cast<SIZE_T>(stackReserve),&result,Log);if(FAILED(started)){Log("NATIVE_THREAD_FAILED HRESULT="+std::to_string((unsigned long)started));return started;}return result;
  }catch(Platform::Exception^ e){Log("NATIVE_LOAD_EXCEPTION HRESULT="+std::to_string(e->HResult));return e->HResult;}
  catch(const std::exception& e){Log(std::string("NATIVE_LOAD_EXCEPTION ")+e.what());return E_FAIL;}
 }

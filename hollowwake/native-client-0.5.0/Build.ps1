@@ -9,6 +9,10 @@ $native=Join-Path $source 'App';New-Item -ItemType Directory -Force $native|Out-
 Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll') $native
 & dumpbin.exe /nologo /exports (Join-Path $env:SystemRoot 'System32\wldap32.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'windows-wldap-ordinal-reference.log')
 if($LASTEXITCODE){throw 'OS ordinal reference read failed'}
+# Original entry fixture validates actual OS thread/TLS/COM/stack behavior.
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NativeClientThread.cpp') (Join-Path $source 'tests\NativeClientThreadTest.cpp') kernel32.lib ole32.lib /Fe:"$OutputDirectory\NativeClientThreadTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-build.log')
+if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
+& "$OutputDirectory\NativeClientThreadTest.exe" (Join-Path $OutputDirectory 'native-thread-results.json') 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-test.log');if($LASTEXITCODE){throw 'Native entry-thread behavior failed'}
 # Focused production window/network checks; no game code or repeated graphics demos.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
 if($LASTEXITCODE){throw 'Window state test build failed'}
