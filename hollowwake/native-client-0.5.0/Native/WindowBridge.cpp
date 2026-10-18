@@ -26,8 +26,8 @@ static HWND Handle(){return reinterpret_cast<HWND>(window.get());}
 static bool Valid(HWND h){return window&&window->alive&&h==Handle();}
 extern "C" __declspec(dllexport) void __cdecl HWViewport(int w,int h){std::lock_guard<std::recursive_mutex> l(mutex);if(w<=0||h<=0||w>32767||h>32767){SetLastError(ERROR_INVALID_PARAMETER);return;}width=w;height=h;if(window&&window->alive)Push(Handle(),5,0,MAKELPARAM(width,height));}
 static bool Push(HWND target,UINT message,WPARAM wp,LPARAM lp){if(queue.size()>=4096){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return false;}queue.push_back({target,message,wp,lp,(DWORD)GetTickCount64(),{0,0},0});wake.notify_all();return true;}
-extern "C" void __cdecl HWKeyDetails(unsigned,unsigned,int,int,int,int,int);
-extern "C" void __cdecl HWCharacterDetails(unsigned,unsigned);
+extern "C" __declspec(dllexport) void __cdecl HWKeyDetails(unsigned,unsigned,int,int,int,int,int);
+extern "C" __declspec(dllexport) void __cdecl HWCharacterDetails(unsigned,unsigned);
 extern "C" __declspec(dllexport) void __cdecl HWKey(unsigned key,int down){HWKeyDetails(key,0,down,1,0,0,0);}
 extern "C" __declspec(dllexport) void __cdecl HWChar(unsigned key){HWCharacterDetails(key,0);}
 static ATOM WINAPI Register(const ClassW* value){if(!value||!value->name||!value->proc||value->clsExtra<0||value->clsExtra>4096||value->wndExtra<0||value->wndExtra>4096){SetLastError(ERROR_NOT_SUPPORTED);return 0;}std::lock_guard<std::recursive_mutex> l(mutex);for(auto& c:classes)if(!_wcsicmp(c.name.c_str(),value->name)){SetLastError(ERROR_CLASS_ALREADY_EXISTS);return 0;}if(classes.size()>=64){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return 0;}if(nextClassAtom>0xffff){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return 0;}ATOM atom=(ATOM)nextClassAtom++;classes.push_back({atom,value->name,value->proc,value->instance});auto& added=classes.back();added.classExtra=value->clsExtra;added.windowExtra=value->wndExtra;added.style=value->style;added.extra.resize(value->clsExtra);return atom;}
