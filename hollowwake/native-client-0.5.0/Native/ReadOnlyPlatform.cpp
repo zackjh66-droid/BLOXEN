@@ -20,9 +20,10 @@ void* ResolveReadOnlyPlatformImport(const char* dll,const char* name){
   if(strcmp(name,"WinHttpGetDefaultProxyConfiguration")&&strcmp(name,"WinHttpGetIEProxyConfigForCurrentUser"))return nullptr;
   static Provider provider(L"winhttp.dll");module=provider.module;
  }else if(!_stricmp(dll,"user32.dll")){
-  // Neither operation consumes a virtual HWND, sends input, opens a window,
+  // These operations consume native layout/window-station objects, not virtual
+  // HWNDs. They do not send input, open a window,
   // changes the keyboard layout or connects to an external service.
-  if(strcmp(name,"GetKeyboardLayout")&&strcmp(name,"MapVirtualKeyW"))return nullptr;
+  if(strcmp(name,"GetKeyboardLayout")&&strcmp(name,"MapVirtualKeyW")&&strcmp(name,"GetProcessWindowStation")&&strcmp(name,"GetUserObjectInformationW"))return nullptr;
   static Provider provider(L"user32.dll");module=provider.module;
  }else return nullptr;
  return module?reinterpret_cast<void*>(GetProcAddress(module,name)):nullptr;

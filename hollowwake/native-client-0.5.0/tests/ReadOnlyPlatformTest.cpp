@@ -17,6 +17,13 @@ int main(){try{
  auto layout=reinterpret_cast<decltype(&GetKeyboardLayout)>(ResolveReadOnlyPlatformImport("USER32.dll","GetKeyboardLayout"));auto map=reinterpret_cast<decltype(&MapVirtualKeyW)>(ResolveReadOnlyPlatformImport("user32.dll","MapVirtualKeyW"));
  if(!layout||!map||!layout(0))throw std::runtime_error("Actual host keyboard layout unavailable");
  for(UINT key: {UINT(VK_RETURN),UINT(VK_ESCAPE)}){auto scan=map(key,MAPVK_VK_TO_VSC);if(!scan||map(scan,MAPVK_VSC_TO_VK)!=key)throw std::runtime_error("Actual host virtual/scancode round trip failed");}
+ auto station=reinterpret_cast<decltype(&GetProcessWindowStation)>(ResolveReadOnlyPlatformImport("user32.dll","GetProcessWindowStation"));
+ auto objectInfo=reinterpret_cast<decltype(&GetUserObjectInformationW)>(ResolveReadOnlyPlatformImport("user32.dll","GetUserObjectInformationW"));
+ if(!station||!objectInfo)throw std::runtime_error("Native window-station queries unavailable");
+ auto ownStation=station();if(!ownStation)throw std::runtime_error("Native process has no window station");
+ DWORD needed=0;SetLastError(0);if(objectInfo(ownStation,UOI_FLAGS,nullptr,0,&needed)||GetLastError()!=ERROR_INSUFFICIENT_BUFFER||needed!=sizeof(USEROBJECTFLAGS))throw std::runtime_error("Window station buffer-size/error contract failed");
+ USEROBJECTFLAGS flags={};if(!objectInfo(ownStation,UOI_FLAGS,&flags,sizeof(flags),&needed))throw std::runtime_error("Real window-station flags query failed");
+ // No station name, account name, SID or other process data is requested/logged.
  if(ResolveReadOnlyPlatformImport("user32.dll","SendInput")||ResolveReadOnlyPlatformImport("user32.dll","SetWindowsHookExW"))throw std::runtime_error("Read-only adapter exposes input injection");
- std::cout<<"PASS actual host keyboard layout/scancode round trips and input-injection rejection; Windows WinHTTP configuration queries, exact native addresses/allocations/error paths and rejection of outbound request APIs. No proxy values logged; no game/Xbox execution.\n";return 0;
+ std::cout<<"PASS real native window-station object/buffer/flags query; actual host keyboard layout/scancode round trips and input-injection rejection; Windows WinHTTP configuration queries, exact native addresses/allocations/error paths and rejection of outbound request APIs. No proxy values logged; no game/Xbox execution.\n";return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
