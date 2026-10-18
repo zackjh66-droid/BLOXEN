@@ -59,9 +59,50 @@ static BOOL WINAPI RegisterRaw(const RawDevice* devices,UINT count,UINT itemSize
 static UINT WINAPI RegisteredRaw(RawDevice* devices,UINT* count,UINT size){std::lock_guard<std::recursive_mutex> l(mutex);if(!count||size!=sizeof(RawDevice)){SetLastError(ERROR_INVALID_PARAMETER);return (UINT)-1;}UINT required=mouseRegistered?1:0;if(!devices){*count=required;return 0;}if(*count<required){*count=required;SetLastError(ERROR_INSUFFICIENT_BUFFER);return (UINT)-1;}if(required)*devices=mouseRegistration;*count=required;return required;}
 static BOOL WINAPI CursorPosition(POINT* point){std::lock_guard<std::recursive_mutex> l(mutex);if(!point){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}if(!pointerKnown){SetLastError(ERROR_NOT_READY);return FALSE;}*point=pointerPosition;return TRUE;}
 static BOOL WINAPI WarpCursor(int x,int y){PointerWarp call=nullptr;{std::lock_guard<std::recursive_mutex> l(mutex);if(!hostActive||x<0||y<0||x>=width||y>=height){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}call=warpPointer;}if(!call){SetLastError(ERROR_NOT_SUPPORTED);return FALSE;}if(!call(x,y))return FALSE;std::lock_guard<std::recursive_mutex> l(mutex);pointerPosition={x,y};pointerKnown=true;return TRUE;}
-static int WINAPI CursorVisibility(BOOL visible){std::lock_guard<std::recursive_mutex> l(mutex);if(!showPointer){SetLastError(ERROR_NOT_SUPPORTED);return cursorBalance;}if((visible&&cursorBalance==INT_MAX)||(!visible&&cursorBalance==INT_MIN)){SetLastError(ERROR_ARITHMETIC_OVERFLOW);return cursorBalance;}int next=cursorBalance+(visible?1:-1);if((cursorBalance>=0)!=(next>=0)&&!showPointer(next>=0))return cursorBalance;cursorBalance=next;return cursorBalance;}
-// TranslateMessage is not advertised: host CharacterReceived is already forwarded;
-// complete Win32 keyboard translation/IME semantics need a separate implementation.
+static std::mutex cursorOperation;
+static int WINAPI CursorVisibility(BOOL visible){std::lock_guard<std::mutex> operation(cursorOperation);PointerVisibility callback;int old;
+ {std::lock_guard<std::recursive_mutex> l(mutex);callback=showPointer;old=cursorBalance;}
+ if(!callback){SetLastError(ERROR_NOT_SUPPORTED);return old;}if((visible&&old==INT_MAX)||(!visible&&old==INT_MIN)){SetLastError(ERROR_ARITHMETIC_OVERFLOW);return old;}int next=old+(visible?1:-1);
+ // Never hold the native event-queue lock while awaiting the UI dispatcher.
+ if((old>=0)!=(next>=0)&&!callback(next>=0))return old;
+ {std::lock_guard<std::recursive_mutex> l(mutex);cursorBalance=next;}return next;
+}
+// Text translation comes from the OS CoreWindow CharacterReceived event.
+// Pair it with the actual key message; TranslateMessage schedules it once.
+// Late-arriving characters are queued after the corresponding translation call.
+struct TextRecord {DWORD id;unsigned scan,key;HWND target;LPARAM flags;bool translated;std::vector<unsigned> text;};
+static std::deque<TextRecord> textRecords;static DWORD nextText=1;
+static void PostCharacter(const TextRecord& record,unsigned code){
+ UINT message=record.flags&(1L<<29)?0x106:0x102;
+ if(code<=0xffff)Push(record.target,message,code,record.flags&0x3fffffff);
+ else{code-=0x10000;Push(record.target,message,0xd800+(code>>10),record.flags&0x3fffffff);Push(record.target,message,0xdc00+(code&0x3ff),record.flags&0x3fffffff);}
+}
+extern "C" __declspec(dllexport) void __cdecl HWKeyDetails(unsigned key,unsigned scan,int down,int repeat,int extended,int menu,int wasDown){
+ std::lock_guard<std::recursive_mutex> l(mutex);if(key>=256||scan>255||repeat<1||repeat>65535){SetLastError(ERROR_INVALID_PARAMETER);return;}keys[key]=down!=0;if(!window||!window->alive||!hostActive)return;
+ LPARAM flags=(LPARAM)repeat|((LPARAM)scan<<16)|(extended?1L<<24:0)|(menu?1L<<29:0)|(wasDown?1L<<30:0)|(!down?(LPARAM)0xc0000000:0);
+ if(!Push(Handle(),menu?(down?0x104:0x105):(down?0x100:0x101),key,flags))return;
+ if(down){if(nextText==0)++nextText;DWORD id=nextText++;queue.back().privateData=id;while(textRecords.size()>=256)textRecords.pop_front();textRecords.push_back({id,scan,key,Handle(),flags,false,{}});}
+}
+extern "C" __declspec(dllexport) void __cdecl HWCharacterDetails(unsigned code,unsigned scan){
+ std::lock_guard<std::recursive_mutex> l(mutex);if(code>0x10ffff||(code>=0xd800&&code<=0xdfff)){SetLastError(ERROR_NO_UNICODE_TRANSLATION);return;}if(!window||!window->alive||!hostActive)return;
+ for(auto i=textRecords.rbegin();i!=textRecords.rend();++i)if(i->scan==scan&&i->target==Handle()){
+  if(i->translated){if(queue.size()>4094){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return;}PostCharacter(*i,code);}else{if(i->text.size()>=64){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return;}i->text.push_back(code);}return;
+ }
+ // OS text input without a physical key (e.g. software keyboard).
+ TextRecord direct={0,scan,0,Handle(),1,false,{}};if(queue.size()<=4094)PostCharacter(direct,code);else SetLastError(ERROR_NOT_ENOUGH_MEMORY);
+}
+static BOOL WINAPI TranslateHostMessage(const Msg* message){
+ std::lock_guard<std::recursive_mutex> l(mutex);if(!message){SetLastError(ERROR_INVALID_PARAMETER);return FALSE;}
+ if(message->message==0x101||message->message==0x105)return TRUE;
+ if(message->message!=0x100&&message->message!=0x104)return FALSE;
+ if(!Valid(message->window)||window->owner!=GetCurrentThreadId()){SetLastError(ERROR_INVALID_WINDOW_HANDLE);return FALSE;}
+ for(auto& record:textRecords)if(record.id==message->privateData&&record.target==message->window&&record.key==message->wp&&record.flags==message->lp){
+  if(record.translated)return TRUE;size_t required=0;for(auto code:record.text)required+=code>0xffff?2:1;if(queue.size()+required>4096){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return FALSE;}
+  for(auto code:record.text)PostCharacter(record,code);record.text.clear();record.translated=true;return TRUE;
+ }
+ // Caller-constructed keyboard messages do not have an OS text translation.
+ SetLastError(ERROR_NOT_SUPPORTED);return FALSE;
+}
 struct DisplayW {DWORD size;wchar_t name[32],description[128];DWORD flags;wchar_t id[128],key[128];};
 struct DisplayA {DWORD size;char name[32],description[128];DWORD flags;char id[128],key[128];};
 struct ModeW {wchar_t name[32];WORD spec,driver,size,extra;DWORD fields;LONG x,y;DWORD orientation,fixedOutput;short color,duplex,yres,tt,collate;wchar_t form[32];WORD dpi;DWORD bits,w,h,flags,frequency,icmMethod,icmIntent,media,dither,res1,res2,panningW,panningH;};
