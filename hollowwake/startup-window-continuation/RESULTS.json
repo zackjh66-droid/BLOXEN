@@ -1,0 +1,32 @@
+{
+  "codeCommit": "79513a560f5a739ebd1dbeaa0f2493fa8e65bf77",
+  "workflowRun": 39090460653,
+  "workflowConclusion": "success",
+  "redirectedInventory": 843,
+  "iterationBefore": 181,
+  "iterationAfter": 172,
+  "iterationMainBefore": 44,
+  "iterationMainAfter": 37,
+  "originalBefore": 208,
+  "originalMainBefore": 70,
+  "newBindings": [
+    "USER32.dll!CreateIconIndirect",
+    "USER32.dll!DestroyCursor",
+    "USER32.dll!DestroyIcon",
+    "USER32.dll!DisableProcessWindowsGhosting",
+    "USER32.dll!DrawStateW",
+    "USER32.dll!GetIconInfo",
+    "USER32.dll!LoadCursorFromFileW",
+    "USER32.dll!LoadIconW",
+    "USER32.dll!LoadImageW"
+  ],
+  "unredirectedInventory": 838,
+  "unredirectedMissingOnWindows": 0,
+  "preflightHresult": "0x8007007F",
+  "entryPointReached": false,
+  "executedAfterEntry": null,
+  "originalGameExecuted": false,
+  "xboxTestedThisIteration": false,
+  "gamePackagePublished": false,
+  "firstFailure": "HWPreflightClient refuses unresolved bindings before LoadPackagedLibrary/game entry"
+}
