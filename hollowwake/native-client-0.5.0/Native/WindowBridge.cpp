@@ -14,6 +14,7 @@ static void ReleaseRaw(LPARAM);
 static void ReleaseTouch(LPARAM);
 static void ResetRaw();
 static void ClearRawFocus();
+static void ResetSystemMenu();
 using Proc=LRESULT(CALLBACK*)(HWND,UINT,WPARAM,LPARAM);
 struct ClassW {UINT style;Proc proc;int clsExtra,wndExtra;HINSTANCE instance;HICON icon;HCURSOR cursor;HBRUSH brush;LPCWSTR menu,name;};
 struct Msg {HWND window;UINT message;WPARAM wp;LPARAM lp;DWORD time;POINT point;DWORD privateData;};
@@ -35,7 +36,7 @@ extern "C" __declspec(dllexport) void __cdecl HWChar(unsigned key){HWCharacterDe
 static ATOM WINAPI Register(const ClassW* value){if(!value||!value->name||!value->proc||value->clsExtra<0||value->clsExtra>4096||value->wndExtra<0||value->wndExtra>4096){SetLastError(ERROR_NOT_SUPPORTED);return 0;}std::lock_guard<std::recursive_mutex> l(mutex);for(auto& c:classes)if(!_wcsicmp(c.name.c_str(),value->name)){SetLastError(ERROR_CLASS_ALREADY_EXISTS);return 0;}if(classes.size()>=64){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return 0;}if(nextClassAtom>0xffff){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return 0;}ATOM atom=(ATOM)nextClassAtom++;classes.push_back({atom,value->name,value->proc,value->instance});auto& added=classes.back();added.classExtra=value->clsExtra;added.windowExtra=value->wndExtra;added.style=value->style;added.extra.resize(value->clsExtra);return atom;}
 static HWND WINAPI Create(DWORD ex,LPCWSTR name,LPCWSTR title,DWORD style,int x,int y,int cx,int cy,HWND parent,HMENU menu,HINSTANCE instance,void* params){
  Proc proc=nullptr;HWND handle;int extras=0;ATOM clsAtom=0;std::wstring className;
- {std::lock_guard<std::recursive_mutex> l(mutex);if(width<=0||height<=0||parent||window){SetLastError(ERROR_NOT_SUPPORTED);return nullptr;}for(auto& c:classes)if(((ULONG_PTR)name<=0xffff?c.atom==(ATOM)(ULONG_PTR)name:!_wcsicmp(c.name.c_str(),name))&&c.instance==instance){proc=c.proc;extras=c.windowExtra;clsAtom=c.atom;className=c.name;}if(!proc){SetLastError(ERROR_CANNOT_FIND_WND_CLASS);return nullptr;}window.reset(new Window{true,false,proc,title?title:L""});handle=Handle();window->visible=(style&0x10000000)!=0;window->style=style;window->extended=ex;window->instance=instance;window->owner=GetCurrentThreadId();window->extra.resize(extras);window->cls=className;window->atom=clsAtom;}
+ {std::lock_guard<std::recursive_mutex> l(mutex);if(width<=0||height<=0||parent||window){SetLastError(ERROR_NOT_SUPPORTED);return nullptr;}for(auto& c:classes)if(((ULONG_PTR)name<=0xffff?c.atom==(ATOM)(ULONG_PTR)name:!_wcsicmp(c.name.c_str(),name))&&c.instance==instance){proc=c.proc;extras=c.windowExtra;clsAtom=c.atom;className=c.name;}if(!proc){SetLastError(ERROR_CANNOT_FIND_WND_CLASS);return nullptr;}window.reset(new Window{true,false,proc,title?title:L""});ResetSystemMenu();handle=Handle();window->visible=(style&0x10000000)!=0;window->style=style;window->extended=ex;window->instance=instance;window->owner=GetCurrentThreadId();window->extra.resize(extras);window->cls=className;window->atom=clsAtom;}
  CreateStruct create={params,instance,menu,parent,cy,cx,y,x,(LONG)style,title,name,ex};
  if(!proc(handle,0x81,0,(LPARAM)&create)||proc(handle,1,0,(LPARAM)&create)==-1){proc(handle,0x82,0,0);std::lock_guard<std::recursive_mutex> l(mutex);window.reset();return nullptr;}
  {std::lock_guard<std::recursive_mutex> l(mutex);Push(handle,5,0,MAKELPARAM(width,height));}return handle;
@@ -130,6 +131,7 @@ static int WINAPI Metrics(int value){std::lock_guard<std::recursive_mutex> l(mut
 #include "WindowInput.h"
 #include "WindowTouch.h"
 #include "WindowCursor.h"
+#include "WindowMenu.h"
 static void ReleaseTouch(LPARAM token){std::lock_guard<std::recursive_mutex> l(mutex);touchPackets.erase((ULONG_PTR)token);}
 static void ReleaseRaw(LPARAM token){std::lock_guard<std::recursive_mutex> l(mutex);rawPackets.erase((ULONG_PTR)token);}
 static void ClearRawFocus(){touchPackets.clear();queue.erase(std::remove_if(queue.begin(),queue.end(),[](const Msg& m){return m.message==0x240;}),queue.end());textRecords.clear();rawPackets.clear();pointerButtons=0;queue.erase(std::remove_if(queue.begin(),queue.end(),[](const Msg& m){return m.message==0xff;}),queue.end());}
@@ -137,6 +139,7 @@ static void ResetRaw(){touchRegistered=false;ClearRawFocus();mouseRegistered=fal
 
 void* ResolveWindowImport(const char* dll,const char* name){if(_stricmp(dll,"USER32.dll"))return nullptr;
  #define ENTRY(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
+ ENTRY("GetSystemMenu",SystemMenu);ENTRY("EnableMenuItem",EnableSystemItem);ENTRY("GetMenuState",SystemItemState);
  ENTRY("LoadCursorW",LoadStockCursor);ENTRY("SetCursor",SelectCursor);
  ENTRY("RegisterTouchWindow",RegisterTouch);ENTRY("UnregisterTouchWindow",UnregisterTouch);ENTRY("GetTouchInputInfo",TouchInfo);ENTRY("CloseTouchInputHandle",CloseTouch);
  ENTRY("TranslateMessage",TranslateHostMessage);ENTRY("GetRawInputData",RawData);ENTRY("GetRawInputDeviceList",RawDevices);ENTRY("GetRawInputDeviceInfoA",RawDeviceInfoA);ENTRY("RegisterRawInputDevices",RegisterRaw);ENTRY("GetRegisteredRawInputDevices",RegisteredRaw);ENTRY("GetCursorPos",CursorPosition);ENTRY("SetCursorPos",WarpCursor);ENTRY("ShowCursor",CursorVisibility);
