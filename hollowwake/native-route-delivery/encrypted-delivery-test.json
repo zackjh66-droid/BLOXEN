@@ -1,0 +1,10 @@
+{
+  "result": "PASS",
+  "scope": "Owned delivery fixture only; not a signed Xbox package or game execution",
+  "rsaPemImport": true,
+  "recipientRoundTrip": true,
+  "cipherAndPlainDigestsVerified": true,
+  "tamperRejected": true,
+  "wrongRecipientRejected": true,
+  "keysExcluded": true
+}
