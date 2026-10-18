@@ -1,4 +1,5 @@
-// Original import-bridge implementation. Does not emulate user32 or DXGI factories.
+// Original bounded UWP presentation bridge and DXGI wrappers.
+// This is not complete desktop/window or D3D COM-graph emulation.
 #include "CoreWindowBridge.h"
 #include "WindowedSwapChain.h"
 #include <wrl/client.h>
@@ -26,12 +27,67 @@ HRESULT CreateCoreDeviceAndSwapChain(IUnknown* window,IDXGIAdapter* adapter,D3D_
  if(device)*device=nullptr;if(context)*context=nullptr;if(swap)*swap=nullptr;
  if(!desc||!swap||!window)return E_INVALIDARG;
  ComPtr<ID3D11Device> dev;ComPtr<ID3D11DeviceContext> ctx;D3D_FEATURE_LEVEL obtained;
- HRESULT hr=D3D11CreateDevice(adapter,type,software,flags,levels,count,sdk,&dev,&obtained,&ctx);if(FAILED(hr))return hr;
+ HRESULT hr=CreateCoreDevice(adapter,type,software,flags,levels,count,sdk,&dev,&obtained,&ctx);if(FAILED(hr))return hr;
  ComPtr<IDXGISwapChain> chain;hr=CreateCoreSwapChain(window,dev.Get(),*desc,&chain);if(FAILED(hr))return hr;
  *swap=chain.Detach();if(device)*device=dev.Detach();if(context)*context=ctx.Detach();if(chosen)*chosen=obtained;return S_OK;
 }
 }
 namespace Hollowwake {
+// Original private COM interface: unwrap only our adapter before passing it to
+// D3D11. Native D3D11 cannot consume an arbitrary guest COM adapter proxy.
+struct __declspec(uuid("D6BBCE0A-03AC-4F72-925B-3ACCA34C6231")) ICoreAdapterNative:public IUnknown {virtual HRESULT STDMETHODCALLTYPE NativeAdapter(IDXGIAdapter**)=0;};
+class CoreOutput final:public IDXGIOutput {
+ volatile LONG refs=1;ComPtr<IDXGIOutput> inner;ComPtr<IDXGIAdapter> parent;
+public:
+ CoreOutput(IDXGIOutput* output,IDXGIAdapter* adapter):inner(output),parent(adapter){}
+ HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid,void** out) override{if(!out)return E_POINTER;*out=nullptr;if(iid!=__uuidof(IUnknown)&&iid!=__uuidof(IDXGIObject)&&iid!=__uuidof(IDXGIOutput))return E_NOINTERFACE;*out=static_cast<IDXGIOutput*>(this);AddRef();return S_OK;}
+ ULONG STDMETHODCALLTYPE AddRef() override{return InterlockedIncrement(&refs);}
+ ULONG STDMETHODCALLTYPE Release() override{ULONG n=InterlockedDecrement(&refs);if(!n)delete this;return n;}
+ HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID k,UINT n,const void* d) override{return inner->SetPrivateData(k,n,d);}
+ HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID k,const IUnknown* d) override{return inner->SetPrivateDataInterface(k,d);}
+ HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID k,UINT* n,void* d) override{return inner->GetPrivateData(k,n,d);}
+ HRESULT STDMETHODCALLTYPE GetParent(REFIID iid,void** out) override{return parent->QueryInterface(iid,out);}
+ HRESULT STDMETHODCALLTYPE GetDesc(DXGI_OUTPUT_DESC* d) override{return inner->GetDesc(d);}
+ HRESULT STDMETHODCALLTYPE GetDisplayModeList(DXGI_FORMAT f,UINT flags,UINT* n,DXGI_MODE_DESC* d) override{return inner->GetDisplayModeList(f,flags,n,d);}
+ HRESULT STDMETHODCALLTYPE FindClosestMatchingMode(const DXGI_MODE_DESC* want,DXGI_MODE_DESC* out,IUnknown* device) override{return inner->FindClosestMatchingMode(want,out,device);}
+ HRESULT STDMETHODCALLTYPE WaitForVBlank() override{return inner->WaitForVBlank();}
+ HRESULT STDMETHODCALLTYPE TakeOwnership(IUnknown* device,BOOL exclusive) override{return inner->TakeOwnership(device,exclusive);}
+ void STDMETHODCALLTYPE ReleaseOwnership() override{inner->ReleaseOwnership();}
+ HRESULT STDMETHODCALLTYPE GetGammaControlCapabilities(DXGI_GAMMA_CONTROL_CAPABILITIES* c) override{return inner->GetGammaControlCapabilities(c);}
+ HRESULT STDMETHODCALLTYPE SetGammaControl(const DXGI_GAMMA_CONTROL* c) override{return inner->SetGammaControl(c);}
+ HRESULT STDMETHODCALLTYPE GetGammaControl(DXGI_GAMMA_CONTROL* c) override{return inner->GetGammaControl(c);}
+ HRESULT STDMETHODCALLTYPE SetDisplaySurface(IDXGISurface* s) override{return inner->SetDisplaySurface(s);}
+ HRESULT STDMETHODCALLTYPE GetDisplaySurfaceData(IDXGISurface* s) override{return inner->GetDisplaySurfaceData(s);}
+ HRESULT STDMETHODCALLTYPE GetFrameStatistics(DXGI_FRAME_STATISTICS* s) override{return inner->GetFrameStatistics(s);}
+};
+class CoreAdapter final:public IDXGIAdapter1,public ICoreAdapterNative {
+ volatile LONG refs=1;ComPtr<IDXGIAdapter1> inner;ComPtr<IDXGIFactory1> parent;
+public:
+ CoreAdapter(IDXGIAdapter1* a,IDXGIFactory1* p):inner(a),parent(p){}
+ HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid,void** out) override {if(!out)return E_POINTER;*out=nullptr;if(iid==__uuidof(IUnknown)||iid==__uuidof(IDXGIObject)||iid==__uuidof(IDXGIAdapter)||iid==__uuidof(IDXGIAdapter1))*out=static_cast<IDXGIAdapter1*>(this);else if(iid==__uuidof(ICoreAdapterNative))*out=static_cast<ICoreAdapterNative*>(this);else return E_NOINTERFACE;AddRef();return S_OK;}
+ ULONG STDMETHODCALLTYPE AddRef() override{return InterlockedIncrement(&refs);}
+ ULONG STDMETHODCALLTYPE Release() override{ULONG n=InterlockedDecrement(&refs);if(!n)delete this;return n;}
+ HRESULT STDMETHODCALLTYPE NativeAdapter(IDXGIAdapter** out) override{return inner.CopyTo(out);}
+ HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID k,UINT n,const void* d) override{return inner->SetPrivateData(k,n,d);}
+ HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID k,const IUnknown* d) override{return inner->SetPrivateDataInterface(k,d);}
+ HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID k,UINT* n,void* d) override{return inner->GetPrivateData(k,n,d);}
+ HRESULT STDMETHODCALLTYPE GetParent(REFIID iid,void** out) override{return parent->QueryInterface(iid,out);}
+ HRESULT STDMETHODCALLTYPE EnumOutputs(UINT n,IDXGIOutput** out) override{if(!out)return E_POINTER;*out=nullptr;ComPtr<IDXGIOutput> output;auto hr=inner->EnumOutputs(n,&output);if(FAILED(hr))return hr;auto proxy=new(std::nothrow) CoreOutput(output.Get(),this);if(!proxy)return E_OUTOFMEMORY;*out=proxy;return S_OK;}
+ HRESULT STDMETHODCALLTYPE GetDesc(DXGI_ADAPTER_DESC* out) override{return inner->GetDesc(out);}
+ HRESULT STDMETHODCALLTYPE CheckInterfaceSupport(REFGUID k,LARGE_INTEGER* version) override{return inner->CheckInterfaceSupport(k,version);}
+ HRESULT STDMETHODCALLTYPE GetDesc1(DXGI_ADAPTER_DESC1* out) override{return inner->GetDesc1(out);}
+};
+HRESULT UnwrapCoreAdapter(IDXGIAdapter* adapter,IDXGIAdapter** result){
+ if(!result)return E_POINTER;*result=nullptr;if(!adapter)return S_OK;
+ ComPtr<ICoreAdapterNative> wrapper;auto hr=adapter->QueryInterface(IID_PPV_ARGS(&wrapper));
+ if(hr==E_NOINTERFACE){adapter->AddRef();*result=adapter;return S_OK;}
+ if(FAILED(hr))return hr;return wrapper->NativeAdapter(result);
+}
+HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context){
+ if(device)*device=nullptr;if(context)*context=nullptr;
+ ComPtr<IDXGIAdapter> native;auto hr=UnwrapCoreAdapter(adapter,&native);if(FAILED(hr))return hr;
+ return ::D3D11CreateDevice(native.Get(),type,software,flags,levels,count,sdk,device,chosen,context);
+}
 class CoreFactory final:public IDXGIFactory1 {
  volatile LONG refs=1;ComPtr<IDXGIFactory1> inner;ComPtr<IUnknown> window;HWND association=nullptr;
 public:
@@ -43,16 +99,16 @@ public:
  HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID key,const IUnknown* value) override{return inner->SetPrivateDataInterface(key,value);}
  HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID key,UINT* size,void* data) override{return inner->GetPrivateData(key,size,data);}
  HRESULT STDMETHODCALLTYPE GetParent(REFIID,void** value) override{if(!value)return E_POINTER;*value=nullptr;return E_NOINTERFACE;}
- HRESULT STDMETHODCALLTYPE EnumAdapters(UINT i,IDXGIAdapter** value) override{return inner->EnumAdapters(i,value);}
+ HRESULT STDMETHODCALLTYPE EnumAdapters(UINT i,IDXGIAdapter** value) override{if(!value)return E_POINTER;*value=nullptr;ComPtr<IDXGIAdapter1> adapter;auto hr=inner->EnumAdapters1(i,&adapter);if(FAILED(hr))return hr;auto proxy=new(std::nothrow) CoreAdapter(adapter.Get(),this);if(!proxy)return E_OUTOFMEMORY;*value=proxy;return S_OK;}
  HRESULT STDMETHODCALLTYPE MakeWindowAssociation(HWND h,UINT flags) override {if(flags&~(DXGI_MWA_NO_WINDOW_CHANGES|DXGI_MWA_NO_ALT_ENTER|DXGI_MWA_NO_PRINT_SCREEN))return E_INVALIDARG;association=h;return S_OK;}
  HRESULT STDMETHODCALLTYPE GetWindowAssociation(HWND* h) override{if(!h)return E_POINTER;*h=association;return S_OK;}
  HRESULT STDMETHODCALLTYPE CreateSwapChain(IUnknown* device,DXGI_SWAP_CHAIN_DESC* desc,IDXGISwapChain** chain) override {if(!desc)return E_POINTER;return CreateCoreSwapChain(window.Get(),device,*desc,chain,static_cast<IDXGIFactory1*>(this));}
  HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter(HMODULE,IDXGIAdapter** value) override {if(value)*value=nullptr;return DXGI_ERROR_UNSUPPORTED;}
- HRESULT STDMETHODCALLTYPE EnumAdapters1(UINT i,IDXGIAdapter1** value) override{return inner->EnumAdapters1(i,value);}
+ HRESULT STDMETHODCALLTYPE EnumAdapters1(UINT i,IDXGIAdapter1** value) override{if(!value)return E_POINTER;*value=nullptr;ComPtr<IDXGIAdapter1> adapter;auto hr=inner->EnumAdapters1(i,&adapter);if(FAILED(hr))return hr;auto proxy=new(std::nothrow) CoreAdapter(adapter.Get(),this);if(!proxy)return E_OUTOFMEMORY;*value=proxy;return S_OK;}
  BOOL STDMETHODCALLTYPE IsCurrent() override{return inner->IsCurrent();}
 };
 HRESULT CreateCoreFactory(IUnknown* window,REFIID iid,void** value){
- if(!value)return E_POINTER;*value=nullptr;if(!window)return E_INVALIDARG;
+ if(!value)return E_POINTER;*value=nullptr;
  ComPtr<IDXGIFactory1> native;HRESULT hr=::CreateDXGIFactory1(IID_PPV_ARGS(&native));if(FAILED(hr))return hr;
  CoreFactory* proxy=new(std::nothrow) CoreFactory(native.Get(),window);if(!proxy)return E_OUTOFMEMORY;
  hr=proxy->QueryInterface(iid,value);proxy->Release();return hr;
