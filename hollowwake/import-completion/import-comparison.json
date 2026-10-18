@@ -1,0 +1,1236 @@
+{
+  "scope": "Hosted Windows AppContainer resolution; behavior tested only by named owned fixtures; Xbox not tested",
+  "redirectedInventory": 843,
+  "baselineSha256": "25f918a665d3686868b6dd9b647259642a3b60fe34671498eb96c8d409f19e2f",
+  "before": 208,
+  "after": 193,
+  "mainBefore": 70,
+  "mainAfter": 55,
+  "beforeByModule": {
+    "USER32.dll": 160,
+    "WINHTTP.dll": 15,
+    "WININET.dll": 9,
+    "WLDAP32.dll": 16,
+    "WS2_32.dll": 8
+  },
+  "afterByModule": {
+    "WINHTTP.dll": 13,
+    "WLDAP32.dll": 16,
+    "USER32.dll": 147,
+    "WS2_32.dll": 8,
+    "WININET.dll": 9
+  },
+  "newBindings": [
+    "USER32.dll!ChangeDisplaySettingsExW",
+    "USER32.dll!ChangeDisplaySettingsW",
+    "USER32.dll!EnumDisplayDevicesA",
+    "USER32.dll!EnumDisplayDevicesW",
+    "USER32.dll!EnumDisplaySettingsW",
+    "USER32.dll!GetCursorPos",
+    "USER32.dll!GetRawInputData",
+    "USER32.dll!GetRawInputDeviceInfoA",
+    "USER32.dll!GetRawInputDeviceList",
+    "USER32.dll!RegisterRawInputDevices",
+    "USER32.dll!SetCursorPos",
+    "USER32.dll!ShowCursor",
+    "USER32.dll!TranslateMessage",
+    "WINHTTP.dll!WinHttpGetDefaultProxyConfiguration",
+    "WINHTTP.dll!WinHttpGetIEProxyConfigForCurrentUser"
+  ],
+  "stillMissing": [
+    {
+      "name": "USER32.dll!AllowSetForegroundWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!BeginPaint",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!BringWindowToTop",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CallNextHookEx",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CharNextW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!ClipCursor",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!CloseClipboard",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!CloseDesktop",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CloseTouchInputHandle",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!CloseWindowStation",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreateCaret",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreateDesktopW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreateDialogParamW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreateIconIndirect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreatePopupMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreateWindowExA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!CreateWindowStationW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DefRawInputProc",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DefWindowProcA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DestroyCaret",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DestroyCursor",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!DestroyIcon",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DestroyMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DialogBoxParamW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!DisableProcessWindowsGhosting",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!DispatchMessageA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DrawEdge",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DrawFocusRect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DrawFrameControl",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DrawIconEx",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!DrawStateW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!DrawTextExW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!EmptyClipboard",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!EnableMenuItem",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!EndDialog",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!EndMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!EndPaint",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!EnumDisplaySettingsExW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!FillRect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!FlashWindowEx",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!FrameRect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetAncestor",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetCaretBlinkTime",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetClassInfoExW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetClipboardData",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetClipboardSequenceNumber",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetCursorInfo",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetDC",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetDesktopWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetDlgItem",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetDlgItemTextW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetDoubleClickTime",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetGuiResources",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetIconInfo",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetKeyboardLayout",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetKeyboardLayoutList",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetKeyboardLayoutNameW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetKeyboardState",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetLastInputInfo",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetLayeredWindowAttributes",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMenuInfo",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMenuItemCount",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMenuItemInfoW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMenuState",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMessageA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMessageExtraInfo",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMessagePos",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetMessageTime",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetProcessWindowStation",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetPropW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetQueueStatus",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetRawInputDeviceInfoW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetSubMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetSysColor",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetSysColorBrush",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetSystemMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetThreadDesktop",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetTouchInputInfo",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetUserObjectInformationW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetWindowDC",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!GetWindowRgn",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!InsertMenuItemW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!InvalidateRect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!InvertRect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!IsClipboardFormatAvailable",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!IsDialogMessageW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!KillTimer",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!LoadCursorFromFileW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!LoadCursorW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!LoadIconW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!LoadImageW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!LoadStringW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Nvidia/Win64/GfeSDK.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!MapVirtualKeyW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!MapWindowPoints",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!MessageBeep",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!MessageBoxA",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!MessageBoxW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!MoveWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!MsgWaitForMultipleObjectsEx",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!NotifyWinEvent",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!OpenClipboard",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!OpenInputDesktop",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!PostThreadMessageA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!PrintWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RedrawWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterClassExA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterClipboardFormatW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterDeviceNotificationA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterDeviceNotificationW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterHotKey",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterPowerSettingNotification",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterTouchWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterWindowMessageA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!RegisterWindowMessageW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!ReleaseDC",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!RemovePropW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SendInput",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!SendMessageTimeoutW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetCaretPos",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetClipboardData",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetCursor",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetDlgItemTextW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetKeyboardState",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetLayeredWindowAttributes",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetMenuDefaultItem",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetMenuInfo",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetMenuItemInfoW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetProcessWindowStation",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetPropW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetThreadDesktop",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetTimer",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetWindowRgn",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetWindowsHookExA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!SetWindowsHookExW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!ToUnicodeEx",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!TrackMouseEvent",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!TrackPopupMenu",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!UnhookWindowsHookEx",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!UnregisterClassA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!UnregisterDeviceNotification",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!UnregisterHotKey",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll",
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!UnregisterPowerSettingNotification",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!UpdateLayeredWindow",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "USER32.dll!UpdateWindow",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "USER32.dll!ValidateRect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpAddRequestHeaders",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpCloseHandle",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpConnect",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpCrackUrl",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpGetProxyForUrl",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpOpen",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpOpenRequest",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpQueryHeaders",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpReadData",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpReceiveResponse",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpSendRequest",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpSetTimeouts",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WINHTTP.dll!WinHttpWriteData",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!HttpOpenRequestW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!HttpQueryInfoW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!HttpSendRequestW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!InternetCloseHandle",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!InternetConnectW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!InternetOpenW",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!InternetQueryOptionA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!InternetReadFile",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WININET.dll!InternetSetOptionA",
+      "importers": [
+        "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxsdk_x64.dll"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#143",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#200",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#211",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#22",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#26",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#27",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#30",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#301",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#32",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#33",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#35",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#41",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#46",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#50",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#60",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WLDAP32.dll!#79",
+      "importers": [
+        "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+      ]
+    },
+    {
+      "name": "WS2_32.dll!#1",
+      "importers": []
+    },
+    {
+      "name": "WS2_32.dll!#12",
+      "importers": []
+    },
+    {
+      "name": "WS2_32.dll!#13",
+      "importers": []
+    },
+    {
+      "name": "WS2_32.dll!#51",
+      "importers": []
+    },
+    {
+      "name": "WS2_32.dll!WSALookupServiceBeginW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WS2_32.dll!WSALookupServiceEnd",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WS2_32.dll!WSALookupServiceNextW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    },
+    {
+      "name": "WS2_32.dll!WSASetServiceW",
+      "importers": [
+        "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libcef.dll"
+      ]
+    }
+  ],
+  "unredirected": {
+    "total": 838,
+    "missing": 0,
+    "normalMissing": 0,
+    "mainMissing": 0,
+    "exportsPresentAreNotBehaviorProof": true
+  },
+  "gameExecuted": false,
+  "xboxTested": false
+}

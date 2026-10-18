@@ -1,0 +1,29 @@
+{
+  "scope": "Local offline candidate; disposable DB, not live deployment",
+  "results": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "homeChapters": true,
+      "noHorizontalOverflow": true,
+      "progress": true,
+      "reducedMotion": true,
+      "linkFormPreserved": true,
+      "pageErrors": []
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "homeChapters": true,
+      "noHorizontalOverflow": true,
+      "progress": true,
+      "reducedMotion": true,
+      "linkFormPreserved": true,
+      "pageErrors": []
+    }
+  ]
+}

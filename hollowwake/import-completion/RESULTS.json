@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "a08bfe6913ab947320cf81d7f41e5037e94ed876",
+  "hostedRun": 39083159931,
+  "build": "PASS compilation, own-code development signature and focused/AppContainer checks",
+  "redirectedInventory": 843,
+  "before": 208,
+  "after": 193,
+  "mainBefore": 70,
+  "mainAfter": 55,
+  "unredirectedInventory": 838,
+  "unredirectedWindowsMissing": 0,
+  "fortniteExecuted": false,
+  "originalLoadingScreen": false,
+  "originalLobby": false,
+  "xboxTested": false,
+  "newGameReadyPackage": false,
+  "privateGameBuildThisIteration": "skipped",
+  "websiteWorkerTests": 17,
+  "websiteBrowser": "PASS local desktop/mobile and real auth/link/revoke flow",
+  "websiteDeployed": false,
+  "liveSitePreserved": "https://hollowwake.jihnjohn10.chatgpt.site",
+  "accountsAdminRollbackPreserved": true
+}

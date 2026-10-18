@@ -1,0 +1,11 @@
+{
+  "scope": "Real local Worker/UI with disposable DB; not deployed or Fortnite login",
+  "mobileRegistration": true,
+  "existingLogin": true,
+  "browserSessionRestored": true,
+  "typoThenValidCode": true,
+  "explicitApprovalRequired": true,
+  "nativeDevicePollAndProfile": true,
+  "revocation": true,
+  "gameExecuted": false
+}

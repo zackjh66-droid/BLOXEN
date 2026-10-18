@@ -1,0 +1,12 @@
+{
+  "source": "Hollowwake-Import-Completion-Source.zip",
+  "bytes": 1596205,
+  "sha256": "547c87853614514627cbf8dfe4bc4101b288231d0fed78ee278d7cbfd2a60f55",
+  "testedProductionCommit": "a08bfe6913ab947320cf81d7f41e5037e94ed876",
+  "gameReadyAppx": false,
+  "websiteScreenshots": {
+    "desktop": "evidence/home-1440.png",
+    "mobile": "evidence/home-hero-390.png",
+    "scope": "Actual offline implementation; not deployed, not a Fortnite lobby"
+  }
+}

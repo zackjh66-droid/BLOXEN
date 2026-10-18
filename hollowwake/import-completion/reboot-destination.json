@@ -1,0 +1,18 @@
+{
+  "sourcePage": "https://rebootfn.org/#season-6",
+  "catalog": "https://rebootfn.org/_astro/builds.D-WshSVK.json",
+  "listedBuild": "6.21",
+  "primaryCL": "4526925",
+  "otherCLsInSameWindowsListing": [
+    "4531851",
+    "4535631"
+  ],
+  "download": "https://builds.rebootfn.org/windows-6.21.rar",
+  "redirects": [],
+  "downloaded": false,
+  "reason": "Preserved original ZIP and verified private inputs are accessible; no replacement needed.",
+  "status": 200,
+  "finalURL": "https://builds.rebootfn.org/windows-6.21.rar",
+  "size": "10869300932",
+  "type": "application/x-compressed"
+}

@@ -1,0 +1,29 @@
+
+> hollowwake-sites@0.2.0 test
+> node --test tests/*.test.mjs
+
+✔ admin D1 setup: additive schema leaves existing accounts intact (637.653977ms)
+✔ public callers, wrong HMAC, stale signatures and replays rejected (23.931707ms)
+✔ catalog, shop schedule, stale edit rejection and concurrent CAS are atomic (32.647671ms)
+✔ project locker grant, idempotence, full catalog snapshot, revoke and account isolation (54.291911ms)
+✔ suspensions and disconnect revoke own sessions, protect other accounts, audit changes (131.633661ms)
+✔ additive adapter schema and source-owned linked account fixtures (633.818934ms)
+✔ one-time delegated exchange is account-bound and never accepts passwords/project tokens (116.595893ms)
+✔ admin grants and schedules share authoritative records; unvalidated asset is fail-closed (75.17846ms)
+✔ 6.21 equipment shape, optimistic revisions, persistence and ownership checks (100.535028ms)
+✔ owner revocation immediately removes client inventory/equipment and changes revision (28.667676ms)
+✔ token/exchange expiry, wrong build, secret URLs, suspension and parent revocation (106.524801ms)
+✔ D1 Worker initialization and durable migration (606.723249ms)
+✔ real registration and existing-user login set protected cookies (500.867181ms)
+✔ device code, QR, enforced polling and explicit approval (140.19556ms)
+✔ single use, own profile, persistent sign-in and server revocation (435.167257ms)
+✔ code typos and existing legacy lockout do not block a subsequent valid approval (728.275644ms)
+✔ expired codes, unavailable recovery and durable rate limits (233.079982ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5567.161199
