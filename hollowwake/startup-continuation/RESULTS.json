@@ -1,0 +1,41 @@
+{
+  "status": "Unfinished; real-client preflight blocked",
+  "codeCommit": "aa864ca9a36351cf1651ac671f1ef1e02c257ae3",
+  "workflowRun": 39087193421,
+  "workflowJob": 117556129369,
+  "workflowConclusion": "success",
+  "redirectedPairs": 843,
+  "taskBeforeMissing": 193,
+  "taskBeforeMainMissing": 55,
+  "afterMissing": 181,
+  "afterMainMissing": 44,
+  "unredirectedWindows": {
+    "total": 838,
+    "missing": 0,
+    "normalMissing": 0,
+    "mainMissing": 0,
+    "exportsPresentAreNotBehaviorProof": true
+  },
+  "gameExecuted": false,
+  "loadingScreenReached": false,
+  "lobbyReached": false,
+  "xboxTested": false,
+  "newGamePackageDelivered": false,
+  "gamePayloadIncludedInDownload": false,
+  "workingCompanionAndServicesChanged": false,
+  "remainingError": "HWPreflightClient 0x8007007F",
+  "newBindings": [
+    "USER32.dll!CloseTouchInputHandle",
+    "USER32.dll!EnableMenuItem",
+    "USER32.dll!GetKeyboardLayout",
+    "USER32.dll!GetMenuState",
+    "USER32.dll!GetProcessWindowStation",
+    "USER32.dll!GetSystemMenu",
+    "USER32.dll!GetTouchInputInfo",
+    "USER32.dll!GetUserObjectInformationW",
+    "USER32.dll!LoadCursorW",
+    "USER32.dll!MapVirtualKeyW",
+    "USER32.dll!RegisterTouchWindow",
+    "USER32.dll!SetCursor"
+  ]
+}

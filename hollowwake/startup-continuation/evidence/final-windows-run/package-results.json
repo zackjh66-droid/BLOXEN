@@ -1,0 +1,8 @@
+{
+    "nativePathWired":  true,
+    "route":  "HWAttemptPackagedClient",
+    "xboxTested":  false,
+    "gamePayloadIncluded":  false,
+    "result":  "PASS compiled and development signature verified",
+    "fortniteExecuted":  false
+}

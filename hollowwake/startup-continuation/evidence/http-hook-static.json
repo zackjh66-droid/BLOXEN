@@ -1,0 +1,12 @@
+{
+  "scope": "Static exact-file public-reference pattern comparison only, not function identification or executed hooks",
+  "originalSha256": "9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478",
+  "reference": "https://github.com/Milxnor/Cobalt",
+  "referenceLicense": "BSD-3-Clause",
+  "matches": {
+    "publicEasySetopt": [],
+    "publicVaSetoptA": [],
+    "publicVaSetoptB": []
+  },
+  "gameExecuted": false
+}
