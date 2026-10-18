@@ -26,6 +26,7 @@
 #include "NetworkBridge.h"
 #include "ReadOnlyPlatform.h"
 #include "NativeWindowProvider.h"
+#include "LdapProvider.h"
 #include "DataFiles.h"
 #include "StartupImport.h"
 #include "NativeClientThread.h"
@@ -154,6 +155,7 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 static void* PackagedRoute(const char* dll,const char* name){
  if(auto p=ResolveDataFileImport(dll,name))return p;
  if(auto p=ResolveNetworkImport(dll,name))return p;
+ if(auto p=ResolveLdapImport(dll,name))return p;
  // Native-loader route: all USER32 operations use genuine OS handles. Keep
  // file-resource decoding inside the game-data namespace; never mix virtual
  // WindowBridge handles with this provider if an export is absent.

@@ -47,6 +47,7 @@ int WSAAPI Ioctl(SOCKET socket,DWORD code,void* input,DWORD inputSize,void* outp
 }
 }
 extern "C" BOOL __cdecl HWConfigureNetwork(const wchar_t* value,unsigned short port){if(!value||!port)return FALSE;std::string name;for(unsigned i=0;i<254;++i){auto c=value[i];if(!c)break;if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'))return FALSE;name+=(char)c;if(i==253)return FALSE;}if(name.empty()||name.front()=='.'||name.back()=='.')return FALSE;std::lock_guard<std::mutex> lock(gate);hostname=name;allowedPort=port;permitted.clear();return TRUE;}
+bool IsConfiguredNetworkHost(const char* node,unsigned short port){std::lock_guard<std::mutex> lock(gate);return node&&!hostname.empty()&&!_stricmp(node,hostname.c_str())&&port==allowedPort;}
 void* ResolveNetworkImport(const char* dll,const char* name){if(!dll||!name||_stricmp(dll,"ws2_32.dll"))return nullptr;
 #define API(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
  API("WSAStartup",Startup);API("#115",Startup); // Windows Winsock ordinal115 is WSAStartup.
