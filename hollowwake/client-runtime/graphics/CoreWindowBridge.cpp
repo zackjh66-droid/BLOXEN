@@ -88,9 +88,10 @@ HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE soft
  if(device)*device=nullptr;if(context)*context=nullptr;
  ComPtr<IDXGIAdapter> native;auto hr=UnwrapCoreAdapter(adapter,&native);if(FAILED(hr))return hr;
  ComPtr<ID3D11Device> created;ComPtr<ID3D11DeviceContext> immediate;D3D_FEATURE_LEVEL actual;
- hr=::D3D11CreateDevice(native.Get(),type,software,flags,levels,count,sdk,&created,&actual,&immediate);if(FAILED(hr))return hr;
- hr=BridgeDeviceFactories(created.Get());if(FAILED(hr))return hr;
- if(device)*device=created.Detach();if(context)*context=immediate.Detach();if(chosen)*chosen=actual;return S_OK;
+ hr=::D3D11CreateDevice(native.Get(),type,software,flags,levels,count,sdk,device?&created:nullptr,&actual,context?&immediate:nullptr);if(FAILED(hr))return hr;auto nativeResult=hr;
+ if(!created&&immediate)immediate->GetDevice(&created);
+ if(created){hr=BridgeDeviceFactories(created.Get());if(FAILED(hr))return hr;}
+ if(device)*device=created.Detach();if(context)*context=immediate.Detach();if(chosen)*chosen=actual;return nativeResult;
 }
 class CoreFactory final:public IDXGIFactory1 {
  volatile LONG refs=1;ComPtr<IDXGIFactory1> inner;ComPtr<IUnknown> window;HWND association=nullptr;
