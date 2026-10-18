@@ -24,6 +24,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWAttemptPackagedClient();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWPreflightClient();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWStockCursorContract();
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWNativeWindowProbe(string reportPath);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWFactoryBridgePolicy();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern bool HWConfigureNetwork(string hostname,ushort port);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWClockContract();
@@ -96,7 +97,7 @@ namespace Hollowwake
                 catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
                 finally{if(File.Exists(pending))File.Delete(pending);}
             }
-            if(App.NativePreflight){if(HWStockCursorContract()!=621)throw new InvalidOperationException("Actual CoreWindow cursor API contract failed");var graphicsPolicy=await Task.Run(()=>HWFactoryBridgePolicy());await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("native-graphics-policy.json",CreationCollisionOption.ReplaceExisting),"{\"scope\":\"Actual hosted AppContainer factory-dispatch memory operation, no game/Xbox execution\",\"hresult\":"+graphicsPolicy+",\"gameExecuted\":false}");await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";Log_Click(this,new RoutedEventArgs());return;}
+            if(App.NativePreflight){var nativeWindowResult=await Task.Run(()=>HWNativeWindowProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-window-probe.json")));await ManagedLog("OWNED_NATIVE_WINDOW_ROUTE result="+nativeWindowResult+"; not Fortnite execution");if(HWStockCursorContract()!=621)throw new InvalidOperationException("Actual CoreWindow cursor API contract failed");var graphicsPolicy=await Task.Run(()=>HWFactoryBridgePolicy());await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("native-graphics-policy.json",CreationCollisionOption.ReplaceExisting),"{\"scope\":\"Actual hosted AppContainer factory-dispatch memory operation, no game/Xbox execution\",\"hresult\":"+graphicsPolicy+",\"gameExecuted\":false}");await Task.Run(()=>HWPreflightClient());StatusText.Text="Native import preflight complete. No game execution attempted.";Log_Click(this,new RoutedEventArgs());return;}
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
             await Task.Delay(1500);
             try
