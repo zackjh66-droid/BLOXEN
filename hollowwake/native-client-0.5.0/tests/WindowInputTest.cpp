@@ -1,4 +1,5 @@
 #include <windows.h>
+#include <climits>
 #include <stdexcept>
 #include <iostream>
 #include <string>

@@ -66,5 +66,9 @@ try {
  }
 }finally{$package.Dispose()}
 @{result='PASS compiled and development signature verified';xboxTested=$false;fortniteExecuted=$false;gamePayloadIncluded=[bool]$PrivatePreparedDirectory;route='HWAttemptPackagedClient';nativePathWired=$true}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-results.json')
-if(!$PrivatePreparedDirectory){& (Join-Path $source 'Test-NativePreflight.ps1') -PackagePath $appx.FullName -OutputDirectory $OutputDirectory}
+if(!$PrivatePreparedDirectory){
+ & (Join-Path $source 'Test-NativePreflight.ps1') -PackagePath $appx.FullName -OutputDirectory $OutputDirectory
+ python (Join-Path $source 'tests\compare_imports.py') $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'import-comparison.log')
+ if($LASTEXITCODE){throw 'Fixed inventory comparison failed'}
+}
 Get-FileHash $appx.FullName -Algorithm SHA256|Select-Object Path,Hash|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-hash.json')

@@ -64,12 +64,12 @@ void* ResolveControllerImport(const char*,const char*);
 void* ResolveWindowImport(const char*,const char*);
 extern "C" void __cdecl HWViewport(int,int);
 extern "C" void __cdecl HWConfigurePointer(BOOL(__cdecl*)(int,int),BOOL(__cdecl*)(int));
-static Windows::UI::Core::CoreCursor^ savedPointer;
+static Platform::Agile<Windows::UI::Core::CoreCursor> savedPointer;
 static Platform::Agile<Windows::UI::Core::CoreWindow> pointerCore;
 static HRESULT PointerOnUi(bool visibility,int x,int y){
  auto core=pointerCore.Get();
  if(!core)return E_UNEXPECTED;
- try{if(visibility){if(x){core->PointerCursor=savedPointer?savedPointer:ref new Windows::UI::Core::CoreCursor(Windows::UI::Core::CoreCursorType::Arrow,0);}else{if(core->PointerCursor)savedPointer=core->PointerCursor;core->PointerCursor=nullptr;}}
+ try{if(visibility){if(x){core->PointerCursor=savedPointer.Get()?savedPointer.Get():ref new Windows::UI::Core::CoreCursor(Windows::UI::Core::CoreCursorType::Arrow,0);}else{if(core->PointerCursor)savedPointer=core->PointerCursor;core->PointerCursor=nullptr;}}
  else core->PointerPosition=Windows::Foundation::Point((float)x,(float)y);return S_OK;}catch(Platform::Exception^ e){return e->HResult;}
 }
 static BOOL PointerOperation(bool visibility,int x,int y){
