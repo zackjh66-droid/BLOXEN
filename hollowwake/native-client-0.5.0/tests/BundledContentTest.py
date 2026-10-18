@@ -21,7 +21,7 @@ class BundledContentTest(unittest.TestCase):
         self.payload = b'Original Hollowwake bundled-data fixture'
         self.path = '6.21/FortniteGame/Content/Paks/owned.pak'
         self.file = {'path': self.path, 'bytes': len(self.payload), 'sha256': hashlib.sha256(self.payload).hexdigest()}
-        self.plan = {'schema': 1, 'build': b.BUILD, 'files': [self.file]}
+        self.plan = {'schema': 1, 'build': b.BUILD, 'files': [self.file], 'archive': {'bytes': b.SIZE, 'sha256': b.PIN}}
         self.raw = json.dumps(self.plan).encode()
         self.buffer = io.BytesIO()
         with zipfile.ZipFile(self.buffer, 'w') as z:
@@ -65,6 +65,25 @@ class BundledContentTest(unittest.TestCase):
             z.writestr(entry, '../outside')
         with zipfile.ZipFile(buf) as z, self.assertRaises(ValueError):
             b.inspect(z, [])
+    def test_prepared_copy_rejects_unlisted_then_copies_verified_bytes(self):
+        prepared = self.root / 'prepared'
+        app = self.root / 'app'
+        app.mkdir()
+        manifest = self.root / 'plan.json'
+        manifest.write_bytes(self.raw)
+        with zipfile.ZipFile(self.buffer) as z:
+            b.stage(z, self.plan['files'], prepared, self.raw)
+        extra = prepared / 'unselected.txt'
+        extra.write_text('must not enter package')
+        argv = ['bundle', '--manifest', str(manifest), '--prepared', str(prepared), '--copy-to', str(app)]
+        with patch.object(sys, 'argv', argv), self.assertRaises(ValueError):
+            b.main()
+        self.assertEqual(list(app.iterdir()), [])
+        extra.unlink()
+        with patch.object(sys, 'argv', argv):
+            b.main()
+        self.assertEqual((app / self.path).read_bytes(), self.payload)
+        self.assertTrue((app / 'bundled-content.json').is_file())
 
 if __name__ == '__main__':
     unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))

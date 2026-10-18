@@ -42,7 +42,7 @@ def records(plan):
                 or not re.fullmatch('[0-9a-f]{64}', f['sha256'])):
             raise ValueError('Unsafe/duplicate content manifest entry')
         seen.add(key)
-    if not seen or len(seen) > 10000:
+    if not seen or len(seen) > 10000 or sum(f['bytes'] for f in plan['files']) > 64 * 1024**3:
         raise ValueError('Invalid content count')
     return plan['files']
 
@@ -104,6 +104,8 @@ def main():
     raw = a.manifest.read_bytes()
     plan = json.loads(raw)
     files = records(plan)
+    if plan['archive']['bytes'] != SIZE or plan['archive']['sha256'] != PIN:
+        raise ValueError('Manifest archive pin differs')
     if a.prepared:
         if a.archive or a.stage or not a.copy_to:
             raise ValueError('Prepared mode requires --copy-to only')
