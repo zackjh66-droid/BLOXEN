@@ -17,7 +17,7 @@ static Bytes Cat(Bytes a,const Bytes& b){a.insert(a.end(),b.begin(),b.end());ret
 static Bytes Tag(unsigned char tag,const Bytes& b){Check(b.size()<128,"Fixture TLV exceeds short length");Bytes result={tag,(unsigned char)b.size()};return Cat(result,b);}
 static Bytes Text(const char* s){return Tag(4,Bytes(s,s+strlen(s)));}
 static bool Read(SOCKET s,unsigned char* p,size_t n){while(n){int count=recv(s,(char*)p,(int)n,0);if(count<=0)return false;p+=count;n-=count;}return true;}
-static Bytes Packet(SOCKET s){unsigned char h[2];if(!Read(s,h,2))return {};Check(h[0]==0x30,"Native client sent non-LDAP packet");size_t n=h[1];if(n&128){unsigned count=(unsigned)n&127;Check(count&&count<=2,"Invalid BER size");n=0;for(unsigned i=0;i<count;++i){unsigned char c;Check(Read(s,&c,1),"BER length truncated");n=(n<<8)|c;}}Check(n<=8192,"LDAP fixture packet exceeds bound");Bytes result(n);Check(Read(s,result.data(),n),"LDAP message truncated");return result;}
+static Bytes Packet(SOCKET s){unsigned char h[2];if(!Read(s,h,2))return {};Check(h[0]==0x30,"Native client sent non-LDAP packet");size_t n=h[1];if(n&128){unsigned count=(unsigned)n&127;Check(count&&count<=4,"Invalid BER size");n=0;for(unsigned i=0;i<count;++i){unsigned char c;Check(Read(s,&c,1),"BER length truncated");n=(n<<8)|c;}}Check(n<=8192,"LDAP fixture packet exceeds bound");Bytes result(n);Check(Read(s,result.data(),n),"LDAP message truncated");return result;}
 static void Send(SOCKET s,const Bytes& b){size_t n=0;while(n<b.size()){auto count=send(s,(const char*)b.data()+n,(int)(b.size()-n),0);Check(count>0,"Fixture response send failed");n+=count;}}
 struct Server {
  SOCKET listener=INVALID_SOCKET;std::atomic<SOCKET> connection{INVALID_SOCKET};std::thread thread;unsigned short port=0;std::atomic<bool> valid{true};std::atomic<unsigned> binds{0},searches{0},lastOperation{0};std::atomic<int> socketError{0};
@@ -28,7 +28,7 @@ struct Server {
     else if(op==0x63){++searches;auto attribute=Tag(0x30,Cat(Text("cn"),Tag(0x31,Text("Fixture"))));auto entry=Tag(0x64,Cat(Text("cn=HollowwakeFixture"),Tag(0x30,attribute)));Send(connection,Tag(0x30,Cat(id,entry)));Send(connection,Tag(0x30,Cat(id,Tag(0x65,success))));}
     else if(op==0x42)break;else throw std::runtime_error("Unexpected native LDAP operation");
    }
-  }catch(const std::exception& e){socketError=WSAGetLastError();std::cerr<<"SERVER "<<e.what()<<" Win32="<<socketError<<"\n";valid=false;}});
+  }catch(const std::exception& e){socketError=WSAGetLastError();std::cout<<"SERVER "<<e.what()<<" Win32="<<socketError<<"\n";valid=false;}});
  }
  void Finish(){if(thread.joinable())thread.join();}
  ~Server(){if(connection!=INVALID_SOCKET){shutdown(connection,SD_BOTH);closesocket(connection);}if(listener!=INVALID_SOCKET)closesocket(listener);if(thread.joinable())thread.join();}
