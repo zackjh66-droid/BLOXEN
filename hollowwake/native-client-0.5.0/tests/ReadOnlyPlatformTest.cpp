@@ -3,6 +3,9 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <filesystem>
+#include <fstream>
+#include "../Native/DataFiles.h"
 #include "../Native/ReadOnlyPlatform.h"
 #include "../../runtime-native-route/NativeSystem.h"
 int main(){try{
@@ -42,9 +45,25 @@ int main(){try{
  if(!draw(dc,nullptr,nullptr,(LPARAM)icon,0,0,0,16,16,DST_ICON))throw std::runtime_error("Native icon draw failed");GdiFlush();if((((DWORD*)output)[8*16+8]&0x00ffffff)!=0x00ff0000)throw std::runtime_error("Native icon pixel readback differs");
  ICONINFO obtained={};if(!info(icon,&obtained)||!obtained.fIcon||!obtained.hbmColor||!obtained.hbmMask)throw std::runtime_error("Native icon metadata failed");DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);if(!iconDestroy(icon))throw std::runtime_error("Native icon release failed");
  image.fIcon=FALSE;image.xHotspot=3;image.yHotspot=5;auto cursor=(HCURSOR)iconCreate(&image);if(!cursor||!info((HICON)cursor,&obtained)||obtained.fIcon||obtained.xHotspot!=3||obtained.yHotspot!=5)throw std::runtime_error("Actual custom cursor metadata failed");DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);if(!cursorDestroy(cursor))throw std::runtime_error("Actual custom cursor release failed");
- if(!iconLoad(nullptr,IDI_APPLICATION))throw std::runtime_error("Native shared icon resource unavailable");
+ if(!iconLoad(nullptr,MAKEINTRESOURCEW(32512)))throw std::runtime_error("Native shared icon resource unavailable");
+ auto imageLoad=reinterpret_cast<decltype(&LoadImageW)>(ResolveReadOnlyPlatformImport("USER32.dll","LoadImageW"));
+ auto cursorLoad=reinterpret_cast<decltype(&LoadCursorFromFileW)>(ResolveReadOnlyPlatformImport("USER32.dll","LoadCursorFromFileW"));
+ if(!imageLoad||!cursorLoad)throw std::runtime_error("Content resource loader unavailable");
+ wchar_t temp[MAX_PATH],unique[MAX_PATH];if(!GetTempPathW(MAX_PATH,temp)||!GetTempFileNameW(temp,L"hwi",0,unique))throw std::runtime_error("Owned fixture directory failed");DeleteFileW(unique);
+ namespace fs=std::filesystem;auto root=fs::path(unique),package=root/L"package",local=root/L"data",content=local/L"6.21"/L"FortniteGame"/L"Content";fs::create_directories(content);fs::create_directories(package);
+ if(!ConfigureDataFiles(package.c_str(),local.c_str()))throw std::runtime_error("Production content namespace setup failed");
+ BITMAPFILEHEADER fileHeader={};fileHeader.bfType=0x4d42;fileHeader.bfOffBits=sizeof(fileHeader)+sizeof(BITMAPINFOHEADER);fileHeader.bfSize=fileHeader.bfOffBits+1024;
+ {std::ofstream bmp(content/L"fixture.bmp",std::ios::binary);bmp.write((char*)&fileHeader,sizeof(fileHeader));bmp.write((char*)&bi.bmiHeader,sizeof(BITMAPINFOHEADER));bmp.write((char*)pixels,1024);if(!bmp)throw std::runtime_error("Original BMP fixture write failed");}
+ auto loaded=(HBITMAP)imageLoad(nullptr,L"..\\..\\Content\\fixture.bmp",IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION);BITMAP bitmap={};if(!loaded||!GetObjectW(loaded,sizeof(bitmap),&bitmap)||bitmap.bmWidth!=16||bitmap.bmHeight!=16||!bitmap.bmBits||(*(DWORD*)bitmap.bmBits&0x00ffffff)!=0x00ff0000)throw std::runtime_error("Actual redirected BMP decode/pixels failed");DeleteObject(loaded);
+ // A small original CUR fixture: one 32-bit icon, explicit hotspot and AND mask.
+ {std::ofstream cur(content/L"fixture.cur",std::ios::binary);WORD directory[3]={0,2,1};cur.write((char*)directory,sizeof(directory));BYTE dimensions[4]={16,16,0,0};cur.write((char*)dimensions,4);WORD hotspot[2]={3,5};cur.write((char*)hotspot,4);DWORD payload=40+1024+64,offset=22;cur.write((char*)&payload,4);cur.write((char*)&offset,4);auto header=bi.bmiHeader;header.biHeight=32;cur.write((char*)&header,40);cur.write((char*)pixels,1024);char andMask[64]={};cur.write(andMask,64);if(!cur)throw std::runtime_error("Original CUR fixture write failed");}
+ auto fileCursor=cursorLoad(L"..\\..\\Content\\fixture.cur");if(!fileCursor||!info((HICON)fileCursor,&obtained)||obtained.fIcon||obtained.xHotspot!=3||obtained.yHotspot!=5)throw std::runtime_error("Actual redirected cursor decode failed");DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);cursorDestroy(fileCursor);
+ SetLastError(0);if(imageLoad(nullptr,(root/L"outside.bmp").c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE)||GetLastError()!=ERROR_ACCESS_DENIED)throw std::runtime_error("Outside image path accepted");
+ SetLastError(0);if(cursorLoad(L"..\\..\\Content\\untrusted.dll")||GetLastError()!=ERROR_ACCESS_DENIED)throw std::runtime_error("Code payload passed to image decoder");
+ fs::remove_all(root);
+ std::cout<<"PASS real BMP/CUR decoding through package-to-content path mapping, bitmap pixel/hotspot checks, outside-path/code rejection.\n";
  SelectObject(dc,prior);DeleteObject(target);DeleteDC(dc);DeleteObject(color);DeleteObject(mask);
- if(ResolveReadOnlyPlatformImport("USER32.dll","GetDC")||ResolveReadOnlyPlatformImport("USER32.dll","BeginPaint")||ResolveReadOnlyPlatformImport("USER32.dll","LoadImageW"))throw std::runtime_error("Virtual window/file namespaces bypassed");
+ if(ResolveReadOnlyPlatformImport("USER32.dll","GetDC")||ResolveReadOnlyPlatformImport("USER32.dll","BeginPaint"))throw std::runtime_error("Virtual window/file namespaces bypassed");
  std::cout<<"PASS native icon/cursor create, metadata, release, shared icon load, actual DrawState icon pixel readback; virtual-window and content-path APIs remain blocked.\n";
  std::cout<<"PASS real native window-station object/buffer/flags query; actual host keyboard layout/scancode round trips and input-injection rejection; Windows WinHTTP configuration queries, exact native addresses/allocations/error paths and rejection of outbound request APIs. No proxy values logged; no game/Xbox execution.\n";return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
