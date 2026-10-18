@@ -2,7 +2,7 @@ name: Hollowwake native client 0.5 test package
 on:
   push:
     branches: ['hollowwake/native-system-route']
-    paths: ['hollowwake/native-client-0.5.0/**', '.github/workflows/hollowwake-native-client-050.yml']
+    paths: ['hollowwake/native-client-0.5.0/**', 'hollowwake/client-runtime/graphics/**', 'hollowwake/runtime-native-route/**', '.github/workflows/hollowwake-native-client-050.yml']
   workflow_dispatch:
 permissions:
   contents: read
