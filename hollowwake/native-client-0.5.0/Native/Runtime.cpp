@@ -25,6 +25,7 @@
 #include "ModuleLoader.h"
 #include "NetworkBridge.h"
 #include "ReadOnlyPlatform.h"
+#include "NativeWindowProvider.h"
 #include "DataFiles.h"
 #include "StartupImport.h"
 #include "NativeClientThread.h"
@@ -153,6 +154,14 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 static void* PackagedRoute(const char* dll,const char* name){
  if(auto p=ResolveDataFileImport(dll,name))return p;
  if(auto p=ResolveNetworkImport(dll,name))return p;
+ // Native-loader route: all USER32 operations use genuine OS handles. Keep
+ // file-resource decoding inside the game-data namespace; never mix virtual
+ // WindowBridge handles with this provider if an export is absent.
+ if(!_stricmp(dll,"USER32.dll")){
+  if(!strcmp(name,"LoadImageW")||!strcmp(name,"LoadCursorFromFileW"))return ResolveReadOnlyPlatformImport(dll,name);
+  return ResolveNativeWindowImport(dll,name);
+ }
+ if(!_stricmp(dll,"dxgi.dll")||!_stricmp(dll,"d3d11.dll"))return ResolveNativePresentationImport(dll,name);
  if(auto p=ResolveReadOnlyPlatformImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
@@ -169,6 +178,7 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
 }
 extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
  Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);
+ Log("NATIVE_ROUTE real OS USER32 windows and native HWND DXGI/D3D11; file/module/network policies retained; Windows fixtures passed, Xbox unverified");
  {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
  unsigned unavailable=0;for(auto& item:clientDependencyImports)if(!HWResolvePackagedImport(item.dll,item.symbol))++unavailable;
  Log("NATIVE_PREFLIGHT total="+std::to_string(sizeof(clientDependencyImports)/sizeof(clientDependencyImports[0]))+" unresolved="+std::to_string(unavailable));
