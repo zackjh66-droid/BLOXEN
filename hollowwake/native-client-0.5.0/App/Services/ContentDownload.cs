@@ -18,7 +18,7 @@ namespace Hollowwake.Services {
    // Nothing is read from an imported/unsigned LocalState manifest.
    var file=await Windows.ApplicationModel.Package.Current.InstalledLocation.GetFileAsync("ContentPlan621.json");var text=await FileIO.ReadTextAsync(file);var document=JsonObject.Parse(text);string id;
    using(var sha=SHA256.Create())id=BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-","").ToLowerInvariant();
-   document["manifestId"]=JsonValue.CreateStringValue(id);document["expiresAt"]=JsonValue.CreateNumber(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()+15*60*1000);return Parse(document);
+   document["manifestId"]=JsonValue.CreateStringValue(id);document["expiresAt"]=JsonValue.CreateNumberValue(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()+15*60*1000);return Parse(document);
   }
   static bool CatalogUnavailable(ApiException error){return(error.Status==HttpStatusCode.NotFound&&(error.Code=="not_found"||error.Code=="route_not_found"||error.Code=="invalid_response"))||(error.Status==HttpStatusCode.ServiceUnavailable&&error.Code=="content_not_configured")||(error.Status==HttpStatusCode.OK&&error.Code=="invalid_response");}
   public static async Task<string> AuditPackagedPlan(){
