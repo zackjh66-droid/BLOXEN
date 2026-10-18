@@ -23,7 +23,12 @@ void* ResolveReadOnlyPlatformImport(const char* dll,const char* name){
   // These operations consume native layout/window-station objects, not virtual
   // HWNDs. They do not send input, open a window,
   // changes the keyboard layout or connects to an external service.
-  if(strcmp(name,"GetKeyboardLayout")&&strcmp(name,"MapVirtualKeyW")&&strcmp(name,"GetProcessWindowStation")&&strcmp(name,"GetUserObjectInformationW"))return nullptr;
+  // Resource operations below accept real OS HBITMAP/HICON/HDC/module handles.
+  // They never receive a virtual HWND. In particular GetDC/BeginPaint and file
+  // loading remain absent: those require the window/content namespace bridges.
+  const char* allowed[]={"GetKeyboardLayout","MapVirtualKeyW","GetProcessWindowStation","GetUserObjectInformationW",
+   "CreateIconIndirect","DestroyIcon","DestroyCursor","LoadIconW","DrawStateW","GetIconInfo"};
+  bool found=false;for(auto item:allowed)if(!strcmp(name,item))found=true;if(!found)return nullptr;
   static Provider provider(L"user32.dll");module=provider.module;
  }else return nullptr;
  return module?reinterpret_cast<void*>(GetProcAddress(module,name)):nullptr;

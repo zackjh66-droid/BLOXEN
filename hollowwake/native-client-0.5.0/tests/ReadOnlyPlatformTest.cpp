@@ -2,6 +2,7 @@
 #include <winhttp.h>
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 #include "../Native/ReadOnlyPlatform.h"
 #include "../../runtime-native-route/NativeSystem.h"
 int main(){try{
@@ -25,5 +26,25 @@ int main(){try{
  USEROBJECTFLAGS flags={};if(!objectInfo(ownStation,UOI_FLAGS,&flags,sizeof(flags),&needed))throw std::runtime_error("Real window-station flags query failed");
  // No station name, account name, SID or other process data is requested/logged.
  if(ResolveReadOnlyPlatformImport("user32.dll","SendInput")||ResolveReadOnlyPlatformImport("user32.dll","SetWindowsHookExW"))throw std::runtime_error("Read-only adapter exposes input injection");
+ // Exercise the production resolver with actual GDI resources, not dummy handles.
+ auto iconCreate=reinterpret_cast<decltype(&CreateIconIndirect)>(ResolveReadOnlyPlatformImport("USER32.dll","CreateIconIndirect"));
+ auto iconDestroy=reinterpret_cast<decltype(&DestroyIcon)>(ResolveReadOnlyPlatformImport("USER32.dll","DestroyIcon"));
+ auto cursorDestroy=reinterpret_cast<decltype(&DestroyCursor)>(ResolveReadOnlyPlatformImport("USER32.dll","DestroyCursor"));
+ auto iconLoad=reinterpret_cast<decltype(&LoadIconW)>(ResolveReadOnlyPlatformImport("USER32.dll","LoadIconW"));
+ auto draw=reinterpret_cast<decltype(&DrawStateW)>(ResolveReadOnlyPlatformImport("USER32.dll","DrawStateW"));
+ auto info=reinterpret_cast<decltype(&GetIconInfo)>(ResolveReadOnlyPlatformImport("USER32.dll","GetIconInfo"));
+ if(!iconCreate||!iconDestroy||!cursorDestroy||!iconLoad||!draw||!info)throw std::runtime_error("Native resource provider unavailable");
+ BITMAPINFO bi={};bi.bmiHeader.biSize=sizeof(BITMAPINFOHEADER);bi.bmiHeader.biWidth=16;bi.bmiHeader.biHeight=-16;bi.bmiHeader.biPlanes=1;bi.bmiHeader.biBitCount=32;bi.bmiHeader.biCompression=BI_RGB;
+ void* pixels=nullptr;auto color=CreateDIBSection(nullptr,&bi,DIB_RGB_COLORS,&pixels,nullptr,0);if(!color||!pixels)throw std::runtime_error("Actual icon bitmap allocation failed");
+ std::fill_n((DWORD*)pixels,256,0xffff0000u);unsigned char maskBits[32]={};auto mask=CreateBitmap(16,16,1,1,maskBits);if(!mask)throw std::runtime_error("Actual mask allocation failed");
+ ICONINFO image={};image.fIcon=TRUE;image.hbmMask=mask;image.hbmColor=color;auto icon=iconCreate(&image);if(!icon)throw std::runtime_error("Actual icon creation failed");
+ auto dc=CreateCompatibleDC(nullptr);void* output=nullptr;auto target=CreateDIBSection(dc,&bi,DIB_RGB_COLORS,&output,nullptr,0);if(!dc||!target||!output)throw std::runtime_error("Actual draw target failed");auto prior=SelectObject(dc,target);std::fill_n((DWORD*)output,256,0xff00ff00u);
+ if(!draw(dc,nullptr,nullptr,(LPARAM)icon,0,0,0,16,16,DST_ICON))throw std::runtime_error("Native icon draw failed");GdiFlush();if((((DWORD*)output)[8*16+8]&0x00ffffff)!=0x00ff0000)throw std::runtime_error("Native icon pixel readback differs");
+ ICONINFO obtained={};if(!info(icon,&obtained)||!obtained.fIcon||!obtained.hbmColor||!obtained.hbmMask)throw std::runtime_error("Native icon metadata failed");DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);if(!iconDestroy(icon))throw std::runtime_error("Native icon release failed");
+ image.fIcon=FALSE;image.xHotspot=3;image.yHotspot=5;auto cursor=(HCURSOR)iconCreate(&image);if(!cursor||!info((HICON)cursor,&obtained)||obtained.fIcon||obtained.xHotspot!=3||obtained.yHotspot!=5)throw std::runtime_error("Actual custom cursor metadata failed");DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);if(!cursorDestroy(cursor))throw std::runtime_error("Actual custom cursor release failed");
+ if(!iconLoad(nullptr,IDI_APPLICATION))throw std::runtime_error("Native shared icon resource unavailable");
+ SelectObject(dc,prior);DeleteObject(target);DeleteDC(dc);DeleteObject(color);DeleteObject(mask);
+ if(ResolveReadOnlyPlatformImport("USER32.dll","GetDC")||ResolveReadOnlyPlatformImport("USER32.dll","BeginPaint")||ResolveReadOnlyPlatformImport("USER32.dll","LoadImageW"))throw std::runtime_error("Virtual window/file namespaces bypassed");
+ std::cout<<"PASS native icon/cursor create, metadata, release, shared icon load, actual DrawState icon pixel readback; virtual-window and content-path APIs remain blocked.\n";
  std::cout<<"PASS real native window-station object/buffer/flags query; actual host keyboard layout/scancode round trips and input-injection rejection; Windows WinHTTP configuration queries, exact native addresses/allocations/error paths and rejection of outbound request APIs. No proxy values logged; no game/Xbox execution.\n";return 0;
  }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
