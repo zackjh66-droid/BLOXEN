@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -66,4 +67,4 @@ class BundledContentTest(unittest.TestCase):
             b.inspect(z, [])
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout, verbosity=2))
