@@ -14,12 +14,12 @@ namespace {
 std::recursive_mutex gate;std::wstring package,data,cwd;std::map<std::wstring,std::wstring> code;
 std::wstring Fold(std::wstring value){for(auto& c:value){if(c==L'/')c=L'\\';if(c>=L'A'&&c<=L'Z')c+=32;}if(value.compare(0,4,L"\\\\?\\")==0)value=value.substr(4);return value;}
 bool Under(const std::wstring& path,const std::wstring& root){return !root.empty()&&(path==root||path.compare(0,root.size()+1,root+L"\\")==0);}
-std::wstring Absolute(const wchar_t* value){if(!value||wcsnlen_s(value,32768)==32768){SetLastError(ERROR_INVALID_PARAMETER);return {};}
- std::wstring input=Fold(value);if(input.empty()){SetLastError(ERROR_INVALID_NAME);return {};}
+std::wstring Absolute(const wchar_t* value,bool preserveCase=false){if(!value||wcsnlen_s(value,32768)==32768){SetLastError(ERROR_INVALID_PARAMETER);return {};}
+ std::wstring input=preserveCase?std::wstring(value):Fold(value);if(preserveCase){for(auto& c:input)if(c==L'/')c=L'\\';if(input.compare(0,4,L"\\\\?\\")==0)input=input.substr(4);}if(input.empty()){SetLastError(ERROR_INVALID_NAME);return {};}
  if(input.size()>2&&input[1]==L':'&&input[2]!=L'\\'){SetLastError(ERROR_INVALID_NAME);return {};}
  if(!(input.size()>2&&input[1]==L':'&&input[2]==L'\\'))input=cwd+L"\\"+input;
  using Full=DWORD(WINAPI*)(LPCWSTR,DWORD,LPWSTR,LPWSTR*);auto full=reinterpret_cast<Full>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetFullPathNameW"));if(!full){SetLastError(ERROR_PROC_NOT_FOUND);return {};}
- wchar_t output[32768];auto length=full(input.c_str(),32768,output,nullptr);if(!length||length>=32768){SetLastError(ERROR_FILENAME_EXCED_RANGE);return {};}return Fold(output);
+ wchar_t output[32768];auto length=full(input.c_str(),32768,output,nullptr);if(!length||length>=32768){SetLastError(ERROR_FILENAME_EXCED_RANGE);return {};}return preserveCase?std::wstring(output):Fold(output);
 }
 bool Executable(const std::wstring& name){auto position=name.find_last_of(L'.');auto ext=position==std::wstring::npos?L"":name.substr(position);for(auto bad:{L".exe",L".dll",L".sys",L".com",L".bat",L".cmd",L".ps1",L".vbs",L".msi",L".appx",L".msix"})if(ext==bad)return true;return false;}
 std::wstring Map(const wchar_t* name,bool writing){std::lock_guard<std::recursive_mutex> lock(gate);auto logical=Absolute(name);if(logical.empty())return {};
@@ -28,6 +28,17 @@ std::wstring Map(const wchar_t* name,bool writing){std::lock_guard<std::recursiv
  auto root=package+L"\\6.21";if(writing&&(Under(logical,root+L"\\fortnitegame\\content")||Under(logical,data+L"\\6.21\\fortnitegame\\content")||Under(logical,root+L"\\engine\\binaries\\thirdparty\\cef3\\win64")||Under(logical,data+L"\\6.21\\engine\\binaries\\thirdparty\\cef3\\win64"))){SetLastError(ERROR_ACCESS_DENIED);return {};}if(Under(logical,root)){auto target=data+L"\\6.21"+logical.substr(root.size());if(!writing){WIN32_FILE_ATTRIBUTE_DATA attrs={};if(!GetFileAttributesExFromAppW(target.c_str(),GetFileExInfoStandard,&attrs)&&GetFileAttributesExFromAppW(logical.c_str(),GetFileExInfoStandard,&attrs))return logical;}return target;}
  if(Under(logical,data+L"\\6.21"))return logical;
  SetLastError(ERROR_ACCESS_DENIED);return {};
+}
+DWORD WINAPI FullPathW(LPCWSTR name,DWORD capacity,LPWSTR output,LPWSTR* filePart){
+ if(filePart)*filePart=nullptr;std::lock_guard<std::recursive_mutex> lock(gate);auto full=Absolute(name,true);if(full.empty())return 0;DWORD needed=(DWORD)full.size()+1;if(capacity<needed)return needed;if(!output){SetLastError(ERROR_INVALID_PARAMETER);return 0;}
+ std::wmemcpy(output,full.c_str(),needed);auto last=full.find_last_of(L"\\");if(filePart&&last!=std::wstring::npos&&last+1<full.size())*filePart=output+last+1;return needed-1;
+}
+DWORD WINAPI FullPathA(LPCSTR name,DWORD capacity,LPSTR output,LPSTR* filePart){
+ if(filePart)*filePart=nullptr;if(!name||strnlen_s(name,32768)==32768){SetLastError(ERROR_INVALID_PARAMETER);return 0;}
+ using FileAnsi=BOOL(WINAPI*)();auto ansi=reinterpret_cast<FileAnsi>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","AreFileApisANSI"));if(!ansi){SetLastError(ERROR_PROC_NOT_FOUND);return 0;}UINT page=ansi()?CP_ACP:CP_OEMCP;
+ int count=MultiByteToWideChar(page,0,name,-1,nullptr,0);if(!count)return 0;std::vector<wchar_t> wide(count);if(!MultiByteToWideChar(page,0,name,-1,wide.data(),count))return 0;
+ std::lock_guard<std::recursive_mutex> lock(gate);auto full=Absolute(wide.data(),true);if(full.empty())return 0;int needed=WideCharToMultiByte(page,0,full.c_str(),-1,nullptr,0,nullptr,nullptr);if(!needed)return 0;if(capacity<(DWORD)needed)return needed;if(!output){SetLastError(ERROR_INVALID_PARAMETER);return 0;}
+ if(!WideCharToMultiByte(page,0,full.c_str(),-1,output,capacity,nullptr,nullptr))return 0;auto last=full.find_last_of(L"\\");if(filePart&&last!=std::wstring::npos&&last+1<full.size()){auto prefix=WideCharToMultiByte(page,0,full.data(),(int)last+1,nullptr,0,nullptr,nullptr);if(!prefix)return 0;*filePart=output+prefix;}return needed-1;
 }
 HANDLE WINAPI Open(LPCWSTR name,DWORD access,DWORD share,LPSECURITY_ATTRIBUTES security,DWORD creation,DWORD attributes,HANDLE templateFile){bool writing=(access&(GENERIC_WRITE|GENERIC_ALL|DELETE|WRITE_DAC|WRITE_OWNER|FILE_WRITE_DATA|FILE_APPEND_DATA))||creation!=OPEN_EXISTING;auto path=Map(name,writing);if(path.empty())return INVALID_HANDLE_VALUE;
  CREATEFILE2_EXTENDED_PARAMETERS extra={};extra.dwSize=sizeof(extra);extra.dwFileAttributes=attributes&0xffff;extra.dwFileFlags=attributes&0xffe00000;extra.dwSecurityQosFlags=attributes&0x001f0000;extra.lpSecurityAttributes=security;extra.hTemplateFile=templateFile;
@@ -53,7 +64,7 @@ bool ConfigureDataFiles(const wchar_t* packageRoot,const wchar_t* localRoot){std
 bool RegisterCodeFileAlias(const wchar_t* original,const wchar_t* physical){std::lock_guard<std::recursive_mutex> lock(gate);if(!original||!physical||package.empty())return false;auto o=Fold(original),p=Fold(physical);for(auto path:{o,p})if(path.empty()||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;if(!Executable(o)||!Executable(p))return false;auto key=package+L"\\"+o,value=package+L"\\"+p;auto old=code.find(key);if(old!=code.end())return old->second==value;code[key]=value;code[value]=value;return true;}
 void* ResolveDataFileImport(const char* dll,const char* name){if(!dll||!name||(_stricmp(dll,"kernel32.dll")&&_stricmp(dll,"kernelbase.dll")&&_strnicmp(dll,"api-ms-win-core-file",20)&&_strnicmp(dll,"api-ms-win-core-processenvironment-",33)))return nullptr;
 #define API(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
- API("CreateFileW",Open);API("GetFileAttributesW",Attributes);API("GetFileAttributesExW",AttributesEx);API("FindFirstFileExW",Find);API("CreateDirectoryW",Directory);API("DeleteFileW",Delete);API("RemoveDirectoryW",RemoveDataDirectory);API("GetCurrentDirectoryW",Current);API("SetCurrentDirectoryW",SetCurrent);
+ API("GetFullPathNameW",FullPathW);API("GetFullPathNameA",FullPathA);API("CreateFileW",Open);API("GetFileAttributesW",Attributes);API("GetFileAttributesExW",AttributesEx);API("FindFirstFileExW",Find);API("CreateDirectoryW",Directory);API("DeleteFileW",Delete);API("RemoveDirectoryW",RemoveDataDirectory);API("GetCurrentDirectoryW",Current);API("SetCurrentDirectoryW",SetCurrent);
 #undef API
  return nullptr;
 }

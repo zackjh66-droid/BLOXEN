@@ -34,12 +34,25 @@ jobs:
           python hollowwake\native-client-0.5.0\private-package\prepare.py "%RUNNER_TEMP%\HollowwakePrivateInputs\6.21" "%RUNNER_TEMP%\HollowwakePrivatePrepared"
           if errorlevel 1 exit /b 1
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%RUNNER_TEMP%\HollowwakePrivatePackage" -PrivatePreparedDirectory "%RUNNER_TEMP%\HollowwakePrivatePrepared"
+      - name: Encrypt private client delivery for the authorized recipient
+        id: private_encrypt
+        if: ${{ steps.private_source.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          ./hollowwake/native-client-0.5.0/private-package/Export-EncryptedDelivery.ps1 -InputDirectory "$env:RUNNER_TEMP/HollowwakePrivatePackage" -OutputDirectory "$env:RUNNER_TEMP/HollowwakeEncryptedDelivery" -RecipientPublicKey './hollowwake/native-client-0.5.0/private-package/delivery-recipient-public.pem'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ steps.private_source.outcome == 'success' }}
+        with:
+          name: hollowwake-private-client-recipient-encrypted
+          path: ${{ runner.temp }}/HollowwakeEncryptedDelivery/
+          if-no-files-found: error
+          retention-days: 3
       - name: Record public and private outcomes separately
         if: always()
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force artifacts/native-client-050|Out-Null
-          @{publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';gameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
+          @{publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

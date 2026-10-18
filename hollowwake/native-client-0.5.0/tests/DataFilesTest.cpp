@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <cstring>
 static void Check(bool v,const char* reason){if(!v)throw std::runtime_error(reason);}
 template<class T>T Api(const char* name){auto pointer=ResolveDataFileImport("kernel32.dll",name);if(!pointer)throw std::runtime_error(name);return reinterpret_cast<T>(pointer);}
 #define API(n) Api<decltype(&n)>(#n)
@@ -11,6 +12,14 @@ int wmain(int count,wchar_t** args){try{
  Check(count==2,"Owned scratch directory required");auto root=std::filesystem::absolute(args[1]);auto package=root/L"Package";auto data=root/L"LocalState/GameClean";auto relative=std::filesystem::path(L"6.21/FortniteGame/Content/Paks");std::filesystem::create_directories(data/relative);std::filesystem::create_directories(package/L"6.21/FortniteGame/Binaries/Win64");std::ofstream(data/relative/L"owned.pak",std::ios::binary)<<"owned-data-fixture";std::ofstream(package/L"OwnedCode.dll",std::ios::binary)<<"owned-code-header-fixture";
  Check(ConfigureDataFiles(package.c_str(),data.c_str()),"Data namespace configuration failed");Check(RegisterCodeFileAlias(L"6.21/Engine/OwnedCode.dll",L"OwnedCode.dll"),"Installed code alias registration failed");
  auto logical=package/relative/L"owned.pak";auto handle=API(CreateFileW)(logical.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,FILE_ATTRIBUTE_NORMAL,nullptr);Check(handle!=INVALID_HANDLE_VALUE,"Installed-path data request did not map to LocalState");char bytes[64]={};DWORD read=0;Check(ReadFile(handle,bytes,64,&read,nullptr)&&std::string(bytes,read)=="owned-data-fixture","Actual file read returned wrong bytes");CloseHandle(handle);
+ // Reproduce the host-CWD mismatch, then validate the production resolver via I/O.
+ const wchar_t* relativeInput=L"..\\..\\Content\\Paks\\owned.pak";wchar_t expanded[32768]={};wchar_t* leaf=nullptr;
+ Check(::GetFullPathNameW(relativeInput,32768,expanded,&leaf)>0,"Actual host path expansion failed");Check(API(CreateFileW)(expanded,GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr)==INVALID_HANDLE_VALUE,"Fixture no longer reproduces unrelated host CWD; re-evaluate namespace test");
+ DWORD needed=API(GetFullPathNameW)(relativeInput,0,nullptr,nullptr);Check(needed>1&&needed<32768,"Virtual full-path size query failed");Check(API(GetFullPathNameW)(relativeInput,32768,expanded,&leaf)==needed-1&&leaf&&!wcscmp(leaf,L"owned.pak")&&!_wcsicmp(expanded,logical.c_str()),"Logical full path/basename differs");
+ handle=API(CreateFileW)(expanded,GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);Check(handle!=INVALID_HANDLE_VALUE,"Expanded game-relative path did not reach actual data");read=0;Check(ReadFile(handle,bytes,sizeof(bytes),&read,nullptr)&&std::string(bytes,read)=="owned-data-fixture","Expanded-path data bytes differ");CloseHandle(handle);
+ wchar_t tiny[2]={};leaf=(wchar_t*)621;Check(API(GetFullPathNameW)(relativeInput,2,tiny,&leaf)==needed&&!leaf,"Full-path insufficient buffer contract failed");
+ char expandedA[32768]={};char* leafA=nullptr;auto bytesA=API(GetFullPathNameA)("../../Content/Paks/owned.pak",32768,expandedA,&leafA);Check(bytesA&&leafA&&!strcmp(leafA,"owned.pak"),"ANSI full-path basename failed");std::wstring wideA;for(auto c:std::string(expandedA))wideA+=(wchar_t)(unsigned char)c;Check(!_wcsicmp(wideA.c_str(),logical.c_str()),"ANSI full path used host cwd");
+ std::cout<<"PASS reproduced raw host-CWD mismatch; ANSI/Unicode full-path expansion, basename pointer, size/buffer semantics and actual expanded-path data read use the game's configured namespace.\n";
  WIN32_FIND_DATAW found={};auto pattern=package/relative/L"*.pak";auto search=API(FindFirstFileExW)(pattern.c_str(),FindExInfoBasic,&found,FindExSearchNameMatch,nullptr,0);Check(search!=INVALID_HANDLE_VALUE&&!wcscmp(found.cFileName,L"owned.pak"),"Actual data enumeration failed");FindClose(search);
  auto code=package/L"6.21/Engine/OwnedCode.dll";handle=API(CreateFileW)(code.c_str(),GENERIC_READ,FILE_SHARE_READ,nullptr,OPEN_EXISTING,0,nullptr);Check(handle!=INVALID_HANDLE_VALUE,"Installed native code metadata alias failed");CloseHandle(handle);Check(API(CreateFileW)(code.c_str(),GENERIC_WRITE,0,nullptr,CREATE_ALWAYS,0,nullptr)==INVALID_HANDLE_VALUE&&GetLastError()==ERROR_ACCESS_DENIED,"Installed executable write was admitted");
  auto unregistered=data/relative/L"unknown.dll";Check(API(CreateFileW)(unregistered.c_str(),GENERIC_READ,0,nullptr,OPEN_EXISTING,0,nullptr)==INVALID_HANDLE_VALUE&&GetLastError()==ERROR_ACCESS_DENIED,"LocalState executable read/load source admitted");
