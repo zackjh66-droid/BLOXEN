@@ -29,6 +29,9 @@ int main(){try{
  USEROBJECTFLAGS flags={};if(!objectInfo(ownStation,UOI_FLAGS,&flags,sizeof(flags),&needed))throw std::runtime_error("Real window-station flags query failed");
  // No station name, account name, SID or other process data is requested/logged.
  if(ResolveReadOnlyPlatformImport("user32.dll","SendInput")||ResolveReadOnlyPlatformImport("user32.dll","SetWindowsHookExW"))throw std::runtime_error("Read-only adapter exposes input injection");
+ auto ghosting=reinterpret_cast<void(WINAPI*)()>(ResolveReadOnlyPlatformImport("USER32.dll","DisableProcessWindowsGhosting"));
+ auto nativeUser=GetModuleHandleW(L"user32.dll");if(!ghosting||!nativeUser||(void*)ghosting!=(void*)GetProcAddress(nativeUser,"DisableProcessWindowsGhosting"))throw std::runtime_error("Window initialization setting is not actual OS export");
+ ghosting(); // Real own-process setting; no intentionally hung window/test process.
  // Exercise the production resolver with actual GDI resources, not dummy handles.
  auto iconCreate=reinterpret_cast<decltype(&CreateIconIndirect)>(ResolveReadOnlyPlatformImport("USER32.dll","CreateIconIndirect"));
  auto iconDestroy=reinterpret_cast<decltype(&DestroyIcon)>(ResolveReadOnlyPlatformImport("USER32.dll","DestroyIcon"));

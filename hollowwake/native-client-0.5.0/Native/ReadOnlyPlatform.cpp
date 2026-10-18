@@ -43,13 +43,14 @@ void* ResolveReadOnlyPlatformImport(const char* dll,const char* name){
   // These operations consume native layout/window-station objects, not virtual
   // HWNDs. They do not send input, open a window,
   // changes the keyboard layout or connects to an external service.
-  // Resource operations below accept real OS HBITMAP/HICON/HDC/module handles.
+  // DisableProcessWindowsGhosting is the actual OS process setting, not a no-op
+  // substitute. Resource operations below accept real OS HBITMAP/HICON/HDC/module handles.
   // They never receive a virtual HWND. GetDC/BeginPaint remain absent because
   // they require a window surface. File decoding uses the content bridge above.
   if(!strcmp(name,"LoadImageW"))return UserResources().module&&GetProcAddress(UserResources().module,name)?reinterpret_cast<void*>(&LoadGameImage):nullptr;
   if(!strcmp(name,"LoadCursorFromFileW"))return UserResources().module&&GetProcAddress(UserResources().module,name)?reinterpret_cast<void*>(&LoadGameCursor):nullptr;
   const char* allowed[]={"GetKeyboardLayout","MapVirtualKeyW","GetProcessWindowStation","GetUserObjectInformationW",
-   "CreateIconIndirect","DestroyIcon","DestroyCursor","LoadIconW","DrawStateW","GetIconInfo"};
+   "DisableProcessWindowsGhosting","CreateIconIndirect","DestroyIcon","DestroyCursor","LoadIconW","DrawStateW","GetIconInfo"};
   bool found=false;for(auto item:allowed)if(!strcmp(name,item))found=true;if(!found)return nullptr;
   static Provider provider(L"user32.dll");module=provider.module;
  }else return nullptr;
