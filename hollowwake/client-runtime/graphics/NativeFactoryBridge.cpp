@@ -5,6 +5,7 @@
 #include <map>
 #include <mutex>
 #include <cstring>
+#include <set>
 using Microsoft::WRL::ComPtr;
 namespace Hollowwake { namespace {
 using Create=HRESULT(STDMETHODCALLTYPE*)(IDXGIFactory*,IUnknown*,DXGI_SWAP_CHAIN_DESC*,IDXGISwapChain**);
@@ -40,18 +41,31 @@ static HRESULT Patch(void* object,unsigned index,void* replacement){
   auto error=GetLastError();InterlockedCompareExchangePointer(reinterpret_cast<PVOID volatile*>(address),original,replacement);slots.erase(address);DWORD retried=0;VirtualProtectFromApp(address,sizeof(void*),prior,&retried);return HRESULT_FROM_WIN32(error);
  }return S_OK;
 }
+static HRESULT RestoreSlot(const Slot& slot){
+ DWORD prior=0;if(!VirtualProtectFromApp(slot.address,sizeof(void*),PAGE_READWRITE,&prior))return HRESULT_FROM_WIN32(GetLastError());
+ auto observed=InterlockedCompareExchangePointer(reinterpret_cast<PVOID volatile*>(slot.address),slot.original,slot.replacement);
+ DWORD ignored=0;auto restored=VirtualProtectFromApp(slot.address,sizeof(void*),prior,&ignored);auto error=restored?ERROR_SUCCESS:GetLastError();
+ if(observed!=slot.replacement)return HRESULT_FROM_WIN32(ERROR_INVALID_STATE);
+ return restored?S_OK:HRESULT_FROM_WIN32(error);
+}
 }
 void ConfigureNativeFactoryBridge(IUnknown* window,BOOL(WINAPI*validate)(HWND)){std::lock_guard<std::mutex> lock(gate);presentationWindow=window;guestWindow=validate;}
 HRESULT BridgeDeviceFactories(ID3D11Device* device){
  if(!device)return E_INVALIDARG;ComPtr<IDXGIDevice> dxgi;auto hr=device->QueryInterface(IID_PPV_ARGS(&dxgi));if(FAILED(hr))return hr;ComPtr<IDXGIAdapter> adapter;hr=dxgi->GetAdapter(&adapter);if(FAILED(hr))return hr;ComPtr<IDXGIFactory> factory;hr=adapter->GetParent(IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;
  std::lock_guard<std::mutex> lock(gate);if(!presentationWindow||!guestWindow)return E_UNEXPECTED;
- hr=Patch(factory.Get(),10,reinterpret_cast<void*>(&InterceptCreate));if(FAILED(hr))return hr;
- ComPtr<IDXGIFactory2> modern;hr=factory.As(&modern);if(hr==E_NOINTERFACE)return S_OK;if(FAILED(hr))return hr;
- hr=Patch(modern.Get(),10,reinterpret_cast<void*>(&InterceptCreate));if(FAILED(hr))return hr;
- return Patch(modern.Get(),15,reinterpret_cast<void*>(&InterceptHwnd));
+ std::set<void**> existing;for(auto& entry:slots)existing.insert(entry.first);
+ auto failed=[&](HRESULT error){
+  // Preserve pre-existing devices, but roll back every new dispatch change if
+  // another required interface is refused. No half-installed successful bridge.
+  HRESULT rollback=S_OK;for(auto it=slots.begin();it!=slots.end();){if(existing.count(it->first)){++it;continue;}auto restored=RestoreSlot(it->second);if(FAILED(restored)){rollback=restored;++it;}else it=slots.erase(it);}
+  return FAILED(rollback)?rollback:error;
+ };
+ hr=Patch(factory.Get(),10,reinterpret_cast<void*>(&InterceptCreate));if(FAILED(hr))return failed(hr);
+ ComPtr<IDXGIFactory2> modern;hr=factory.As(&modern);if(hr==E_NOINTERFACE)return S_OK;if(FAILED(hr))return failed(hr);
+ hr=Patch(modern.Get(),10,reinterpret_cast<void*>(&InterceptCreate));if(FAILED(hr))return failed(hr);
+ hr=Patch(modern.Get(),15,reinterpret_cast<void*>(&InterceptHwnd));return FAILED(hr)?failed(hr):hr;
 }
 HRESULT RemoveNativeFactoryBridgeForTest(){std::lock_guard<std::mutex> lock(gate);HRESULT result=S_OK;
- for(auto it=slots.begin();it!=slots.end();){auto slot=it->second;DWORD prior=0;if(!VirtualProtectFromApp(slot.address,sizeof(void*),PAGE_READWRITE,&prior)){result=HRESULT_FROM_WIN32(GetLastError());++it;continue;}
- auto observed=InterlockedCompareExchangePointer(reinterpret_cast<PVOID volatile*>(slot.address),slot.original,slot.replacement);DWORD ignored=0;bool restored=VirtualProtectFromApp(slot.address,sizeof(void*),prior,&ignored)!=FALSE;if(observed!=slot.replacement||!restored){result=E_FAIL;++it;continue;}it=slots.erase(it);
- }return result;}
+ for(auto it=slots.begin();it!=slots.end();){auto restored=RestoreSlot(it->second);if(FAILED(restored)){result=restored;++it;}else it=slots.erase(it);}
+ return result;}
 }
