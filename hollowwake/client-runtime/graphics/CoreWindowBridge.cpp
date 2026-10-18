@@ -2,6 +2,7 @@
 // This is not complete desktop/window or D3D COM-graph emulation.
 #include "CoreWindowBridge.h"
 #include "WindowedSwapChain.h"
+#include "NativeFactoryBridge.h"
 #include <wrl/client.h>
 #include <new>
 using Microsoft::WRL::ComPtr;
@@ -86,7 +87,10 @@ HRESULT UnwrapCoreAdapter(IDXGIAdapter* adapter,IDXGIAdapter** result){
 HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context){
  if(device)*device=nullptr;if(context)*context=nullptr;
  ComPtr<IDXGIAdapter> native;auto hr=UnwrapCoreAdapter(adapter,&native);if(FAILED(hr))return hr;
- return ::D3D11CreateDevice(native.Get(),type,software,flags,levels,count,sdk,device,chosen,context);
+ ComPtr<ID3D11Device> created;ComPtr<ID3D11DeviceContext> immediate;D3D_FEATURE_LEVEL actual;
+ hr=::D3D11CreateDevice(native.Get(),type,software,flags,levels,count,sdk,&created,&actual,&immediate);if(FAILED(hr))return hr;
+ hr=BridgeDeviceFactories(created.Get());if(FAILED(hr))return hr;
+ if(device)*device=created.Detach();if(context)*context=immediate.Detach();if(chosen)*chosen=actual;return S_OK;
 }
 class CoreFactory final:public IDXGIFactory1 {
  volatile LONG refs=1;ComPtr<IDXGIFactory1> inner;ComPtr<IUnknown> window;HWND association=nullptr;

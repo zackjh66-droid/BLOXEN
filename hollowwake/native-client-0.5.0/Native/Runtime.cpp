@@ -37,6 +37,7 @@
 #include "Unsupported.h"
 #include "../../client-runtime/graphics/CoreWindowBridge.h"
 #include "../../client-runtime/graphics/WindowedSwapChain.h"
+#include "../../client-runtime/graphics/NativeFactoryBridge.h"
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false,guestStarted=false;
 std::string DescribeGuestAddress(unsigned long long address){if(mapped&&address>=(ULONGLONG)mapped&&address-(ULONGLONG)mapped<mappedSize)return "FortniteClient-Win64-Shipping.exe RVA="+std::to_string(address-(ULONGLONG)mapped);return DescribeDependencyAddress(address);}
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
@@ -100,6 +101,14 @@ static BOOL __cdecl ShowHostPointer(int show){return PointerOperation(1,show,0);
 static BOOL __cdecl SelectHostCursor(UINT shape,int visible){return PointerOperation(2,(int)shape,visible);}
 
 
+extern "C" __declspec(dllexport) int __cdecl HWFactoryBridgePolicy(){
+ Microsoft::WRL::ComPtr<ID3D11Device> device;Microsoft::WRL::ComPtr<ID3D11DeviceContext> context;D3D_FEATURE_LEVEL level;
+ auto hr=::D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_HARDWARE,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,nullptr,0,D3D11_SDK_VERSION,&device,&level,&context);
+ if(FAILED(hr)){Log("GRAPHICS_POLICY hardware creation HRESULT="+std::to_string((unsigned long)hr)+"; trying actual WARP device");hr=::D3D11CreateDevice(nullptr,D3D_DRIVER_TYPE_WARP,nullptr,D3D11_CREATE_DEVICE_BGRA_SUPPORT,nullptr,0,D3D11_SDK_VERSION,&device,&level,&context);}
+ if(FAILED(hr)){Log("GRAPHICS_POLICY device creation failed HRESULT="+std::to_string((unsigned long)hr));return hr;}
+ hr=Hollowwake::BridgeDeviceFactories(device.Get());Log("GRAPHICS_POLICY native factory dispatch installation HRESULT="+std::to_string((unsigned long)hr)+"; real AppContainer operation, no game execution");
+ auto restored=Hollowwake::RemoveNativeFactoryBridgeForTest();Log("GRAPHICS_POLICY dispatch restore HRESULT="+std::to_string((unsigned long)restored));return FAILED(hr)?hr:restored;
+}
 extern "C" __declspec(dllexport) int __cdecl HWStockCursorContract(){
  if(!gameDispatcher.Get()||!gameDispatcher.Get()->HasThreadAccess)return -1;
  using Load=HCURSOR(WINAPI*)(HINSTANCE,LPCWSTR);using Set=HCURSOR(WINAPI*)(HCURSOR);
@@ -154,7 +163,7 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  logName=path;auto packageDirectory=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;auto appData=Windows::Storage::ApplicationData::Current->LocalFolder->Path;std::wstring gameData=std::wstring(appData->Data())+L"\\GameClean";if(!ConfigureDataFiles(packageDirectory->Data(),gameData.c_str()))return E_INVALIDARG;Hollowwake::ConfigurePackagedProxyResolver(PackagedRoute,MissingPackagedImport);ConfigureUnsupported(Log);Hollowwake::LegacyFatalLogger()=[](const char* message){Log(std::string("CRASH ")+message);};Hollowwake::SystemInfoFailureHandler()=[](DWORD error){Log("CRASH GetVersionExW failed error="+std::to_string(error));};auto w=Windows::UI::Core::CoreWindow::GetForCurrentThread();if(!w)return (int)RPC_E_WRONG_THREAD;
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
- if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);Hollowwake::SetChainViewportProvider(&HWReadViewport);
+ if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);Hollowwake::SetChainViewportProvider(&HWReadViewport);Hollowwake::ConfigureNativeFactoryBridge(boundCoreWindow.Get(),reinterpret_cast<BOOL(WINAPI*)(HWND)>(ResolveWindowImport("user32.dll","IsWindow")));
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
 extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){

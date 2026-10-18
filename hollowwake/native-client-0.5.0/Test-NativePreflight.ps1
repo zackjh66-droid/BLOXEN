@@ -16,9 +16,11 @@ while([DateTime]::UtcNow-lt $deadline){
  Start-Sleep -Seconds 1
 }
 if(!(Test-Path (Join-Path $data 'native-imports-unresolved.txt'))){throw 'Integrated AppContainer native preflight did not produce exact-name report'}
-foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt','native-platform-imports.json')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
+foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt','native-platform-imports.json','native-graphics-policy.json')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
 $native=Get-Content (Join-Path $data 'native-launch.log') -Raw
 $platform=Get-Content (Join-Path $data 'native-platform-imports.json') -Raw|ConvertFrom-Json
+$graphicsPolicy=Get-Content (Join-Path $data 'native-graphics-policy.json') -Raw|ConvertFrom-Json
+if($graphicsPolicy.hresult-lt 0){throw ('Actual AppContainer factory bridge policy failed HRESULT='+$graphicsPolicy.hresult)}
 if($platform.total-ne 838-or $platform.pairs.Count-ne 838){throw 'Unredirected inventory changed or audit incomplete'}
 if($platform.gameExecuted-or $platform.xboxTested){throw 'Invalid platform audit scope claim'}
 
