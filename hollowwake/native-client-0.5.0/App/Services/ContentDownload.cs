@@ -11,7 +11,7 @@ namespace Hollowwake.Services {
  public static class ContentDownload {
   static ContentPlan Parse(JsonObject document){
    if(document.GetNamedNumber("schema")!=1)throw new IOException("Unknown content manifest schema.");var a=document.GetNamedObject("archive");var p=new ContentPlan{Build=document.GetNamedString("build"),Id=document.GetNamedString("manifestId"),ArchiveUrl=a.GetNamedString("url"),ArchiveSha256=a.GetNamedString("sha256"),ArchiveBytes=(long)a.GetNamedNumber("bytes"),ExpiresAt=(long)document.GetNamedNumber("expiresAt")};
-   foreach(var x in document.GetNamedArray("files")){var f=x.GetObject();double count=f.GetNamedNumber("bytes");if(count<0||count!=Math.Floor(count)||count>12L*1024*1024*1024)throw new IOException("Invalid content size.");p.Files.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)count,Sha256=f.GetNamedString("sha256")});}if(p.Files.Count!=139||p.Validate()!=26449827841L)throw new IOException("Required Season 6 data inventory differs.");return p;
+   foreach(var x in document.GetNamedArray("files")){var f=x.GetObject();double count=f.GetNamedNumber("bytes");if(count<0||count!=Math.Floor(count)||count>12L*1024*1024*1024)throw new IOException("Invalid content size.");p.Files.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)count,Sha256=f.GetNamedString("sha256")});}if(p.Files.Count!=139||p.Validate()!=26449827840L)throw new IOException("Required Season 6 data inventory differs.");return p;
   }
   static async Task<ContentPlan> Packaged(){
    // Only the immutable signed installed package can supply this fallback.
@@ -75,7 +75,7 @@ namespace Hollowwake.Services {
     Func<long,Task> space=async required=>{if(await FreeBytes()<required)throw new IOException("Insufficient Xbox app storage. Required free bytes: "+required);};
     await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,root,authorize,space,progress,token,capture));
     await api.SendAsync("/api/device/profile",null,projectToken,token);
-    if(capture.Last==null||!capture.Last.Complete||capture.Last.VerifiedFiles!=139||capture.Last.VerifiedBytes!=26449827841L||capture.Last.OnDiskBytes!=26449827841L)throw new IOException("Final data audit is incomplete.");
+    if(capture.Last==null||!capture.Last.Complete||capture.Last.VerifiedFiles!=139||capture.Last.VerifiedBytes!=26449827840L||capture.Last.OnDiskBytes!=26449827840L)throw new IOException("Final data audit is incomplete.");
     return capture.Last;
    }finally{
     try{long after=await FreeBytes();File.AppendAllText(Path.Combine(root,"content-space-audit.txt"),"CONTENT_SPACE_AFTER bytes="+after+"\n");}catch{}

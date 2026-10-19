@@ -22,7 +22,7 @@ jobs:
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
       - name: Compile reviewed DirectSound and UWP OpenAL candidate
         id: audio_candidate
-        if: ${{ contains(github.event.head_commit.message, '[audio-uwp]') }}
+        if: ${{ always() && contains(github.event.head_commit.message, '[audio-uwp]') }}
         continue-on-error: true
         shell: cmd
         run: |

@@ -60,3 +60,19 @@ UINT WINAPI HWTimeSetEvent(UINT delay,UINT resolution,HWTimeCallback callback,DW
 }
 UINT WINAPI HWTimeKillEvent(UINT id){return Retire(id);}
 void* ResolveMultimediaTimerImport(const char* dll,const char* name){if(!dll||!name||_stricmp(dll,"winmm.dll"))return nullptr;if(!strcmp(name,"timeSetEvent"))return reinterpret_cast<void*>(&HWTimeSetEvent);if(!strcmp(name,"timeKillEvent"))return reinterpret_cast<void*>(&HWTimeKillEvent);return nullptr;}
+
+#include <fstream>
+namespace {
+struct ProbeState {HANDLE event=nullptr;std::atomic<unsigned> count{0};std::atomic<bool> abi{true};};
+void CALLBACK ProbeCallback(UINT id,UINT message,DWORD_PTR value,DWORD_PTR one,DWORD_PTR two){auto state=reinterpret_cast<ProbeState*>(value);if(!id||message||one||two)state->abi=false;if(++state->count>=3)SetEvent(state->event);}
+}
+extern "C" __declspec(dllexport) int __cdecl HWMultimediaTimerProbe(const wchar_t* path){
+ if(!path)return E_POINTER;ProbeState state;state.event=CreateEventW(nullptr,TRUE,FALSE,nullptr);if(!state.event)return HRESULT_FROM_WIN32(GetLastError());
+ auto start=GetTickCount64();auto id=HWTimeSetEvent(15,0,ProbeCallback,reinterpret_cast<DWORD_PTR>(&state),Periodic|Synchronous);DWORD error=0;
+ if(!id)error=GetLastError()?GetLastError():ERROR_GEN_FAILURE;
+ else if(WaitForSingleObject(state.event,5000)!=WAIT_OBJECT_0)error=ERROR_TIMEOUT;
+ auto elapsed=GetTickCount64()-start;auto killed=id?HWTimeKillEvent(id):97;auto count=state.count.load();Sleep(45);auto after=state.count.load();CloseHandle(state.event);
+ bool ok=!error&&!killed&&state.abi&&count>=3&&after==count&&elapsed>=20;
+ std::ofstream out(path,std::ios::trunc);if(!out)return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+ out<<"{\"scope\":\"Real threadpool timer in current owned UWP host; not game/Xbox execution\",\"calls\":"<<count<<",\"afterCancel\":"<<after<<",\"elapsedMs\":"<<elapsed<<",\"abi\":"<<(state.abi?"true":"false")<<",\"cancelResult\":"<<killed<<",\"error\":"<<error<<",\"pass\":"<<(ok?"true":"false")<<",\"gameExecuted\":false}";out.flush();return !out.good()?HRESULT_FROM_WIN32(ERROR_WRITE_FAULT):ok?S_OK:HRESULT_FROM_WIN32(error?error:ERROR_INVALID_DATA);
+}
