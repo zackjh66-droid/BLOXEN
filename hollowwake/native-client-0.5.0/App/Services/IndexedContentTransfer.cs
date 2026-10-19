@@ -23,7 +23,7 @@ namespace Hollowwake.Services {
   }
   static void SaveDataAudit(string root,ContentProgress state){
    Directory.CreateDirectory(root);
-   string text="CONTENT_INVENTORY bytes="+state.OnDiskBytes+" total="+state.TotalFiles+" registered="+state.VerifiedFiles+" missing="+Math.Max(0,state.TotalFiles-state.VerifiedFiles)+"\\nCONTENT_TRANSFER bytes="+state.NetworkBytes+" total="+state.DownloadBytes+"\\n"+(state.Complete?"CONTENT_DATA_READY":"CONTENT_DATA_PENDING")+" bytes="+state.VerifiedBytes+" total="+state.RequiredBytes+"\\n";
+   string text="CONTENT_INVENTORY bytes="+state.OnDiskBytes+" total="+state.TotalFiles+" registered="+state.VerifiedFiles+" missing="+Math.Max(0,state.TotalFiles-state.VerifiedFiles)+"\nCONTENT_TRANSFER bytes="+state.NetworkBytes+" total="+state.DownloadBytes+"\n"+(state.Complete?"CONTENT_DATA_READY":"CONTENT_DATA_PENDING")+" bytes="+state.VerifiedBytes+" total="+state.RequiredBytes+"\n";
    var target=Path.Combine(root,"content-data-audit.txt");File.WriteAllText(target,text);
   }
   public static async Task EnsureIndexed(ContentPlan plan,string root,Func<Task> authorize,Func<long,Task> requireSpace,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null){

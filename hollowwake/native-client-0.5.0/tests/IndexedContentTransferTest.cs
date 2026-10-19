@@ -26,6 +26,7 @@ public class IndexedContentTransferTest {
   var captured=new Capture();File.WriteAllText(Path.Combine(reuse,"content-ready.txt"),"old writable marker");
   await ContentTransfer.EnsureIndexed(plan,reuse,allow,n=>{throw new Exception("Valid files must not require new storage");},progress,CancellationToken.None,captured);
   Check(captured.Last.Complete&&captured.Last.NetworkBytes==0&&captured.Last.VerifiedFiles==1&&captured.Last.OnDiskBytes==payload.Length,"Existing data was not independently measured and verified");
+  var auditLines=File.ReadAllLines(Path.Combine(reuse,"content-data-audit.txt"));Check(auditLines.Length==3&&auditLines[0].StartsWith("CONTENT_INVENTORY ")&&auditLines[1].StartsWith("CONTENT_TRANSFER ")&&auditLines[2].StartsWith("CONTENT_DATA_READY "),"Structured content receipt lost numeric event boundaries");
   int auditChecks=0;bool tamperRejected=false;
   try{await ContentTransfer.EnsureIndexed(plan,reuse,()=>{if(++auditChecks==2)File.WriteAllBytes(existing,new byte[]{1,2,3});return Task.CompletedTask;},n=>Task.CompletedTask,progress,CancellationToken.None,captured);}catch(IOException){tamperRejected=true;}
   Check(tamperRejected&&!captured.Last.Complete&&captured.Last.OnDiskBytes==3&&!File.Exists(Path.Combine(reuse,"content-ready.txt")),"Changed final data retained a false ready marker");

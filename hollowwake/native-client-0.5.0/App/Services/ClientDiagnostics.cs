@@ -18,7 +18,7 @@ namespace Hollowwake.Services {
    var id=ApplicationData.Current.LocalSettings.Values["DiagnosticAttempt"] as string;if(String.IsNullOrEmpty(id)||id.Length!=32){id=Guid.NewGuid().ToString("N");ApplicationData.Current.LocalSettings.Values["DiagnosticAttempt"]=id;}
    long offset=0;try{offset=Convert.ToInt64(ApplicationData.Current.LocalSettings.Values["DiagnosticOffset"]??0L);}catch{}
    long managedOffset=0;try{managedOffset=Convert.ToInt64(ApplicationData.Current.LocalSettings.Values["DiagnosticManagedOffset"]??0L);}catch{}
-   var native=Read("native-launch.log",offset);int omitted;var events=DiagnosticSanitizer.Events(native+"\n"+Read("managed-launch.log",managedOffset)+"\nNATIVE_STARTUP "+Read("runtime-policy.txt"),out omitted);
+   var native=Read("native-launch.log",offset);int omitted;var events=DiagnosticSanitizer.Events(native+"\n"+Read("managed-launch.log",managedOffset)+"\nNATIVE_STARTUP "+Read("runtime-policy.txt")+ "\n" + Read("content-data-audit.txt") + "\n" + Read("content-code-audit.txt") + "\n" + Read("content-space-audit.txt"),out omitted);
    var missing=new List<Dictionary<string,object>>();var names=new HashSet<string>(StringComparer.OrdinalIgnoreCase);int redirected=0,platformMissing=0,platformTotal=0;
    foreach(var row in Read("native-imports-unresolved.txt").Split(new[]{'\n'},StringSplitOptions.RemoveEmptyEntries)){var n=row.Trim();if(DiagnosticSanitizer.Binding(n)&&names.Add("redirected:"+n)){missing.Add(new Dictionary<string,object>{{"name",n},{"source","redirected"},{"error",127},{"normal",true},{"main",false}});redirected++;}}
    JsonObject platform;if(JsonObject.TryParse(Read("native-platform-imports.json"),out platform))try{

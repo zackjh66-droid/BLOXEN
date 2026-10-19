@@ -55,5 +55,20 @@ if($before-notmatch '^PAGE 1 / 1(?:\r?\n)' -and $summary.Current.Name-eq $before
 $bounds=$dialog.Current.BoundingRectangle
 foreach($element in @($summary,$next,$previous)){ $rect=$element.Current.BoundingRectangle;if($rect.Width-le 0-or $rect.Height-le 0){throw 'Diagnostic element has no visible bounds'};if($rect.Top-lt $bounds.Top-or $rect.Bottom-gt $bounds.Bottom-or $rect.Left-lt $bounds.Left-or $rect.Right-gt $bounds.Right){throw 'Diagnostics overflowed dialog bounds'}}
 @{result='PASS Windows UIA pagination and content/button bounds';physicalXboxControllerTested=$false;customScrollViewerUsed=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'diagnostics-ui-results.json')
+
+$close=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::NameProperty,'Close')))
+if(!$close){throw 'Close button missing'}
+([Windows.Automation.InvokePattern]$close.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern)).Invoke()
+Start-Sleep -Milliseconds 350
+$screen=$desktop.Current.BoundingRectangle
+foreach($controlId in @('LaunchButton','ImportButton','PauseContentButton','LogButton','CheckButton','SignOutButton','ContentProgressBar','ContentBytesText','CodeStatusText')){
+ $element=$desktop.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::AutomationIdProperty,$controlId)))
+ if(!$element){throw ('Actual progress UI control missing '+$controlId)}
+ $rect=$element.Current.BoundingRectangle
+ if($element.Current.IsOffscreen-or $rect.Width-le 0-or $rect.Height-le 0-or $rect.Top-lt $screen.Top-or $rect.Bottom-gt $screen.Bottom-or $rect.Left-lt $screen.Left-or $rect.Right-gt $screen.Right){throw ('Progress/menu requires offscreen navigation '+$controlId)}
+ if($controlId-eq 'ContentProgressBar'){$range=[Windows.Automation.RangeValuePattern]$element.GetCurrentPattern([Windows.Automation.RangeValuePattern]::Pattern);if([Math]::Abs($range.Current.Value-50)-gt .1){throw 'Actual progress bar did not reflect 50-percent fixture'}}
+}
+@{result='PASS actual UWP progress bar value and all fixed-layout menu/data controls fit screen';fixtureOnly=$true;gameDownloaded=$false;xboxTested=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'content-progress-ui-results.json')
+
 Stop-Process -Id $id -Force
 @{result='PASS integrated UWP import preflight only';scope='Hosted Windows AppContainer; no game execution';xboxTested=$false;fortniteExecuted=$false;unresolvedCount=@(Get-Content (Join-Path $data 'native-imports-unresolved.txt')).Count}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'preflight-results.json')
