@@ -14,7 +14,7 @@ try {
  if($LASTEXITCODE){throw 'Production guest thread adapter compilation failed'}
  & .\GuestThreadTest.exe 2>&1|Tee-Object thread-test.log
  if($LASTEXITCODE){throw 'Production guest thread lifecycle checks failed'}
- & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot '..\client-runtime\graphics\CoreWindowBridge.cpp') (Join-Path $PSScriptRoot 'tests\AdapterFactoryTest.cpp') kernel32.lib d3d11.lib dxgi.lib /Fe:AdapterFactoryTest.exe 2>&1|Tee-Object adapter-build.log
+ & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $PSScriptRoot '..\client-runtime\graphics\CoreWindowBridge.cpp') (Join-Path $PSScriptRoot '..\client-runtime\graphics\WindowedSwapChain.cpp') (Join-Path $PSScriptRoot '..\client-runtime\graphics\NativeFactoryBridge.cpp') (Join-Path $PSScriptRoot '..\native-client-0.5.0\Native\WindowBridge.cpp') (Join-Path $PSScriptRoot '..\native-client-0.5.0\tests\SwapChainContractTest.cpp') kernel32.lib user32.lib d3d11.lib dxgi.lib windowsapp.lib /Fe:AdapterFactoryTest.exe 2>&1|Tee-Object adapter-build.log
  if($LASTEXITCODE){throw 'Production adapter/factory bridge compilation failed'}
  & .\AdapterFactoryTest.exe 2>&1|Tee-Object adapter-test.log
  if($LASTEXITCODE){throw 'Production adapter/factory bridge functionality failed'}
