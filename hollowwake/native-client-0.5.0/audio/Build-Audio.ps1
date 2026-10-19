@@ -10,7 +10,7 @@ Copy-Item (Join-Path $source 'source-review.json') $OutputDirectory
 $openal=Join-Path $source 'openal-soft';$albuild=Join-Path $source 'openal-build'
 # Upstream has an explicit WindowsStore/UWP implementation and C++/WinRT
 # WASAPI activation. Disable unrelated desktop backends/tools, not game checks.
-& cmake --no-warn-unused-cli -Wno-dev -S $openal -B $albuild -G 'Visual Studio 17 2022' -A x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.19041.0 -DALSOFT_UTILS=OFF -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF -DALSOFT_CONFIG=OFF -DALSOFT_INSTALL=OFF -DALSOFT_EAX=OFF -DALSOFT_BACKEND_WASAPI=ON -DALSOFT_REQUIRE_WASAPI=ON -DALSOFT_BACKEND_DSOUND=OFF -DALSOFT_BACKEND_WINMM=OFF -DALSOFT_BACKEND_WAVE=OFF -DALSOFT_BACKEND_NULL=ON 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-configure.log')
+& cmake --no-warn-unused-cli -Wno-dev -S $openal -B $albuild -G 'Visual Studio 17 2022' -A x64 '-DCMAKE_SYSTEM_NAME=WindowsStore' '-DCMAKE_SYSTEM_VERSION=10.0' '-DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.19041.0' '-DALSOFT_UTILS=OFF' '-DALSOFT_EXAMPLES=OFF' '-DALSOFT_TESTS=OFF' '-DALSOFT_CONFIG=OFF' '-DALSOFT_INSTALL=OFF' '-DALSOFT_EAX=OFF' '-DALSOFT_BACKEND_WASAPI=ON' '-DALSOFT_REQUIRE_WASAPI=ON' '-DALSOFT_BACKEND_DSOUND=OFF' '-DALSOFT_BACKEND_WINMM=OFF' '-DALSOFT_BACKEND_WAVE=OFF' '-DALSOFT_BACKEND_NULL=ON' 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-configure.log')
 if($LASTEXITCODE){throw 'OpenAL upstream UWP configuration failed'}
 & cmake --build $albuild --config Release --target OpenAL --parallel 4 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-build.log')
 if($LASTEXITCODE){throw 'OpenAL genuine UWP compilation failed'}
@@ -18,7 +18,7 @@ $dsbuild=Join-Path $source 'dsoal-build'
 $runtime=Join-Path (Split-Path $PSScriptRoot -Parent) 'Native/bin/x64/Release/HollowwakeClientRuntime.lib'
 # DSOAL consumes the public desktop COM declarations. Its output is a candidate
 # native AppContainer DLL; explicit import/packaged behavior checks still apply.
-& cmake -S (Join-Path $source 'dsoal') -B $dsbuild -G 'Visual Studio 17 2022' -A x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.19041.0 -DDSOAL_UPDATE_BUILD_VERSION=OFF "-DHW_RUNTIME_LIBRARY=$runtime" 2>&1|Tee-Object (Join-Path $OutputDirectory 'dsoal-configure.log')
+& cmake -S (Join-Path $source 'dsoal') -B $dsbuild -G 'Visual Studio 17 2022' -A x64 '-DCMAKE_SYSTEM_NAME=WindowsStore' '-DCMAKE_SYSTEM_VERSION=10.0' '-DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.19041.0' '-DDSOAL_UPDATE_BUILD_VERSION=OFF' "-DHW_RUNTIME_LIBRARY=$runtime" 2>&1|Tee-Object (Join-Path $OutputDirectory 'dsoal-configure.log')
 if($LASTEXITCODE){throw 'DSOAL native candidate configuration failed'}
 & cmake --build $dsbuild --config Release --target dsound --parallel 4 2>&1|Tee-Object (Join-Path $OutputDirectory 'dsoal-build.log')
 if($LASTEXITCODE){throw 'DSOAL AppContainer candidate compilation failed'}
