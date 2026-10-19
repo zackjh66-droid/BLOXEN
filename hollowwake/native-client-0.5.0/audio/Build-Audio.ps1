@@ -1,5 +1,7 @@
 param([string]$OutputDirectory)
-$ErrorActionPreference='Stop'
+$ErrorActionPreference='Continue'
+# Native tools may write warnings to stderr. Check their actual exit code;
+# do not turn a warning into an aborted compile under Windows PowerShell 5.
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $source=Join-Path $env:RUNNER_TEMP 'HollowwakeReviewedAudioSources'
 python (Join-Path $PSScriptRoot 'prepare_audio.py') $source
@@ -8,7 +10,7 @@ Copy-Item (Join-Path $source 'source-review.json') $OutputDirectory
 $openal=Join-Path $source 'openal-soft';$albuild=Join-Path $source 'openal-build'
 # Upstream has an explicit WindowsStore/UWP implementation and C++/WinRT
 # WASAPI activation. Disable unrelated desktop backends/tools, not game checks.
-& cmake -S $openal -B $albuild -G 'Visual Studio 17 2022' -A x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.19041.0 -DALSOFT_UTILS=OFF -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF -DALSOFT_CONFIG=OFF -DALSOFT_INSTALL=OFF -DALSOFT_EAX=OFF -DALSOFT_BACKEND_WASAPI=ON -DALSOFT_REQUIRE_WASAPI=ON -DALSOFT_BACKEND_DSOUND=OFF -DALSOFT_BACKEND_WINMM=OFF -DALSOFT_BACKEND_WAVE=OFF -DALSOFT_BACKEND_NULL=ON -DALSOFT_NO_CONFIG_UTIL=ON 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-configure.log')
+& cmake --no-warn-unused-cli -Wno-dev -S $openal -B $albuild -G 'Visual Studio 17 2022' -A x64 -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DCMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION=10.0.19041.0 -DALSOFT_UTILS=OFF -DALSOFT_EXAMPLES=OFF -DALSOFT_TESTS=OFF -DALSOFT_CONFIG=OFF -DALSOFT_INSTALL=OFF -DALSOFT_EAX=OFF -DALSOFT_BACKEND_WASAPI=ON -DALSOFT_REQUIRE_WASAPI=ON -DALSOFT_BACKEND_DSOUND=OFF -DALSOFT_BACKEND_WINMM=OFF -DALSOFT_BACKEND_WAVE=OFF -DALSOFT_BACKEND_NULL=ON 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-configure.log')
 if($LASTEXITCODE){throw 'OpenAL upstream UWP configuration failed'}
 & cmake --build $albuild --config Release --target OpenAL --parallel 4 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-build.log')
 if($LASTEXITCODE){throw 'OpenAL genuine UWP compilation failed'}

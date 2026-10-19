@@ -11,17 +11,28 @@
 namespace {
 constexpr UINT Periodic=1,EventSet=0x10,EventPulse=0x20,Synchronous=0x100;
 using Pulse=BOOL(WINAPI*)(HANDLE);
-struct Timer {UINT id=0,flags=0;HWTimeCallback callback=nullptr;DWORD_PTR user=0;PTP_TIMER object=nullptr;Pulse pulse=nullptr;HANDLE event=nullptr;std::atomic<bool> closing{false};~Timer(){if(event)CloseHandle(event);}};
-std::mutex gate;std::map<UINT,std::shared_ptr<Timer>> timers;UINT nextId=0;
+struct Timer {UINT id=0,flags=0;HWTimeCallback callback=nullptr;DWORD_PTR user=0;PTP_TIMER object=nullptr;PTP_WORK cleanup=nullptr;Pulse pulse=nullptr;HANDLE event=nullptr;std::atomic<bool> closing{false};~Timer(){if(cleanup)CloseThreadpoolWork(cleanup);if(event)CloseHandle(event);}};
+std::mutex gate;std::map<UINT,std::shared_ptr<Timer>> timers,retiring;UINT nextId=0;
 thread_local UINT activeId=0;thread_local PTP_CALLBACK_INSTANCE activeInstance=nullptr;
-// Remove ownership first, then stop/drain outside the map lock. In particular,
-// user callbacks can cancel themselves without waiting for themselves forever.
+// A non-synchronous cancellation must not wait for a blocked user callback.
+// The preallocated cleanup object and moved map node retain the callback context
+// until the OS has actually drained all callbacks; no queued raw context dangles.
+void CALLBACK Cleanup(PTP_CALLBACK_INSTANCE,void* context,PTP_WORK){
+ auto raw=static_cast<Timer*>(context);std::shared_ptr<Timer> state;
+ {std::lock_guard<std::mutex> lock(gate);auto found=retiring.find(raw->id);if(found==retiring.end())return;state=found->second;}
+ WaitForThreadpoolTimerCallbacks(state->object,TRUE);CloseThreadpoolTimer(state->object);state->object=nullptr;
+ {std::lock_guard<std::mutex> lock(gate);retiring.erase(state->id);}
+}
 UINT Retire(UINT id){
- std::shared_ptr<Timer> state;
- {std::lock_guard<std::mutex> lock(gate);auto found=timers.find(id);if(found==timers.end())return 97;state=found->second;state->closing=true;timers.erase(found);}
+ std::shared_ptr<Timer> state;bool synchronous=false;
+ {std::lock_guard<std::mutex> lock(gate);auto found=timers.find(id);if(found==timers.end())return 97;state=found->second;synchronous=(state->flags&Synchronous)!=0;state->closing=true;
+  // Move the existing node: cancellation allocates no memory.
+  auto node=timers.extract(found);retiring.insert(std::move(node));}
  SetThreadpoolTimer(state->object,nullptr,0,0);
+ if(!synchronous){SubmitThreadpoolWork(state->cleanup);return 0;}
  if(activeId==id&&activeInstance){DisassociateCurrentThreadFromCallback(activeInstance);activeInstance=nullptr;}
- WaitForThreadpoolTimerCallbacks(state->object,TRUE);CloseThreadpoolTimer(state->object);
+ WaitForThreadpoolTimerCallbacks(state->object,TRUE);CloseThreadpoolTimer(state->object);state->object=nullptr;
+ {std::lock_guard<std::mutex> lock(gate);retiring.erase(id);}
  return 0;
 }
 void CALLBACK Fire(PTP_CALLBACK_INSTANCE instance,void* context,PTP_TIMER){
@@ -47,8 +58,9 @@ UINT WINAPI HWTimeSetEvent(UINT delay,UINT resolution,HWTimeCallback callback,DW
   HANDLE event=nullptr;
   if(flags&(EventSet|EventPulse)){if(!DuplicateHandle(GetCurrentProcess(),reinterpret_cast<HANDLE>(callback),GetCurrentProcess(),&event,EVENT_MODIFY_STATE,FALSE,0))return 0;state->event=event;state->callback=reinterpret_cast<HWTimeCallback>(event);}
   std::unique_lock<std::mutex> lock(gate);
-  if(timers.size()>=65535){SetLastError(ERROR_NOT_ENOUGH_QUOTA);return 0;}
-  do{++nextId;}while(!nextId||timers.count(nextId));state->id=nextId;
+  if(timers.size()+retiring.size()>=65535){SetLastError(ERROR_NOT_ENOUGH_QUOTA);return 0;}
+  do{++nextId;}while(!nextId||timers.count(nextId)||retiring.count(nextId));state->id=nextId;
+  state->cleanup=CreateThreadpoolWork(&Cleanup,state.get(),nullptr);if(!state->cleanup)return 0;
   state->object=CreateThreadpoolTimer(&Fire,state.get(),nullptr);
   if(!state->object){return 0;}
   try{timers.emplace(state->id,state);}catch(...){CloseThreadpoolTimer(state->object);throw;}
@@ -59,6 +71,7 @@ UINT WINAPI HWTimeSetEvent(UINT delay,UINT resolution,HWTimeCallback callback,DW
  }catch(const std::bad_alloc&){SetLastError(ERROR_NOT_ENOUGH_MEMORY);return 0;}
 }
 UINT WINAPI HWTimeKillEvent(UINT id){return Retire(id);}
+unsigned HWActiveMultimediaTimersForTest(){std::lock_guard<std::mutex> lock(gate);return static_cast<unsigned>(timers.size()+retiring.size());}
 void* ResolveMultimediaTimerImport(const char* dll,const char* name){if(!dll||!name||_stricmp(dll,"winmm.dll"))return nullptr;if(!strcmp(name,"timeSetEvent"))return reinterpret_cast<void*>(&HWTimeSetEvent);if(!strcmp(name,"timeKillEvent"))return reinterpret_cast<void*>(&HWTimeKillEvent);return nullptr;}
 
 #include <fstream>
