@@ -31,7 +31,7 @@ Match servers are absent. Do not use Epic credentials.
 
 Keep the working companion/rollback installed. This package has the separate
 Hollowwake.NativeClientExperiment identity. Use Xbox Device Portal Apps > Add,
-select the APPX, then supply the included Dependencies/x64 packages if requested.
+select the MSIX (or APPX), then supply the included Dependencies/x64 packages if requested.
 The CER is the public development certificate; no private signing key is supplied.
 Use the existing Dev Mode installation/trust procedure that worked previously.
 

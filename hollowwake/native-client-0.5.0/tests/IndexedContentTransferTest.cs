@@ -31,6 +31,10 @@ public class IndexedContentTransferTest {
   var emptyBytes=new byte[128];emptyBytes[64]=3;emptyBytes[65]=0;using(var server=new Server(emptyBytes,"normal"))using(var http=new HttpClient()){
    var empty=new ContentFile{Path="6.21/FortniteGame/Content/Owned-empty.txt",Bytes=0,Sha256=Hash(new byte[0]),Offset=64,Compressed=2,Method=8};var target=Path.Combine(folder,"empty","fixture.txt");await ContentTransfer.DownloadIndexedFile(http,server.Url,emptyBytes.Length,target,empty,allow,progress,CancellationToken.None);Check(new FileInfo(target).Length==0,"Empty indexed file failed");
   }
+  using(var server=new Server(emptyBytes,"normal"))using(var http=new HttpClient()){
+   var empty=new ContentFile{Path="6.21/FortniteGame/Content/Owned-empty-stored.txt",Bytes=0,Sha256=Hash(new byte[0]),Offset=64,Compressed=0,Method=0};var target=Path.Combine(folder,"empty-stored","fixture.txt");await ContentTransfer.DownloadIndexedFile(http,server.Url,emptyBytes.Length,target,empty,allow,progress,CancellationToken.None);Check(new FileInfo(target).Length==0&&server.Requests==0,"Stored empty entry must verify empty SHA without an invalid byte range");
+   empty.Bytes=1;bool rejected=false;try{await ContentTransfer.DownloadIndexedFile(http,server.Url,emptyBytes.Length,target,empty,allow,progress,CancellationToken.None);}catch(IOException){rejected=true;}Check(rejected,"Nonempty file with zero compressed bytes accepted");
+  }
   Check(authorized>=4,"Authorization was not rechecked before commit");Console.WriteLine("PASS real HTTP range download, 16 MiB chunk boundaries, interrupted compressed-stream resume, actual 20 MiB decompression and SHA-256 verification, ignored-range/corruption rejection, no account credentials on archive requests, authorization before transfer and commit, cancellation and temporary-file cleanup. Original fixtures only; no game/Xbox execution.");
  }finally{Directory.Delete(folder,true);}}
 }

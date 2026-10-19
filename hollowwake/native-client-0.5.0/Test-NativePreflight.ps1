@@ -12,9 +12,12 @@ $id=[HwActivation]::Launch($package.PackageFamilyName+'!App','--native-preflight
 $data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\LocalState')
 $deadline=[DateTime]::UtcNow.AddSeconds(40)
 while([DateTime]::UtcNow-lt $deadline){
+ if(Test-Path (Join-Path $data 'preflight-failure.txt')){break}
  if(Test-Path (Join-Path $data 'native-launch.log')){if((Get-Content (Join-Path $data 'native-launch.log') -Raw).Contains('NATIVE_PLATFORM_PREFLIGHT total=')){break}}
  Start-Sleep -Seconds 1
 }
+foreach($name in @('native-launch.log','runtime-policy.txt','managed-launch.log','packaged-content-plan.json','preflight-failure.txt')){if(Test-Path (Join-Path $data $name)){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}}
+if(Test-Path (Join-Path $data 'preflight-failure.txt')){throw ('Integrated owned preflight failed: '+(Get-Content (Join-Path $data 'preflight-failure.txt') -Raw))}
 if(!(Test-Path (Join-Path $data 'native-imports-unresolved.txt'))){throw 'Integrated AppContainer native preflight did not produce exact-name report'}
 foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt','native-platform-imports.json','native-graphics-policy.json','native-window-probe.json','packaged-content-plan.json')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
 $native=Get-Content (Join-Path $data 'native-launch.log') -Raw

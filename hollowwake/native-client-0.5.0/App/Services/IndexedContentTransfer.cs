@@ -2,7 +2,7 @@ using System;using System.IO;using System.IO.Compression;using System.Net;using 
 namespace Hollowwake.Services {
  public static partial class ContentTransfer {
   public static async Task DownloadIndexedFile(HttpClient http,string url,long archiveBytes,string target,ContentFile file,Func<Task> authorize,IProgress<string> progress,CancellationToken token){
-   if(!ContentPlan.Safe(file.Path)||!ContentPlan.Hash(file.Sha256)||file.Bytes<0||file.Offset<=0||file.Compressed<=0||file.Offset>archiveBytes-file.Compressed||(file.Method!=0&&file.Method!=8))throw new IOException("Invalid signed ZIP data extent.");
+   if(!ContentPlan.Safe(file.Path)||!ContentPlan.Hash(file.Sha256)||file.Bytes<0||file.Offset<=0||(file.Compressed<0||(file.Compressed==0&&(file.Bytes!=0||file.Method!=0)))||file.Offset>archiveBytes-file.Compressed||(file.Method!=0&&file.Method!=8))throw new IOException("Invalid signed ZIP data extent.");
    await authorize();var temporary=target+".download.part";Directory.CreateDirectory(Path.GetDirectoryName(target));
    try{
     using(var input=new RemoteExtent(http,url,archiveBytes,file.Offset,file.Compressed))using(var decoded=file.Method==8?(Stream)new DeflateStream(input,CompressionMode.Decompress,true):input)using(var output=new FileStream(temporary,FileMode.Create,FileAccess.Write,FileShare.None,1048576,true))using(var sha=SHA256.Create()){
