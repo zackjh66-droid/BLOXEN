@@ -17,7 +17,7 @@ python (Join-Path $PSScriptRoot 'prepare.py') (Join-Path $work 'OriginalCode\6.2
 if($LASTEXITCODE){throw 'Pinned real-client dependency preparation failed'}
 & (Join-Path $source 'Build.ps1') -OutputDirectory (Join-Path $work 'CodePackage') -PrivatePreparedDirectory (Join-Path $work 'PreparedClient')
 if($LASTEXITCODE){throw 'Real-client native/code package compilation or signing failed'}
-$code=@(Get-ChildItem (Join-Path $work 'CodePackage') -Recurse -Filter 'Hollowwake_*.appx')
+$code=@(Get-ChildItem (Join-Path $work 'CodePackage') -Recurse -File|Where-Object {$_.Name-like 'Hollowwake_*'-and $_.Extension-in @('.appx','.msix')})
 if($code.Count-ne 1){throw 'Expected exactly one compiled native game code package'}
 $sdk=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin\10.0.19041.0\x64'
 $layout=Join-Path $work 'CompiledLayout';$content=Join-Path $work 'FullContent';$output=Join-Path $work 'FullPackage'

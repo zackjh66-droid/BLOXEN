@@ -57,7 +57,7 @@ if($LASTEXITCODE){throw 'Exact dependency proxy build failed'}
 if($PrivatePreparedDirectory){
  & (Join-Path $source 'private-package\Build-Proxies.ps1') -PreparedDirectory $PrivatePreparedDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib')
  Copy-Item (Join-Path $PrivatePreparedDirectory 'GamePayload\*') (Join-Path $source 'App') -Recurse -Force
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.1.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.3.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
@@ -77,12 +77,17 @@ if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
 if($LASTEXITCODE){throw 'Shared content-transfer behavior failed'}
 & (Join-Path $source 'tests\Test-StartupImport.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'startup-import-test.log')
 if($LASTEXITCODE){throw 'Startup import test failed'}
+& $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'IndexedContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'App\Services\IndexedContentTransfer.cs') (Join-Path $source 'tests\IndexedContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'indexed-content-test-build.log')
+if($LASTEXITCODE){throw 'Indexed content transfer compilation failed'}
+& (Join-Path $OutputDirectory 'IndexedContentTransferTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'indexed-content-test.log')
+if($LASTEXITCODE){throw 'Actual range/decompression/resume/integrity tests failed'}
 $cert=New-SelfSignedCertificate -Type Custom -Subject 'CN=HollowwakeDevelopment' -KeyExportPolicy NonExportable -HashAlgorithm SHA256 -KeyUsage DigitalSignature -CertStoreLocation 'Cert:\CurrentUser\My' -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')
 Export-Certificate -Cert $cert -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer')|Out-Null
+$packageExtension=if($PrivatePreparedDirectory){'.msix'}else{'.appx'}
 $project=Join-Path $source 'App\Hollowwake.csproj'
 & $msbuild $project /t:Restore /p:Configuration=Release /p:Platform=x64 /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'restore.log');if($LASTEXITCODE){throw 'Managed restore failed'}
-& $msbuild $project /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never /p:AppxPackageExtension=.appx /p:AppxPackageSigningEnabled=true "/p:PackageCertificateThumbprint=$($cert.Thumbprint)" "/p:AppxPackageDir=$OutputDirectory\" /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'managed-build.log');if($LASTEXITCODE){throw 'Managed APPX build failed'}
-$appx=Get-ChildItem -Recurse $OutputDirectory -Filter 'Hollowwake_*.appx'|Select-Object -First 1;if(!$appx){throw 'APPX not produced'}
+& $msbuild $project /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=true /p:UapAppxPackageBuildMode=SideloadOnly /p:AppxBundle=Never "/p:AppxPackageExtension=$packageExtension" /p:AppxPackageSigningEnabled=true "/p:PackageCertificateThumbprint=$($cert.Thumbprint)" "/p:AppxPackageDir=$OutputDirectory\" /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'managed-build.log');if($LASTEXITCODE){throw 'Managed APPX build failed'}
+$appx=Get-ChildItem -Recurse $OutputDirectory -File|Where-Object {$_.Name-like 'Hollowwake_*'-and $_.Extension-in @('.appx','.msix')}|Select-Object -First 1;if(!$appx){throw 'APPX not produced'}
 Import-Certificate -FilePath (Join-Path $OutputDirectory 'HollowwakeExperiment.cer') -CertStoreLocation 'Cert:\LocalMachine\Root'|Out-Null
 $sdk=Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin\10.0.19041.0\x64'
 & (Join-Path $sdk 'signtool.exe') verify /pa /v $appx.FullName 2>&1|Tee-Object (Join-Path $OutputDirectory 'signature.log');if($LASTEXITCODE){throw 'APPX signature verification failed'}

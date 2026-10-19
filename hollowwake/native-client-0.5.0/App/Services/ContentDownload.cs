@@ -20,9 +20,16 @@ namespace Hollowwake.Services {
    using(var sha=SHA256.Create())id=BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text))).Replace("-","").ToLowerInvariant();
    document["manifestId"]=JsonValue.CreateStringValue(id);document["expiresAt"]=JsonValue.CreateNumberValue(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()+15*60*1000);return Parse(document);
   }
+  static async Task AttachIndex(ContentPlan plan){
+   var file=await Windows.ApplicationModel.Package.Current.InstalledLocation.GetFileAsync("ContentIndex621.json");var index=JsonObject.Parse(await FileIO.ReadTextAsync(file));
+   if(index.GetNamedNumber("schema")!=1||index.GetNamedString("build")!=plan.Build||index.GetNamedString("archiveSha256")!=plan.ArchiveSha256||index.GetNamedNumber("archiveBytes")!=plan.ArchiveBytes)throw new IOException("Signed content index differs from the archive pin.");
+   var entries=new System.Collections.Generic.Dictionary<string,JsonObject>(StringComparer.Ordinal);foreach(var v in index.GetNamedArray("entries")){var e=v.GetObject();entries.Add(e.GetNamedString("path"),e);}
+   if(entries.Count!=plan.Files.Count)throw new IOException("Signed content index count differs.");
+   foreach(var f in plan.Files){JsonObject e;if(!entries.TryGetValue(f.Path,out e)||e.GetNamedNumber("bytes")!=f.Bytes||e.GetNamedString("sha256")!=f.Sha256)throw new IOException("Signed content record differs.");f.Offset=(long)e.GetNamedNumber("offset");f.Compressed=(long)e.GetNamedNumber("compressed");f.Method=(int)e.GetNamedNumber("method");if(f.Offset<=0||f.Compressed<=0||f.Offset>plan.ArchiveBytes-f.Compressed||(f.Method!=0&&f.Method!=8))throw new IOException("Invalid signed content extent.");}
+  }
   static bool CatalogUnavailable(ApiException error){return(error.Status==HttpStatusCode.NotFound&&(error.Code=="not_found"||error.Code=="route_not_found"||error.Code=="invalid_response"))||(error.Status==HttpStatusCode.ServiceUnavailable&&error.Code=="content_not_configured")||(error.Status==HttpStatusCode.OK&&error.Code=="invalid_response");}
   public static async Task<string> AuditPackagedPlan(){
-   var plan=await Packaged();return "{\"scope\":\"Signed installed metadata parse only; no download, authentication, game or Xbox test\",\"files\":"+plan.Files.Count+",\"expandedBytes\":"+plan.Validate()+",\"archiveBytes\":"+plan.ArchiveBytes+",\"manifestId\":\""+plan.Id+"\"}";
+   var plan=await Packaged();await AttachIndex(plan);return "{\"scope\":\"Signed installed metadata parse only; no download, authentication, game or Xbox test\",\"files\":"+plan.Files.Count+",\"expandedBytes\":"+plan.Validate()+",\"archiveBytes\":"+plan.ArchiveBytes+",\"manifestId\":\""+plan.Id+"\"}";
   }
   public static async Task Run(ApiClient api,string projectToken,IProgress<string> progress,CancellationToken token){
    // A missing deployment endpoint must not turn into an account bypass.
@@ -34,11 +41,11 @@ namespace Hollowwake.Services {
     long lastAuthorization=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();Func<Task> check=async()=>{long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastAuthorization>=30000){await api.SendAsync("/api/device/profile",null,projectToken,token);lastAuthorization=now;}};
     await Task.Run(()=>ContentTransfer.VerifyInstalled(installed,plan.Files,check,progress,token));await api.SendAsync("/api/device/profile",null,projectToken,token);progress.Report("Bundled content verified; no game-content download required.");return;
    }
-   try{plan=Parse(await api.SendAsync("/api/device/content/6.21",null,projectToken,token));}
-   catch(ApiException error)when(CatalogUnavailable(error)){plan=await Packaged();fromPackage=true;progress.Report("Using content hashes from the signed package; linked-account authorization remains required.");}
+   plan=await Packaged();await AttachIndex(plan);fromPackage=true;
+   progress.Report("Downloading only pinned game data directly; no full archive or executable download is required.");
    long lastCheck=0;Func<Task> authorize=async()=>{long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastCheck<30000&&now<plan.ExpiresAt)return;await api.SendAsync("/api/device/profile",null,projectToken,token);if(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()>=plan.ExpiresAt){if(fromPackage){plan.ExpiresAt=now+15*60*1000;}else{var renewed=Parse(await api.SendAsync("/api/device/content/6.21",null,projectToken,token));if(renewed.Id!=plan.Id)throw new IOException("Content manifest changed during transfer; restart the download.");plan.ExpiresAt=renewed.ExpiresAt;}}lastCheck=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();};
    Func<long,Task> space=async required=>{var info=await ApplicationData.Current.LocalFolder.Properties.RetrievePropertiesAsync(new[]{"System.FreeSpace"});if(!info.ContainsKey("System.FreeSpace")||Convert.ToUInt64(info["System.FreeSpace"])<(ulong)required)throw new IOException("Insufficient Xbox app storage for verified content. Required free bytes: "+required);};
-   string localRoot=ApplicationData.Current.LocalFolder.Path;await Task.Run(()=>ContentTransfer.Ensure(plan,localRoot,authorize,space,progress,token));
+   string localRoot=ApplicationData.Current.LocalFolder.Path;await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,localRoot,authorize,space,progress,token));
   }
  }
 }

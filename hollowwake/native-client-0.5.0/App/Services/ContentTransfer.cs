@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 namespace Hollowwake.Services {
- public sealed class ContentFile {public string Path;public long Bytes;public string Sha256;}
+ public sealed class ContentFile {public string Path;public long Bytes;public string Sha256;public long Offset=-1,Compressed;public int Method=-1;}
  public sealed class ContentPlan {
   public string Build,Id,ArchiveUrl,ArchiveSha256;public long ArchiveBytes,ExpiresAt;public readonly List<ContentFile> Files=new List<ContentFile>();
   public long Validate(){
@@ -26,7 +26,7 @@ namespace Hollowwake.Services {
    foreach(var part in p.Split('/'))if(part.Length==0||part=="."||part==".."||part.EndsWith(".")||part.EndsWith(" ")||Regex.IsMatch(part,@"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)",RegexOptions.IgnoreCase))return false;return true;
   }
  }
- public static class ContentTransfer {
+ public static partial class ContentTransfer {
   static string Hex(byte[] b){return BitConverter.ToString(b).Replace("-","").ToLowerInvariant();}
   public static async Task<bool> Matches(string path,long bytes,string expected,CancellationToken token){
    if(!File.Exists(path)||new FileInfo(path).Length!=bytes)return false;

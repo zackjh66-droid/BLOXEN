@@ -44,7 +44,8 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWKeyDetails(uint key,uint scan,int down,int repeat,int extended,int menu,int wasDown);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWCharacterDetails(uint code,uint scan);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern void HWTouch(uint id,int x100,int y100,uint flags,uint milliseconds);
-        private bool importBusy,loadBusy,policyReady;
+        private bool importBusy,loadBusy,policyReady,contentReady,runtimeAudited;
+        private CancellationTokenSource contentOperation;
         private string LaunchLog {get{return Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-launch.log");}}
         private readonly SessionStore store = new SessionStore();
         private ApiClient api;
@@ -84,7 +85,7 @@ namespace Hollowwake
         {
             foreach (var p in new[] { SplashPanel, SetupPanel, LinkPanel, LinkedPanel, CancelledPanel }) p.Visibility = p == panel ? Visibility.Visible : Visibility.Collapsed;
         }
-        private void ResetOperation() { generation++; operation.Cancel(); operation.Dispose(); operation = new CancellationTokenSource(); }
+        private void ResetOperation() { contentReady=false;runtimeAudited=false;generation++; operation.Cancel(); operation.Dispose(); operation = new CancellationTokenSource(); }
         private async Task InitializeAsync()
         {
             Show(SplashPanel); StatusText.Text = "Experimental native client loader. No working Fortnite lobby is claimed.";
@@ -210,15 +211,25 @@ namespace Hollowwake
         {
             if (api == null || sessionToken == null) return;
             int ticket = generation; var token = sessionToken;
-            Show(LinkedPanel); UsernameText.Text = "Checking saved session…";
+            Show(LinkedPanel); if(!importBusy&&!loadBusy)UsernameText.Text = "Checking saved session…";
             try
             {
                 var profile = await api.SendAsync("/api/device/profile", null, token, operation.Token);
                 if (ticket != generation || sessionToken != token) return;
                 UsernameText.Text = profile.GetNamedString("publicUsername");
                 await api.SendAsync("/api/device/renew", new JsonObject(), token, operation.Token);
-                StatusText.Text = policyReady?"Account verified. Native client code must be installed in the private package; legacy imports are disabled. Client compatibility remains unfinished.":"Native graphics window binding failed. Open the launch log for details.";
-                heartbeat.Start(); if(focus){var receipt=await ClientDiagnostics.SubmitAsync(api,token,"next_start");if(receipt!=null)StatusText.Text+=" Failure report uploaded: "+receipt;}else{var ignored=ClientDiagnostics.FlushAsync(api,token);} if (focus) LaunchButton.Focus(FocusState.Programmatic);
+                if(!importBusy&&!loadBusy)StatusText.Text = policyReady?"Account verified. Native client code must be installed in the private package; legacy imports are disabled. Client compatibility remains unfinished.":"Native graphics window binding failed. Open the launch log for details.";
+                heartbeat.Start();
+                if(focus){
+                    var receipt=await ClientDiagnostics.SubmitAsync(api,token,"next_start");
+                    if(policyReady&&!runtimeAudited&&!importBusy&&!loadBusy){
+                        ClientDiagnostics.BeginAttempt();await Task.Run(()=>HWPreflightClient());runtimeAudited=true;
+                        receipt=await ClientDiagnostics.SubmitAsync(api,token,"preflight")??receipt;
+                    }
+                    if(receipt!=null)StatusText.Text+=" Failure report uploaded: "+receipt;
+                    await PrepareContentAsync();if(!importBusy)LaunchButton.Focus(FocusState.Programmatic);
+                }else{var ignored=ClientDiagnostics.FlushAsync(api,token);}
+
             }
             catch (ApiException ex) when (ex.Status == HttpStatusCode.Unauthorized)
             {
@@ -229,6 +240,19 @@ namespace Hollowwake
             catch (OperationCanceledException) { if (ticket == generation) StatusText.Text = "Connection timed out. Choose Check connection; your protected session is retained."; }
             catch { if (ticket == generation) { UsernameText.Text = "Connection unavailable"; StatusText.Text = "Cannot verify this session offline. Choose Check connection to retry. No game session has started."; } }
         }
+        private async Task<bool> PrepareContentAsync(){
+            if(contentReady)return true;if(importBusy||loadBusy||api==null||sessionToken==null)return false;
+            if(!File.Exists(Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path,"native-package-manifest.json"))){StatusText.Text="The actual client is not included in this package. Install the private client build before downloading game content.";return false;}
+            int ticket=generation;var token=sessionToken;importBusy=true;contentReady=false;LaunchButton.IsEnabled=false;ImportButton.IsEnabled=false;PauseContentButton.IsEnabled=true;ContentRing.IsActive=true;
+            using(var cancel=CancellationTokenSource.CreateLinkedTokenSource(operation.Token)){contentOperation=cancel;
+                try{var progress=new Progress<string>(message=>{if(ticket==generation)ContentStatusText.Text=message;});await ContentDownload.Run(api,token,progress,cancel.Token);cancel.Token.ThrowIfCancellationRequested();if(ticket!=generation||token!=sessionToken)return false;contentReady=true;StatusText.Text="Game content verified. Launch performs runtime checks; original lobby compatibility remains unfinished.";await ManagedLog("CONTENT_READY signed per-file index and all selected content hashes verified; no full ZIP stored");return true;}
+                catch(OperationCanceledException){if(ticket==generation)StatusText.Text="Download paused. Verified files are retained; Retry restarts only unfinished files.";return false;}
+                catch(Exception ex){if(ticket==generation)StatusText.Text=(ex is IOException||ex is InvalidDataException)?ex.Message:"Content download could not complete. Check connection and Retry.";await ManagedLog("CONTENT_FAILED HRESULT="+ex.HResult.ToString("X8"));var receipt=await ClientDiagnostics.SubmitAsync(api,token,"preflight");return false;}
+                finally{contentOperation=null;importBusy=false;ContentRing.IsActive=false;PauseContentButton.IsEnabled=false;ImportButton.IsEnabled=true;LaunchButton.IsEnabled=true;}
+            }
+        }
+        private async void ContentRetry_Click(object sender,RoutedEventArgs e){if(importBusy||loadBusy)return;contentReady=false;await PrepareContentAsync();}
+        private void ContentPause_Click(object sender,RoutedEventArgs e){if(contentOperation!=null)contentOperation.Cancel();}
         private async Task ManagedLog(string text){await FileIO.AppendTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("managed-launch.log",CreationCollisionOption.OpenIfExists),DateTimeOffset.UtcNow.ToString("o")+" "+text+"\n");}
         private async void Import_Click(object sender,RoutedEventArgs e){await ImportFiles(false);}
         private async void BootImport_Click(object sender,RoutedEventArgs e){await ImportFiles(true);}
@@ -242,9 +266,9 @@ namespace Hollowwake
             catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8")+(ex is IOException?" "+ex.Message:""));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
         }
         private async void Launch_Click(object sender,RoutedEventArgs e){
-            if(loadBusy||importBusy)return;if(!policyReady){StatusText.Text="Native graphics window binding failed. Open launch logs.";await ManagedLog("NATIVE_STARTUP_FAILED window binding unavailable");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}
+            if(loadBusy||importBusy)return;if(sessionToken!=null&&!contentReady&&!await PrepareContentAsync())return;if(!policyReady){StatusText.Text="Native graphics window binding failed. Open launch logs.";await ManagedLog("NATIVE_STARTUP_FAILED window binding unavailable");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}loadBusy=true;
-            try{ClientDiagnostics.BeginAttempt();await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED native packaged-client path; no project credential is passed into guest code.");var origin=new Uri(api.Origin);if(!HWConfigureNetwork(origin.DnsSafeHost,(ushort)origin.Port))throw new InvalidOperationException("Native backend host configuration rejected");var compatibility=await Task.Run(()=>HWPreflightClient());if(compatibility<0){StatusText.Text="Native imports remain incomplete. Content download was not started. Open launch logs for exact names.";await ManagedLog("CLIENT_NOT_READY import preflight blocked content transfer and native entry");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}var contentProgress=new Progress<string>(text=>StatusText.Text=text);await ContentDownload.Run(api,sessionToken,contentProgress,operation.Token);await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await ManagedLog("CONTENT_READY authenticated manifest and all selected content hashes verified");ClientDiagnostics.MarkEntryPending();await ClientDiagnostics.SubmitAsync(api,sessionToken,"before_entry");var result=await Task.Run(()=>HWAttemptPackagedClient());ClientDiagnostics.CompleteAttempt();await ManagedLog("Native loading returned "+result+". Original lobby success has not been established.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another native load attempt.";var uploaded=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(uploaded!=null)StatusText.Text+=" Report uploaded: "+uploaded;}
+            try{ClientDiagnostics.BeginAttempt();await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED native packaged-client path; no project credential is passed into guest code.");var origin=new Uri(api.Origin);if(!HWConfigureNetwork(origin.DnsSafeHost,(ushort)origin.Port))throw new InvalidOperationException("Native backend host configuration rejected");var compatibility=await Task.Run(()=>HWPreflightClient());if(compatibility<0){StatusText.Text="Native imports remain incomplete. Downloaded content is retained; the failure report contains exact names.";await ManagedLog("CLIENT_NOT_READY import preflight blocked content transfer and native entry");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}if(!contentReady)throw new IOException("Game content verification is not complete.");await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await ManagedLog("CONTENT_READY authenticated manifest and all selected content hashes verified");ClientDiagnostics.MarkEntryPending();await ClientDiagnostics.SubmitAsync(api,sessionToken,"before_entry");var result=await Task.Run(()=>HWAttemptPackagedClient());ClientDiagnostics.CompleteAttempt();await ManagedLog("Native loading returned "+result+". Original lobby success has not been established.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another native load attempt.";var uploaded=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(uploaded!=null)StatusText.Text+=" Report uploaded: "+uploaded;}
             catch(Exception ex){if(ex is IOException){await ManagedLog("CONTENT_FAILED "+ex.Message);StatusText.Text=ex.Message;}else{await ManagedLog("NATIVE_LOAD_EXCEPTION HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}ClientDiagnostics.CompleteAttempt();var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;}finally{loadBusy=false;}
         }
         private async void Log_Click(object sender,RoutedEventArgs e){
@@ -294,7 +318,7 @@ namespace Hollowwake
         private async void Cancel_Click(object sender, RoutedEventArgs e) { await CancelLinkAsync(); }
         private async Task CancelLinkAsync()
         {
-            if (sessionToken != null) return;
+            if(sessionToken!=null){if(contentOperation!=null)contentOperation.Cancel();return;}
             ResetOperation(); await CancelPendingAsync(); PollingRing.IsActive = false; CodeText.Text = ""; QrImage.Source = null;
             Show(CancelledPanel); StatusText.Text = "Link request cancelled. No game or lobby was launched."; StartButton.Focus(FocusState.Programmatic);
         }

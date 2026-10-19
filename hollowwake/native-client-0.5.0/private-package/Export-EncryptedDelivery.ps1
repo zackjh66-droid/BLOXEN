@@ -5,7 +5,7 @@ $ErrorActionPreference='Stop'
 $auditPath=Join-Path $InputDirectory 'private-package-audit.json'
 $audit=Get-Content $auditPath -Raw|ConvertFrom-Json
 if($audit.result-ne 'PASS private signed APPX contents match prepared hashes'-or $audit.images-lt 2-or $audit.publiclyUploaded){throw 'Private package audit does not permit encrypted delivery'}
-$packages=@(Get-ChildItem $InputDirectory -Recurse -File -Filter 'Hollowwake_*.appx')
+$packages=@(Get-ChildItem $InputDirectory -Recurse -File|Where-Object {$_.Name-like 'Hollowwake_*'-and $_.Extension-in @('.appx','.msix')})
 if($packages.Count-ne 1){throw 'Expected one private game-containing APPX'}
 $stage=Join-Path $env:RUNNER_TEMP ('HollowwakeRecipientStage-'+[Guid]::NewGuid().ToString('N'))
 $archive=$stage+'.zip'
@@ -42,12 +42,19 @@ not make a desktop EXE compatible. Microsoft documents foreground app/game
 memory allocations at https://learn.microsoft.com/en-us/windows/uwp/xbox-apps/system-resource-allocation .
 
 Boot code is included; do not import boot DLLs into LocalState for this route.
-Content download/full import uses 139 pinned data files (26,449,827,840 bytes)
-and a 12,528,679,454-byte original ZIP. Allow about 40 GB free for first import.
-You may supply that exact ZIP as LocalState/Original-6.21.zip through your
-authorized app-file import method; every byte/hash is checked. No content
-download success is claimed until the full transfer and checks finish.
+After linking or restoring your account, the launcher automatically downloads
+only 139 pinned data files using small HTTPS byte ranges. Each file is streamed
+and SHA-256 checked before becoming ready. No full ZIP is stored. About 12.36 GB
+is transferred and 26.45 GB of data is installed, plus client code/dependencies.
+Allow at least 27.6 GB of free app storage for the complete first download.
+Use PAUSE (B) to stop, or DOWNLOAD / VERIFY CONTENT to retry. Verified files
+are retained across pauses/restarts; the unfinished file restarts on reopening.
+Original ZIPs previously imported by you are not deleted by this workflow.
+The archive host receives no Hollowwake password, bearer token or cookies.
 
+Structured failure reports upload privately after sign-in. If the app closes,
+reopen and remain signed in so the incomplete attempt can upload. No page-by-
+page photos are needed. Raw logs stay in LocalState.
 Link only your Hollowwake account. Use the client-launch action once. Record
 whether an original Fortnite loading screen appears, the exact first error, or
 whether the host closes. After reopening, use launch logs. Device Portal's app
