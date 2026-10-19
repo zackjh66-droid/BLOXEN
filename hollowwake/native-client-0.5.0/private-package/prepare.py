@@ -8,7 +8,7 @@ ROOT=Path(__file__).resolve().parents[2]/'runtime-native-route'
 sys.path.insert(0,str(ROOT/'native-image'));sys.path.insert(0,str(ROOT/'native-proxy'))
 from convert_image import convert
 from redirect_imports import redirect,SHORT
-SHORT.update({"xinput1_3.dll":"HWXI13.dll","xinput1_4.dll":"HWXI14.dll","xinput9_1_0.dll":"HWXI91.dll"})
+SHORT.update({"winmm.dll":"HWMM.dll","d3d9.dll":"HWD9.dll","xinput1_3.dll":"HWXI13.dll","xinput1_4.dll":"HWXI14.dll","xinput9_1_0.dll":"HWXI91.dll"})
 from generate_native_proxy import emit
 PIN='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()

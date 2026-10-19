@@ -36,14 +36,14 @@ namespace Hollowwake.Services {
    if(!info.ContainsKey("System.FreeSpace"))throw new IOException("Xbox app-storage free space is unavailable.");return checked((long)Convert.ToUInt64(info["System.FreeSpace"]));
   }
   static async Task<long> AuditCode(string installed,IProgress<string> progress,CancellationToken token){
-   string root=ApplicationData.Current.LocalFolder.Path;File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes=0 total=38 registered=0 missing=38\n");
+   string root=ApplicationData.Current.LocalFolder.Path;File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes=0 total=40 registered=0 missing=40\n");
    var doc=JsonObject.Parse(await FileIO.ReadTextAsync(await Windows.ApplicationModel.Package.Current.InstalledLocation.GetFileAsync("package-code-index.json")));
    if(doc.GetNamedNumber("schema")!=1||doc.GetNamedString("build")!="6.21-CL-4526925")throw new IOException("Unknown installed code inventory.");
    var records=new System.Collections.Generic.List<ContentFile>();
    foreach(var value in doc.GetNamedArray("files")){var f=value.GetObject();records.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)f.GetNamedNumber("bytes"),Sha256=f.GetNamedString("sha256")});}
-   if(records.Count!=38)throw new IOException("Installed native code inventory is incomplete.");
+   if(records.Count!=40)throw new IOException("Installed native code inventory is incomplete.");
    long bytes=await Task.Run(()=>ContentTransfer.VerifyCode(installed,records,progress,token));
-   File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes="+bytes+" total=38 registered=38 missing=0\n");progress.Report("Client installed: "+(bytes/1000000.0).ToString("F1")+" MB · 38/38 code files verified");return bytes;
+   File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes="+bytes+" total=40 registered=40 missing=0\n");progress.Report("Client installed: "+(bytes/1000000.0).ToString("F1")+" MB · 40/40 code files verified");return bytes;
   }
   sealed class Capture:IProgress<ContentProgress>{
    readonly IProgress<ContentProgress> target;public ContentProgress Last;

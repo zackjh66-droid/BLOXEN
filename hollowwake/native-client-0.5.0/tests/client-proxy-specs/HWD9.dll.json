@@ -1,0 +1,9 @@
+{
+  "sourceDll": "d3d9.dll",
+  "proxyDll": "HWD9.dll",
+  "symbols": [
+    "D3DPERF_BeginEvent",
+    "D3DPERF_EndEvent",
+    "Direct3DCreate9Ex"
+  ]
+}

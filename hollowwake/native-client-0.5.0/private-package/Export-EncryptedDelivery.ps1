@@ -48,7 +48,7 @@ and SHA-256 checked before becoming ready. No full ZIP is stored. About 12.36 GB
 is transferred and 26.45 GB of data is installed, plus client code/dependencies.
 Allow at least 27.6 GB of free app storage for the complete first download.
 The progress view separates received compressed bytes from verified installed bytes.
-It independently rehashes the final data paths and all 38 installed code files.
+It independently rehashes the final data paths and all 40 installed code files.
 A measured report is uploaded after verification/failure. Zero new bytes means
 existing data was reused; the final on-disk count must still pass.
 Use PAUSE (B) to stop, or DOWNLOAD / VERIFY CONTENT to retry. Verified files

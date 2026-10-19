@@ -32,6 +32,7 @@
 #include "StartupImport.h"
 #include "NativeClientThread.h"
 #include "PlatformAudit.h"
+#include "StartupPlatform.h"
 #include "PlatformImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include "../../runtime-native-route/NativeProxyDispatch.h"
@@ -154,6 +155,7 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 }
 // Native DLL route must not reuse manual-map TLS/thread notifications.
 static void* PackagedRoute(const char* dll,const char* name){
+ if(IsStartupPlatformModule(dll))return ResolveStartupPlatformImport(dll,name);
  if(auto p=ResolveDataFileImport(dll,name))return p;
  if(auto p=ResolveNetworkImport(dll,name))return p;
  if(auto p=ResolveLdapImport(dll,name))return p;
@@ -200,14 +202,14 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.5.4.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.5.5.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
   std::wstring file=std::wstring(location->Data())+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
   auto size=in.tellg();if(size!=100733440){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
-  static const BYTE expected[32]={0x37,0x30,0xf8,0xc0,0xef,0x1a,0x7b,0x44,0x41,0xf7,0xf1,0xdc,0x5d,0x86,0xaa,0x84,0xb6,0xa2,0xab,0x5a,0x68,0x9c,0x50,0xbf,0x8e,0x51,0x37,0x4c,0x45,0x24,0xdc,0x27};
+  static const BYTE expected[32]={0x1e,0x9b,0xcf,0x2e,0xf1,0x65,0xcf,0x9e,0x13,0x45,0xba,0x74,0xc8,0x34,0x32,0xdf,0x3b,0xb5,0x01,0x37,0xfc,0xd4,0x9d,0x23,0x39,0x51,0xf3,0xca,0x88,0x71,0x4a,0x31};
   if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}auto clientDos=reinterpret_cast<const IMAGE_DOS_HEADER*>(bytes.data());
   if(clientDos->e_magic!=IMAGE_DOS_SIGNATURE||clientDos->e_lfanew<64||!Range(clientDos->e_lfanew,sizeof(IMAGE_NT_HEADERS64),bytes.size()))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
   auto clientHeaders=reinterpret_cast<const IMAGE_NT_HEADERS64*>(bytes.data()+clientDos->e_lfanew);

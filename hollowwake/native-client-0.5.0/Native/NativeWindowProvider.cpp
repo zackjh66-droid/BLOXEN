@@ -1,4 +1,5 @@
 #include "NativeWindowProvider.h"
+#include "PerformanceMarkers.h"
 #include "ClientDependencyImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include <string>
@@ -58,10 +59,20 @@ void* ResolveNativeWindowImport(const char* dll,const char* symbol){
  bool known=false;for(auto& item:clientDependencyImports)if(!_stricmp(item.dll,dll)&&!strcmp(item.symbol,symbol)){known=true;break;}
  return known?UserSymbol(symbol):nullptr;
 }
+namespace {
+HRESULT WINAPI CreateAnnotatedDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* level,ID3D11DeviceContext** context){
+ static SystemProvider provider(L"d3d11.dll");auto create=reinterpret_cast<decltype(&D3D11CreateDevice)>(provider.module?GetProcAddress(provider.module,"D3D11CreateDevice"):nullptr);if(!create)return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+ auto hr=create(adapter,type,software,flags,levels,count,sdk,device,level,context);if(FAILED(hr))return hr;
+ Microsoft::WRL::ComPtr<ID3D11Device> actual;if(device&&*device)actual=*device;else if(context&&*context)(*context)->GetDevice(&actual);
+ // Missing optional profiler support must not replace successful device creation
+ // with success for profiling: Begin/End return the native disabled result (-1).
+ if(actual)HWBindPerformanceDevice(actual.Get());return hr;
+}
+}
 void* ResolveNativePresentationImport(const char* dll,const char* symbol){
  if(!dll||!symbol)return nullptr;HMODULE module=nullptr;
  if(!_stricmp(dll,"dxgi.dll")&&(!strcmp(symbol,"CreateDXGIFactory")||!strcmp(symbol,"CreateDXGIFactory1"))){static SystemProvider provider(L"dxgi.dll");module=provider.module;}
- else if(!_stricmp(dll,"d3d11.dll")&&!strcmp(symbol,"D3D11CreateDevice")){static SystemProvider provider(L"d3d11.dll");module=provider.module;}
+ else if(!_stricmp(dll,"d3d11.dll")&&!strcmp(symbol,"D3D11CreateDevice")){static SystemProvider provider(L"d3d11.dll");return provider.module&&GetProcAddress(provider.module,symbol)?reinterpret_cast<void*>(&CreateAnnotatedDevice):nullptr;}
  return module?reinterpret_cast<void*>(GetProcAddress(module,symbol)):nullptr;
 }
 extern "C" int __cdecl HWNativeWindowProbe(const wchar_t* path){

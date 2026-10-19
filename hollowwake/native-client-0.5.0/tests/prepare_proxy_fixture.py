@@ -10,6 +10,6 @@ p=argparse.ArgumentParser();p.add_argument('output');a=p.parse_args()
 out=Path(a.output);out.mkdir(parents=True,exist_ok=False)
 (out/'GamePayload').mkdir();sources=out/'ProxySources';sources.mkdir()
 specs=[json.loads(f.read_text()) for f in sorted((root/'tests/client-proxy-specs').glob('*.json'))]
-if len(specs)!=11:raise ValueError('Exact dependency proxy specification incomplete')
+if len(specs)!=13:raise ValueError('Exact dependency proxy specification incomplete')
 for spec in specs:emit(spec,sources/spec['proxyDll'])
 (out/'plan.json').write_text(json.dumps({'proxyDlls':specs,'gameCodeIncluded':False},indent=2))

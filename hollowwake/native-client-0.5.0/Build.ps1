@@ -22,6 +22,14 @@ if($LASTEXITCODE){throw 'Original stack-probe ABI fixture assembly failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\StackProbeTest.cpp') (Join-Path $OutputDirectory 'StackProbeFixture.obj') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\StackProbeTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-probe-build.log')
 if($LASTEXITCODE){throw 'Stack-probe production resolver fixture compilation failed'}
 & "$OutputDirectory\StackProbeTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-probe-test.log');if($LASTEXITCODE){throw 'Actual stack-probe ABI/guard-page behavior failed'}
+# Focused fixes for the actual Xbox missing-binding inventory. Owned callbacks,
+# real scheduling/cancellation, and actual native D3D11 annotation operations.
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\MultimediaTimers.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\MultimediaTimersTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-build.log')
+if($LASTEXITCODE){throw 'Multimedia timer production compilation failed'}
+& "$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-test.log');if($LASTEXITCODE){throw 'Real timer cancellation/callback behavior failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\PerformanceMarkers.cpp') (Join-Path $source 'tests\PerformanceMarkersTest.cpp') kernel32.lib d3d11.lib /Fe:"$OutputDirectory\PerformanceMarkersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'performance-markers-build.log')
+if($LASTEXITCODE){throw 'Performance marker production compilation failed'}
+& "$OutputDirectory\PerformanceMarkersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'performance-markers-test.log');if($LASTEXITCODE){throw 'Native annotation dispatch/behavior failed'}
 # Original entry fixture validates actual OS thread/TLS/COM/stack behavior.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NativeClientThread.cpp') (Join-Path $source 'tests\NativeClientThreadTest.cpp') kernel32.lib ole32.lib /Fe:"$OutputDirectory\NativeClientThreadTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-build.log')
 if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
@@ -61,7 +69,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll')
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.4.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.5.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
@@ -124,7 +132,7 @@ try {
   foreach($proxy in $plan.proxyDlls){if(!$package.GetEntry($proxy.proxyDll)){throw 'Native import proxy missing from private APPX'}}
   $codeIndex=$package.GetEntry('package-code-index.json');if(!$codeIndex){throw 'Signed client code index missing'}
   $reader=[IO.StreamReader]::new($codeIndex.Open());try{$codePlan=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
-  if($codePlan.files.Count-ne 38){throw 'Unexpected installed client code count'}
+  if($codePlan.files.Count-ne 40){throw 'Unexpected installed client code count'}
   foreach($record in $codePlan.files){$entry=$package.GetEntry($record.path);if(!$entry-or $entry.Length-ne $record.bytes){throw 'Installed client code missing/resized'};$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open();try{$actual=([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()};if($actual-ne $record.sha256){throw 'Installed client code hash differs'}}
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }
