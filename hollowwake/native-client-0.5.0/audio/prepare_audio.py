@@ -26,7 +26,7 @@ def prepare(root):
  # supplies no implementation. Actual calls must still load/execute correctly.
  for header in ['dsound.h','dsconf.h','mmdeviceapi.h']:
   wrapper='hw_'+header
-  (root/'dsoal/src'/wrapper).write_text('#pragma once\n#include <windows.h>\n#pragma push_macro("WINAPI_FAMILY")\n#undef WINAPI_FAMILY\n#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP\n#include <mmreg.h>\n#include <'+header+'>\n#pragma pop_macro("WINAPI_FAMILY")\n')
+  (root/'dsoal/src'/wrapper).write_text('#pragma once\n#include <windows.h>\n#pragma push_macro("WINAPI_FAMILY")\n#undef WINAPI_FAMILY\n#define WINAPI_FAMILY WINAPI_FAMILY_DESKTOP_APP\n#include <ole2.h>\n#include <mmreg.h>\n#include <devpkey.h>\n#include <ks.h>\n#include <ksmedia.h>\n#include <'+header+'>\n#pragma pop_macro("WINAPI_FAMILY")\n')
   for file in (root/'dsoal/src').glob('*'):
    if file.suffix not in ['.h','.cpp'] or file.name.startswith('hw_'):continue
    text=file.read_text();text=text.replace('#include <'+header+'>','#include "'+wrapper+'"');file.write_text(text)
@@ -35,7 +35,8 @@ def prepare(root):
  s=s.replace('#define INITGUID','#define INITGUID\n#include <windows.h>\nextern "C" __declspec(dllimport) BOOL __cdecl HWRetainAudioModule(HMODULE);')
  begin=s.index('        if(const WCHAR *wstr{_wgetenv');end=s.index('        TRACE("Initializing library',begin)
  s=s[:begin]+'#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)\n'+s[begin:end]+'#endif\n'+s[end:];p.write_text(s)
- p=root/'dsoal/CMakeLists.txt';s=p.read_text();s+='\n# Hollowwake: candidate native DLL, no claim that flags alone port APIs.\nif(MSVC)\n target_link_options(dsound PRIVATE /APPCONTAINER)\n target_link_libraries(dsound PRIVATE "${HW_RUNTIME_LIBRARY}")\nendif()\n';p.write_text(s)
+ p=root/'dsoal/src/comhelpers.h';text=p.read_text();assert 'CoInitialize(nullptr)' in text;text=text.replace('CoInitialize(nullptr)', 'CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)');p.write_text(text)
+ p=root/'dsoal/CMakeLists.txt';s=p.read_text();s+='\n# Hollowwake: candidate native DLL, no claim that flags alone port APIs.\nif(MSVC)\n target_link_options(dsound PRIVATE /APPCONTAINER)\n target_compile_definitions(dsound PRIVATE WIN32_LEAN_AND_MEAN)\n target_link_libraries(dsound PRIVATE "${HW_RUNTIME_LIBRARY}")\nendif()\n';p.write_text(s)
  # Pinned NuGet version from upstream, official feed only, no floating package.
  p=root/'openal-soft/CMakeLists.txt';s=p.read_text();old='-Version ${ALSOFT_CPPWINRT_VERSION} -ExcludeVersion';assert old in s;s=s.replace(old,old+' -Source https://api.nuget.org/v3/index.json');p.write_text(s)
  (root/'source-review.json').write_text(json.dumps({'sources':records,'changes':['DSOAL driver LoadPackagedLibrary namespace','UWP CRT and narrow public SDK COM declarations', 'real runtime module retain instead of unavailable static loader import', 'desktop environment log configuration excluded from UWP','official pinned CppWinRT feed'],'scriptsReviewed':['root CMakeLists','version.cmake','OpenAL embed-data cmake','vendored fmt CMakeLists'],'upstreamSourceArchivesRetained':True,'gameExecuted':False,'xboxTested':False},indent=2))
