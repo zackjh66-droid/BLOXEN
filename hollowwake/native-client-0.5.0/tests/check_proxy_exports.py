@@ -39,4 +39,4 @@ for spec in plan['proxyDlls']:
   if actual[symbol]!=spec['sourceDll'][:-4]+'.'+symbol:fail('DATA forwarder differs: '+repr(actual[symbol])+' expected '+spec['sourceDll'][:-4]+'.'+symbol)
  rows.append({'dll':spec['proxyDll'],'exports':len(actual),'dataForwarders':spec.get('dataSymbols',[])})
 Path(a.report).write_text(json.dumps({'result':'PASS all exact native dependency proxies compile and preserve export inventory','proxies':rows,'gameCodeIncluded':False,'gameExecuted':False,'xboxTested':False},indent=2)+'\n')
-print('PASS all 14 exact dependency proxy DLLs: real x64 AppContainer images, exports and DATA forwarder; no game execution.')
+print('PASS all 15 exact dependency proxy DLLs: real x64 AppContainer images, exports and DATA forwarder; no game execution.')

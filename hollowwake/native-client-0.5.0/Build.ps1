@@ -1,5 +1,6 @@
-param([string]$OutputDirectory,[string]$PrivatePreparedDirectory,[string]$PrivateContentDirectory)
+param([string]$OutputDirectory,[string]$PrivatePreparedDirectory,[string]$PrivateContentDirectory,[string]$PrivateAudioDirectory)
 $ErrorActionPreference='Stop';$source=$PSScriptRoot;$repo=Split-Path $source -Parent
+if($PrivatePreparedDirectory-and !$PrivateAudioDirectory){throw 'Private client packaging requires the actual compiled audio provider directory'}
 if($PrivateContentDirectory-and !$PrivatePreparedDirectory){throw 'Bundled content requires the real private prepared native client'}
 if(Test-Path (Join-Path $source 'App\bundled-content.json')){throw 'Use a fresh source checkout; stale bundled content marker exists'}
 if(!$OutputDirectory){$OutputDirectory=Join-Path $source 'artifacts'}
@@ -70,10 +71,18 @@ if($LASTEXITCODE){throw 'Native DATA export fixture failed'}
 & (Join-Path $source 'tests\Test-ClientProxies.ps1') -OutputDirectory $OutputDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib') 2>&1|Tee-Object (Join-Path $OutputDirectory 'client-proxy-build.log')
 if($LASTEXITCODE){throw 'Exact dependency proxy build failed'}
 if($PrivatePreparedDirectory){
+ if(!$PrivateAudioDirectory){throw 'Real DirectSound integration requires the reviewed built audio provider directory; do not package missing providers'}
+ $audioReceipt=Get-Content (Join-Path $PrivateAudioDirectory 'audio-build.json') -Raw|ConvertFrom-Json
+ foreach($audioName in @('HWAUD.dll','dsoal-aldrv.dll')){
+  $audioPath=Join-Path $PrivateAudioDirectory $audioName
+  $expectedAudio=if($audioName-eq 'HWAUD.dll'){$audioReceipt.dsoalSha256}else{$audioReceipt.openalSha256}
+  if((Get-FileHash $audioPath -Algorithm SHA256).Hash.ToLowerInvariant()-ne $expectedAudio){throw 'Compiled audio provider hash differs from build receipt'}
+  Copy-Item $audioPath (Join-Path $source 'App')
+ }
  & (Join-Path $source 'private-package\Build-Proxies.ps1') -PreparedDirectory $PrivatePreparedDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib')
  Copy-Item (Join-Path $PrivatePreparedDirectory 'GamePayload\*') (Join-Path $source 'App') -Recurse -Force
  $privatePlan=Get-Content (Join-Path $PrivatePreparedDirectory 'plan.json') -Raw|ConvertFrom-Json
- $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll')
+ $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
  $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.5.0"')|Set-Content -Encoding UTF8 $privateManifest
@@ -139,7 +148,7 @@ try {
   foreach($proxy in $plan.proxyDlls){if(!$package.GetEntry($proxy.proxyDll)){throw 'Native import proxy missing from private APPX'}}
   $codeIndex=$package.GetEntry('package-code-index.json');if(!$codeIndex){throw 'Signed client code index missing'}
   $reader=[IO.StreamReader]::new($codeIndex.Open());try{$codePlan=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
-  if($codePlan.files.Count-ne 41){throw 'Unexpected installed client code count'}
+  if($codePlan.files.Count-ne 44){throw 'Unexpected installed client code count'}
   foreach($record in $codePlan.files){$entry=$package.GetEntry($record.path);if(!$entry-or $entry.Length-ne $record.bytes){throw 'Installed client code missing/resized'};$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open();try{$actual=([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()};if($actual-ne $record.sha256){throw 'Installed client code hash differs'}}
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }

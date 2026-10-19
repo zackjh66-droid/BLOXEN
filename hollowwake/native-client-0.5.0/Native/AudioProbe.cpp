@@ -1,5 +1,6 @@
 // Original functional check of reviewed audio providers. No game code runs.
 #include <windows.h>
+#include "AudioProvider.h"
 #include <unknwn.h>
 #include <fstream>
 #include <vector>
@@ -13,7 +14,7 @@ struct AudioApi {
 BOOL CALLBACK Capture(const GUID*,LPCWSTR,LPCWSTR,LPVOID state){++*static_cast<unsigned*>(state);return TRUE;}
 }
 extern "C" __declspec(dllexport) int __cdecl HWAudioProviderProbe(const wchar_t* report){
- if(!report)return E_POINTER;HRESULT result=E_FAIL,createResult=E_PENDING,captureResult=E_PENDING;DWORD loadError=0;bool mixed=false;unsigned callbacks=0;HMODULE ds=nullptr,al=nullptr;const char* stage="LoadPackagedLibrary HWAUD.dll";
+ if(!report)return E_POINTER;HRESULT result=E_FAIL,createResult=E_PENDING,captureCreateResult=E_PENDING,captureResult=E_PENDING;DWORD loadError=0;bool mixed=false;unsigned callbacks=0;HMODULE ds=nullptr,al=nullptr;const char* stage="LoadPackagedLibrary HWAUD.dll";
  do {
   ds=LoadPackagedLibrary(L"HWAUD.dll",0);if(!ds){loadError=GetLastError();result=HRESULT_FROM_WIN32(loadError);break;}
   stage="LoadPackagedLibrary dsoal-aldrv.dll";al=LoadPackagedLibrary(L"dsoal-aldrv.dll",0);if(!al){loadError=GetLastError();result=HRESULT_FROM_WIN32(loadError);break;}
@@ -33,13 +34,16 @@ extern "C" __declspec(dllexport) int __cdecl HWAudioProviderProbe(const wchar_t*
   using Create=HRESULT(WINAPI*)(const GUID*,IUnknown**,IUnknown*);using Enumerate=HRESULT(WINAPI*)(decltype(&Capture),void*);
   auto create=Symbol<Create>(ds,"DirectSoundCreate8");auto capture=Symbol<Enumerate>(ds,"DirectSoundCaptureEnumerateW");auto captureCreate=Symbol<Create>(ds,"DirectSoundCaptureCreate8");
   if(!create||!capture||!captureCreate){result=HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);break;}
+  stage="Production DirectSound ordinal/name dispatch";
+  if(ResolveAudioProviderImport("DSOUND.dll","#8")!=reinterpret_cast<void*>(capture)||ResolveAudioProviderImport("DSOUND.dll","#11")!=reinterpret_cast<void*>(create)||ResolveAudioProviderImport("DSOUND.dll","#12")!=reinterpret_cast<void*>(captureCreate)||ResolveAudioProviderImport("DSOUND.dll","#9")||ResolveAudioProviderImport("unrelated.dll","#11")){result=E_FAIL;break;}
   // Real endpoint creation may report no audio device on a hosted runner. Record
   // that precise result; the loopback mixer is not a claim of audible playback.
   IUnknown* playback=nullptr;createResult=create(nullptr,&playback,nullptr);if(playback)playback->Release();
+  IUnknown* recording=nullptr;captureCreateResult=captureCreate(nullptr,&recording,nullptr);if(recording)recording->Release();
   captureResult=capture(&Capture,&callbacks);if(FAILED(captureResult)){result=captureResult;break;}
   result=S_OK;stage="Provider loading and PCM mixing complete; endpoint result recorded";
  }while(false);
  if(al)FreeLibrary(al);if(ds)FreeLibrary(ds);
  std::ofstream out(report,std::ios::trunc);if(!out)return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
- out<<"{\"scope\":\"Original hosted UWP audio implementation test; no game/Xbox execution\",\"hresult\":"<<static_cast<long>(result)<<",\"stage\":\""<<stage<<"\",\"loadError\":"<<loadError<<",\"pcmMixed\":"<<(mixed?"true":"false")<<",\"directSoundCreateHresult\":"<<static_cast<long>(createResult)<<",\"captureEnumerateHresult\":"<<static_cast<long>(captureResult)<<",\"captureCallbacks\":"<<callbacks<<",\"gameExecuted\":false,\"xboxTested\":false}";out.flush();return out.good()?result:HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+ out<<"{\"scope\":\"Original hosted UWP audio implementation test; no game/Xbox execution\",\"hresult\":"<<static_cast<long>(result)<<",\"stage\":\""<<stage<<"\",\"loadError\":"<<loadError<<",\"pcmMixed\":"<<(mixed?"true":"false")<<",\"directSoundCreateHresult\":"<<static_cast<long>(createResult)<<",\"captureCreateHresult\":"<<static_cast<long>(captureCreateResult)<<",\"captureEnumerateHresult\":"<<static_cast<long>(captureResult)<<",\"captureCallbacks\":"<<callbacks<<",\"gameExecuted\":false,\"xboxTested\":false}";out.flush();return out.good()?result:HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 }

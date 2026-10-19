@@ -209,7 +209,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   std::wstring file=std::wstring(location->Data())+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
   auto size=in.tellg();if(size!=100733440){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
-  static const BYTE expected[32]={0x1e,0x9b,0xcf,0x2e,0xf1,0x65,0xcf,0x9e,0x13,0x45,0xba,0x74,0xc8,0x34,0x32,0xdf,0x3b,0xb5,0x01,0x37,0xfc,0xd4,0x9d,0x23,0x39,0x51,0xf3,0xca,0x88,0x71,0x4a,0x31};
+  static const BYTE expected[32]={0xee,0xd1,0x5d,0xff,0x7c,0x61,0x06,0xb1,0xe0,0xa3,0x3b,0x16,0x3d,0x7c,0x12,0x74,0x9a,0x06,0x9e,0x6f,0x86,0xac,0x23,0x22,0x5f,0xfe,0x1a,0xa0,0xd5,0x35,0xbe,0xfd};
   if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}auto clientDos=reinterpret_cast<const IMAGE_DOS_HEADER*>(bytes.data());
   if(clientDos->e_magic!=IMAGE_DOS_SIGNATURE||clientDos->e_lfanew<64||!Range(clientDos->e_lfanew,sizeof(IMAGE_NT_HEADERS64),bytes.size()))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
   auto clientHeaders=reinterpret_cast<const IMAGE_NT_HEADERS64*>(bytes.data()+clientDos->e_lfanew);

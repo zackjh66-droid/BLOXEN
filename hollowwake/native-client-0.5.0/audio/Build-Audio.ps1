@@ -27,6 +27,10 @@ if(!(Test-Path $ds)-or !(Test-Path $al)){throw 'Expected audio output missing'}
 Copy-Item $ds (Join-Path $OutputDirectory 'HWAUD.dll');Copy-Item $al (Join-Path $OutputDirectory 'dsoal-aldrv.dll')
 & dumpbin.exe /nologo /imports $ds 2>&1|Tee-Object (Join-Path $OutputDirectory 'dsoal-imports.log')
 & dumpbin.exe /nologo /imports $al 2>&1|Tee-Object (Join-Path $OutputDirectory 'openal-imports.log')
+python -m pip install --disable-pip-version-check pefile==2024.8.26
+if($LASTEXITCODE){throw 'Pinned provider PE reader unavailable'}
+python (Join-Path (Split-Path $PSScriptRoot -Parent) 'tests/ProviderInventory.py') $OutputDirectory (Join-Path $OutputDirectory 'provider-imports.json') HWAUD.dll dsoal-aldrv.dll
+if($LASTEXITCODE){throw 'Actual additional provider inventory failed'}
 Copy-Item (Join-Path $source 'dsoal.tar.gz') $OutputDirectory;Copy-Item (Join-Path $source 'openal-soft.tar.gz') $OutputDirectory
 Copy-Item (Join-Path $PSScriptRoot 'prepare_audio.py') $OutputDirectory;Copy-Item (Join-Path $PSScriptRoot 'Build-Audio.ps1') $OutputDirectory
 @{scope='Audio candidate compilation only; not integrated, API behavior or Xbox validation';dsoalSha256=(Get-FileHash $ds -Algorithm SHA256).Hash.ToLowerInvariant();openalSha256=(Get-FileHash $al -Algorithm SHA256).Hash.ToLowerInvariant();xboxTested=$false;gameExecuted=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'audio-build.json')
