@@ -3,17 +3,31 @@ The upstream UWP GDI placeholders are replaced, not counted as implementation.
 Only the D3D12 renderer is selected; optional GPL swap allocator is disabled.
 """
 from pathlib import Path
-import argparse,hashlib,json,tarfile,urllib.request
+import argparse,hashlib,json,tarfile,urllib.request,posixpath,shutil
 PIN='2c7c63ec2802571f8d1b7c038e8277d5db27aecf'
 SHA='bfc09d77bed4c81a681fb68fe4f111d7945aabe549ea171a74ecc76dc62754f8'
 def prepare(output):
  root=Path(output);root.mkdir(parents=True,exist_ok=False);archive=root/'mesa-source.tar.gz';url='https://codeload.github.com/aerisarn/mesa-uwp/tar.gz/'+PIN;urllib.request.urlretrieve(url,archive)
  if hashlib.sha256(archive.read_bytes()).hexdigest()!=SHA:raise ValueError('Pinned Mesa source differs')
  with tarfile.open(archive) as package:
+  regular=[];links=[];prefix='mesa-uwp-'+PIN
   for member in package:
    p=Path(member.name)
-   if p.is_absolute() or '..' in p.parts or not p.parts or p.parts[0]!='mesa-uwp-'+PIN or not (member.isdir() or member.isfile()):raise ValueError('Unsafe/unexpected Mesa source entry')
-  package.extractall(root,filter='data')
+   if p.is_absolute() or '..' in p.parts or not p.parts or p.parts[0]!=prefix:raise ValueError('Unsafe Mesa source entry')
+   if member.issym():
+    target=posixpath.normpath(posixpath.join(posixpath.dirname(member.name),member.linkname));parts=Path(target).parts
+    if not parts or parts[0]!=prefix or '..' in parts or Path(member.linkname).is_absolute():raise ValueError('Mesa source link leaves pinned tree')
+    links.append((member.name,target))
+   elif member.isfile() or member.isdir():regular.append(member)
+   else:raise ValueError('Unexpected Mesa source entry type')
+  package.extractall(root,members=regular,filter='data')
+  # Windows needs no symlink privilege: materialize only verified internal source
+  # links after all regular targets exist. The original tar remains unchanged.
+  for name,target in links:
+   original=root/target;destination=root/name
+   if not original.exists() or destination.exists() or original.is_symlink():raise ValueError('Invalid source link target')
+   if original.is_dir():shutil.copytree(original,destination)
+   else:shutil.copy2(original,destination)
  source=root/('mesa-uwp-'+PIN);source.rename(root/'mesa');source=root/'mesa'
  # Official public DirectX header source, pinned to the fork's selected release.
  dxpin='c0f2af8af649833910786f38eb79cc333c77b1a6';dxsha='946e863c684c9264d21f890e3961d55f9a0318981865cf2a82e9afd4d72e3898'

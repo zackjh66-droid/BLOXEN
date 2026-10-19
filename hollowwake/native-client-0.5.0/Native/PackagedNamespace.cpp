@@ -8,9 +8,10 @@
 #include <cstring>
 #include <cwchar>
 #include <algorithm>
+#include <vector>
 namespace {
 std::recursive_mutex gate;
-std::wstring mainName,command;std::string commandA;
+std::wstring mainName,originalMainPath;std::string originalMainBase;std::wstring command;std::string commandA;
 struct Facade {std::string name;};std::map<std::string,Facade> facades;
 std::map<std::string,std::wstring> packaged;
 std::wstring packageRoot;std::map<std::wstring,std::string> pathAliases;
@@ -29,7 +30,7 @@ HMODULE NativeModule(const std::string& name){using Get=HMODULE(WINAPI*)(LPCWSTR
 bool Known(HMODULE handle){if(!handle)return false;if(handle==Main())return true;for(auto& item:packaged)if(handle==NativeModule(item.first))return true;return false;}
 Facade* Virtual(HMODULE handle){for(auto& entry:facades)if(reinterpret_cast<HMODULE>(&entry.second)==handle)return &entry.second;return nullptr;}
 HMODULE WINAPI ModuleW(LPCWSTR name){std::lock_guard<std::recursive_mutex> lock(gate);if(!name)return Main();std::string key;if(!NormalizeKnown(name,key)){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
- std::string main;if(Normalize(mainName.c_str(),main)&&main==key)return Main();
+ std::string main;if(Normalize(mainName.c_str(),main)&&(main==key||originalMainBase==key))return Main();
  if(packaged.count(key))return NativeModule(key);
  if(!Hollowwake::NativeSystemFacadeAvailable(key.c_str())){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
  auto& entry=facades[key];entry.name=key;return reinterpret_cast<HMODULE>(&entry);
@@ -61,14 +62,39 @@ BOOL WINAPI Release(HMODULE h){std::lock_guard<std::recursive_mutex> lock(gate);
  // unmap executing code. This is a pinned-module policy, not a successful unload.
  if(h!=Main()&&Known(h))return ::FreeLibrary(h);SetLastError(h==Main()?ERROR_ACCESS_DENIED:ERROR_INVALID_HANDLE);return FALSE;
 }
-DWORD WINAPI FilenameW(HMODULE h,LPWSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> lock(gate);if(!h)h=Main();if(!h||!Known(h)){SetLastError(ERROR_INVALID_HANDLE);return 0;}using Get=DWORD(WINAPI*)(HMODULE,LPWSTR,DWORD);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameW"));return get?get(h,output,capacity):0;}
-DWORD WINAPI FilenameA(HMODULE h,LPSTR output,DWORD capacity){std::lock_guard<std::recursive_mutex> lock(gate);if(!h)h=Main();if(!h||!Known(h)){SetLastError(ERROR_INVALID_HANDLE);return 0;}using Get=DWORD(WINAPI*)(HMODULE,LPSTR,DWORD);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameA"));return get?get(h,output,capacity):0;}
+DWORD WINAPI FilenameW(HMODULE h,LPWSTR output,DWORD capacity){
+ std::lock_guard<std::recursive_mutex> lock(gate);if(!h)h=Main();if(!h||!Known(h)){SetLastError(ERROR_INVALID_HANDLE);return 0;}
+ if(h==Main()&&!originalMainPath.empty()){
+  if(!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}if(!output){SetLastError(ERROR_INVALID_PARAMETER);return 0;}
+  auto count=(std::min)(originalMainPath.size(),static_cast<size_t>(capacity-1));std::wmemcpy(output,originalMainPath.data(),count);output[count]=0;
+  if(originalMainPath.size()>=capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return capacity;}return static_cast<DWORD>(count);
+ }
+ using Get=DWORD(WINAPI*)(HMODULE,LPWSTR,DWORD);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameW"));return get?get(h,output,capacity):0;
+}
+DWORD WINAPI FilenameA(HMODULE h,LPSTR output,DWORD capacity){
+ std::lock_guard<std::recursive_mutex> lock(gate);if(!h)h=Main();if(!h||!Known(h)){SetLastError(ERROR_INVALID_HANDLE);return 0;}
+ if(h==Main()&&!originalMainPath.empty()){
+  if(!capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return 0;}if(!output){SetLastError(ERROR_INVALID_PARAMETER);return 0;}
+  int required=WideCharToMultiByte(CP_ACP,0,originalMainPath.c_str(),-1,nullptr,0,nullptr,nullptr);if(!required)return 0;std::vector<char> bytes(required);if(!WideCharToMultiByte(CP_ACP,0,originalMainPath.c_str(),-1,bytes.data(),required,nullptr,nullptr))return 0;
+  auto count=(std::min)(static_cast<size_t>(required-1),static_cast<size_t>(capacity-1));memcpy(output,bytes.data(),count);output[count]=0;
+  if(static_cast<DWORD>(required)>capacity){SetLastError(ERROR_INSUFFICIENT_BUFFER);return capacity;}return required-1;
+ }
+ using Get=DWORD(WINAPI*)(HMODULE,LPSTR,DWORD);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameA"));return get?get(h,output,capacity):0;
+}
 LPWSTR WINAPI CommandW(){return command.empty()?nullptr:&command[0];}LPSTR WINAPI CommandA(){return commandA.empty()?nullptr:&commandA[0];}
 }
 namespace Hollowwake {
 char* __cdecl PackagedWinMainTail(){std::lock_guard<std::recursive_mutex> lock(gate);if(commandA.empty())return nullptr;size_t i=0;bool quoted=false;while(i<commandA.size()){char c=commandA[i];if(c=='"')quoted=!quoted;else if(!quoted&&(c==' '||c=='\t'))break;++i;}while(i<commandA.size()&&(commandA[i]==' '||commandA[i]=='\t'))++i;return &commandA[0]+i;}
 bool ConfigurePackagedRoot(const wchar_t* root){std::lock_guard<std::recursive_mutex> lock(gate);auto path=Canonical(root);if(path.empty()||(!packageRoot.empty()&&packageRoot!=path))return false;packageRoot=path;return true;}
 bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relative,const wchar_t* original){std::lock_guard<std::recursive_mutex> lock(gate);std::string key;if(!Normalize(module,key)||!relative||!relative[0]||wcsnlen_s(relative,512)==512||NativeSystemFacadeAvailable(key.c_str()))return false;std::wstring path(relative);if(path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;for(auto c:path)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'/'||c==L'\\'))return false;if(packageRoot.empty()||!original||wcsnlen_s(original,512)==512)return false;auto origin=Canonical(original);if(origin.empty()||origin[0]==L'\\'||origin.find(L':')!=std::wstring::npos||origin.find(L"..")!=std::wstring::npos)return false;pathAliases[packageRoot+L"\\"+origin]=key;auto old=packaged.find(key);if(old!=packaged.end())return old->second==path;packaged[key]=path;return true;}
+bool RegisterPackagedMainIdentity(const wchar_t* original){
+ std::lock_guard<std::recursive_mutex> lock(gate);if(!original||wcsnlen_s(original,512)==512||packageRoot.empty()||mainName.empty())return false;
+ std::wstring relative(original);for(auto& c:relative)if(c==L'/')c=L'\\';if(relative.empty()||relative[0]==L'\\'||relative.find(L':')!=std::wstring::npos||relative.find(L"..")!=std::wstring::npos)return false;
+ for(auto c:relative)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'\\'))return false;
+ auto slash=relative.find_last_of(L'\\');auto base=relative.substr(slash==std::wstring::npos?0:slash+1);std::string key,physical;if(!Normalize(base.c_str(),key)||key.size()<5||key.substr(key.size()-4)!=".exe"||!Normalize(mainName.c_str(),physical))return false;
+ auto path=packageRoot+L"\\"+relative;if(!originalMainPath.empty())return originalMainPath==path;
+ originalMainPath=path;originalMainBase=key;pathAliases[Canonical(path.c_str())]=physical;pathAliases[Canonical(relative.c_str())]=physical;return true;
+}
 bool ConfigurePackagedNamespace(const wchar_t* name,const wchar_t* line){std::lock_guard<std::recursive_mutex> lock(gate);std::string normalized;if(!Normalize(name,normalized)||!line||wcsnlen_s(line,32768)==32768)return false;
  // Stable command pointers are retained for process lifetime; reconfiguration
  // after a first successful setup would invalidate CRT-held pointers.

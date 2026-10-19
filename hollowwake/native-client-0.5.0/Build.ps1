@@ -22,6 +22,13 @@ if($LASTEXITCODE){throw 'Original stack-probe ABI fixture assembly failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\StackProbeTest.cpp') (Join-Path $OutputDirectory 'StackProbeFixture.obj') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\StackProbeTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-probe-build.log')
 if($LASTEXITCODE){throw 'Stack-probe production resolver fixture compilation failed'}
 & "$OutputDirectory\StackProbeTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-probe-test.log');if($LASTEXITCODE){throw 'Actual stack-probe ABI/guard-page behavior failed'}
+# Converted executable identity uses the original logical path without changing
+# OS DLL ownership. This fixture executes only our original small module.
+& cl.exe /nologo /std:c++17 /EHsc /MD /LD (Join-Path $source 'tests\PackagedIdentityFixture.cpp') /link /OUT:"$OutputDirectory\OwnedIdentity.dll" 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-fixture-build.log')
+if($LASTEXITCODE){throw 'Owned identity module compilation failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\PackagedNamespace.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $repo 'runtime-native-route\NativeProxyDispatch.cpp') (Join-Path $source 'tests\PackagedIdentityTest.cpp') kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$OutputDirectory\PackagedIdentityTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-build.log')
+if($LASTEXITCODE){throw 'Packaged identity compilation failed'}
+& "$OutputDirectory\PackagedIdentityTest.exe" (Join-Path $OutputDirectory 'OwnedIdentity.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-test.log');if($LASTEXITCODE){throw 'Converted main identity behavior failed'}
 # Focused fixes for the actual Xbox missing-binding inventory. Owned callbacks,
 # real scheduling/cancellation, and actual native D3D11 annotation operations.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\MultimediaTimers.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\MultimediaTimersTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-build.log')
