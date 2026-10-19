@@ -1,0 +1,759 @@
+{
+  "scope": "Selection report, not proof that all dynamic client dependencies are satisfied",
+  "sourceFiles": 351,
+  "sourceExpandedBytes": 26771777271,
+  "selectedDataFiles": 139,
+  "selectedDataBytes": 26449827840,
+  "selectedNativeImages": 26,
+  "excludedSourceFiles": [
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/d3dcompiler_43.dll",
+      "bytes": 2106256
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/d3dcompiler_47.dll",
+      "bytes": 4479376
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libEGL.dll",
+      "bytes": 98704
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/CEF3/Win64/libGLESv2.dll",
+      "bytes": 3928464
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Clothing_x64.dll",
+      "bytes": 1225104
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Legacy_x64.dll",
+      "bytes": 3335568
+    },
+    {
+      "path": "6.21/Engine/Binaries/ThirdParty/Windows/DirectX/x64/WinPixEventRuntime.dll",
+      "bytes": 34704
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-console-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-datetime-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-debug-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-errorhandling-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-file-l1-1-0.dll",
+      "bytes": 12688
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-file-l1-2-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-file-l2-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-handle-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-heap-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-interlocked-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-libraryloader-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-localization-l1-2-0.dll",
+      "bytes": 11664
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-memory-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-namedpipe-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-processenvironment-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-processthreads-l1-1-0.dll",
+      "bytes": 11152
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-processthreads-l1-1-1.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-profile-l1-1-0.dll",
+      "bytes": 8592
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-rtlsupport-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-string-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-synch-l1-1-0.dll",
+      "bytes": 11152
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-synch-l1-2-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-sysinfo-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-timezone-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-core-util-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-conio-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-convert-l1-1-0.dll",
+      "bytes": 13200
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-environment-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-filesystem-l1-1-0.dll",
+      "bytes": 11152
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-heap-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-locale-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-math-l1-1-0.dll",
+      "bytes": 18320
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-multibyte-l1-1-0.dll",
+      "bytes": 17296
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-private-l1-1-0.dll",
+      "bytes": 61328
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-process-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-runtime-l1-1-0.dll",
+      "bytes": 13712
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-stdio-l1-1-0.dll",
+      "bytes": 15248
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-string-l1-1-0.dll",
+      "bytes": 15248
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-time-l1-1-0.dll",
+      "bytes": 11664
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/api-ms-win-crt-utility-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/concrt140.dll",
+      "bytes": 333200
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/CrashReportClient.exe",
+      "bytes": 18492816
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/msvcp140.dll",
+      "bytes": 666000
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/msvcp140_1.dll",
+      "bytes": 21904
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/ucrtbase.dll",
+      "bytes": 973200
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/UnrealCEFSubProcess.exe",
+      "bytes": 3699600
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/vccorlib140.dll",
+      "bytes": 376720
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/vcruntime140.dll",
+      "bytes": 79248
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/X3DAudio1_7.dll",
+      "bytes": 24976
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/XAPOFX1_5.dll",
+      "bytes": 77712
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/XAudio2_7.dll",
+      "bytes": 518544
+    },
+    {
+      "path": "6.21/Engine/Binaries/Win64/xinput1_3.dll",
+      "bytes": 103824
+    },
+    {
+      "path": "6.21/Engine/Programs/CrashReportClient/Content/Paks/CrashReportClient.pak",
+      "bytes": 28907403
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/ThirdParty/Vivox/Win64/vivoxplatform.dll",
+      "bytes": 179600
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-console-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-datetime-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-debug-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-errorhandling-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-file-l1-1-0.dll",
+      "bytes": 12688
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-file-l1-2-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-file-l2-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-handle-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-heap-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-interlocked-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-libraryloader-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-localization-l1-2-0.dll",
+      "bytes": 11664
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-memory-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-namedpipe-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-processenvironment-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-processthreads-l1-1-0.dll",
+      "bytes": 11152
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-processthreads-l1-1-1.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-profile-l1-1-0.dll",
+      "bytes": 8592
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-rtlsupport-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-string-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-synch-l1-1-0.dll",
+      "bytes": 11152
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-synch-l1-2-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-sysinfo-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-timezone-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-core-util-l1-1-0.dll",
+      "bytes": 9104
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-conio-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-convert-l1-1-0.dll",
+      "bytes": 13200
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-environment-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-filesystem-l1-1-0.dll",
+      "bytes": 11152
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-heap-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-locale-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-math-l1-1-0.dll",
+      "bytes": 18320
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-multibyte-l1-1-0.dll",
+      "bytes": 17296
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-private-l1-1-0.dll",
+      "bytes": 61328
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-process-l1-1-0.dll",
+      "bytes": 10128
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-runtime-l1-1-0.dll",
+      "bytes": 13712
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-stdio-l1-1-0.dll",
+      "bytes": 15248
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-string-l1-1-0.dll",
+      "bytes": 15248
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-time-l1-1-0.dll",
+      "bytes": 11664
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/api-ms-win-crt-utility-l1-1-0.dll",
+      "bytes": 9616
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/BEClient_x64.dll",
+      "bytes": 4276232
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/BELauncher.ini",
+      "bytes": 128
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/BEService_x64.exe",
+      "bytes": 7356680
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/EULA.txt",
+      "bytes": 2758
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/Install_BattlEye.bat",
+      "bytes": 79
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/Privacy/en-US.txt",
+      "bytes": 1323
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/BattlEye/Uninstall_BattlEye.bat",
+      "bytes": 79
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Certificates/game.bin",
+      "bytes": 386543
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Certificates/game.cer",
+      "bytes": 1337
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/EasyAntiCheat_Setup.exe",
+      "bytes": 802432
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/EasyAntiCheat_x64.dll",
+      "bytes": 792704
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/EasyAntiCheat_x86.dll",
+      "bytes": 676480
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Launcher/Settings.json",
+      "bytes": 355
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Launcher/SplashScreen.png",
+      "bytes": 319289
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Licenses/Apache-2.0.txt",
+      "bytes": 11560
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Licenses/CCO-1.0.txt",
+      "bytes": 997
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Licenses/LGPL-2.1.txt",
+      "bytes": 27032
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Licenses/Licenses.txt",
+      "bytes": 16174
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Licenses/MIT.txt",
+      "bytes": 1093
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/ar_sa.cfg",
+      "bytes": 7481
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/cs_cz.cfg",
+      "bytes": 6747
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/de_de.cfg",
+      "bytes": 6593
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/en_us.cfg",
+      "bytes": 6093
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/es_ar.cfg",
+      "bytes": 6685
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/es_es.cfg",
+      "bytes": 6735
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/fr_fr.cfg",
+      "bytes": 6761
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/it_it.cfg",
+      "bytes": 6343
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/ja_ja.cfg",
+      "bytes": 7799
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/ko_kr.cfg",
+      "bytes": 6985
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/nl_nl.cfg",
+      "bytes": 6342
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/pl_pl.cfg",
+      "bytes": 6778
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/pt_br.cfg",
+      "bytes": 6592
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/ru_ru.cfg",
+      "bytes": 8826
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/th_th.cfg",
+      "bytes": 11003
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/tr_tr.cfg",
+      "bytes": 6236
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/zh_cn.cfg",
+      "bytes": 5699
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/EasyAntiCheat/Localization/zh_tw.cfg",
+      "bytes": 5682
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_BE.exe",
+      "bytes": 753552
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping_EAC.exe",
+      "bytes": 1086864
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/FortniteLauncher.exe",
+      "bytes": 147968
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/imgui.ini",
+      "bytes": 188
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/Launcher.bat",
+      "bytes": 126
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/msvcp140_1.dll",
+      "bytes": 21904
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/ucrtbase.dll",
+      "bytes": 973200
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/vccorlib140.dll",
+      "bytes": 376720
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/XAudio2_7.dll",
+      "bytes": 518544
+    },
+    {
+      "path": "6.21/FortniteGame/Binaries/Win64/xinput1_3.dll",
+      "bytes": 103824
+    },
+    {
+      "path": "6.21/FortniteGame/Content/DefaultReplays/BR_FortBench.replay",
+      "bytes": 348342
+    },
+    {
+      "path": "6.21/FortniteGame/Content/DefaultReplays/BR_ProfileGo.replay",
+      "bytes": 1523252
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/CacheAccess.json",
+      "bytes": 3920
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/08StW_BombsquadKyle_SubgameSelect-1920x1080-4e747f76f1ec82f49481d83331586ce401bb4c73.jpg",
+      "bytes": 80466
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/14br-launch-modetiles-duos-1024x512-850175511.jpg",
+      "bytes": 64372
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/14br-launch-modetiles-solo-1024x512-850175411.jpg",
+      "bytes": 46185
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/14br-launch-modetiles-squad-1024x512-850175426.jpg",
+      "bytes": 72329
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/60X4GVE.png",
+      "bytes": 339060
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/71ieP90.png",
+      "bytes": 1090826
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/AGF-l79CQOPeiM3Ve_skW5DrQ2B_uFzEJ54pFBdvoQ=s900-c-k-c0xffffffff-no-rj-mo",
+      "bytes": 39037
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR04_MOTD_Shield-1024x512-75eacc957ecc88e76693143b6256ba06159efb76.jpg",
+      "bytes": 197451
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR06_In-Game_Mode-Select-1920x1080-4c0975cfecd29167b1c2ddf5d916fafbdcaa0f6c.jpg",
+      "bytes": 39918
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR06_In-Game_Upsell_How-Does-it-Work-1536x1536-21c3a9c040023a4cf837333bbe5d5877d9657fe5.png",
+      "bytes": 38912
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR06_In-Game_Upsell_Introducing-Pets-1535x1536-fe13d605526d62b73ac6ee3b00bda657b4f62e0d.png",
+      "bytes": 38912
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR06_In-Game_Upsell_What's-Inside-1536x1536-2af511e42fff324a0c81e99bc7e4b9cbe87e5c45.png",
+      "bytes": 38912
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR08_Subgameselect_BPLaunch_Luxe.MasterKey-1920x1080-1fffc078916ff8ed4e6155a439c7412031119650.jpg",
+      "bytes": 711617
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR_LobbyTileArt_Duo-512x512-5dea8dfae97bddcd4e204dd47bfb245d3f68fc7b.png",
+      "bytes": 39918
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR_LobbyTileArt_Solo-512x512-24446ea2a54612c5604ecf0e30475b4dec81c3bc.png",
+      "bytes": 39918
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR_LobbyTileArt_Squad-512x512-5225ec6ca3265611957834c2c549754fe1778449.png",
+      "bytes": 39918
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/BR_LTM-Tile_Playground-1024x512-53db8a4b5fb41251af279eaf923bc00ecbc17792.jpg",
+      "bytes": 39918
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/DohgY1i.png",
+      "bytes": 595722
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/hmcwzUY.png",
+      "bytes": 444076
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/ijNeDQ4.png",
+      "bytes": 1087852
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/jFi8Ntw.png",
+      "bytes": 362660
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/lcUvuOo.png",
+      "bytes": 433958
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/LTM_50v50-1024x512-788bf1a67426f54307c4296123ac2d3ff8cc0d6c.png",
+      "bytes": 39918
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/nXmBkeV.png",
+      "bytes": 595722
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/oIcTCWW.png",
+      "bytes": 319391
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/6CDF48F39951534EC8FE7577B66A0FC067E7C194/Files/szbU2QI.jpg",
+      "bytes": 277499
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/830C10216BD0608705BE0BE88A93DB21EE4382A0/CacheAccess.json",
+      "bytes": 312
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/CMS/830C10216BD0608705BE0BE88A93DB21EE4382A0/Files/AGF-l79CQOPeiM3Ve_skW5DrQ2B_uFzEJ54pFBdvoQ=s900-c-k-c0xffffffff-no-rj-mo",
+      "bytes": 39037
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/3460cbe1c57d4a838ace32951a4d7171",
+      "bytes": 0
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/7e2a66ce68554814b1bd0aa14351cd71",
+      "bytes": 0
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/a22d837b6a2b46349421259c0a5411bf",
+      "bytes": 81
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/b6c60402a72e4081a6a47c641371c19f",
+      "bytes": 0
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/b800b911053c4906a5bd399f46ae0055",
+      "bytes": 0
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/c52c1f9246eb48ce9dade87be5a66f29",
+      "bytes": 0
+    },
+    {
+      "path": "6.21/FortniteGame/PersistentDownloadDir/EMS/c7dee411e20a44ab930f841e8d206b1b",
+      "bytes": 0
+    }
+  ],
+  "originalArchiveModified": false,
+  "pakContentsRemoved": false,
+  "downloadArchiveRetained": false,
+  "downloadCompressedBytes": 12356022452,
+  "lobbyValidated": false
+}

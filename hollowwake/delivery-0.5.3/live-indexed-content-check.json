@@ -1,0 +1,11 @@
+{
+  "scope": "Static data-only live range check; no game execution",
+  "path": "6.21/FortniteGame/Content/Movies/SRT/FNBR_IntoTheStorm_SRT.en.srt",
+  "responseStatus": 206,
+  "compressedBytes": 71,
+  "expandedBytes": 127,
+  "sha256": "e998edb2aca65260265c6df21498864eeb88c352ce832d286dfe82a5a4b2ae26",
+  "source": "https://public-build-archives-bucket.erafn.dev/6.21.zip",
+  "wholeArchiveHashRemeasured": false,
+  "projectCredentialsSent": false
+}
