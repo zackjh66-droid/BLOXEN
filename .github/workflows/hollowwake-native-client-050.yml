@@ -16,10 +16,17 @@ jobs:
           persist-credentials: false
       - name: Build separate native-route package and focused production checks
         id: public_build
+        if: ${{ !contains(github.event.head_commit.message, '[audio-only]') }}
         shell: cmd
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
+      - name: Compile runtime only for focused audio iteration
+        if: ${{ contains(github.event.head_commit.message, '[audio-only]') }}
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          msbuild hollowwake\native-client-0.5.0\Native\Native.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo
       - name: Compile reviewed DirectSound and UWP OpenAL candidate
         id: audio_candidate
         if: ${{ always() && contains(github.event.head_commit.message, '[audio-uwp]') }}
