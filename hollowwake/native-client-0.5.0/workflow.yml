@@ -42,6 +42,15 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: ./hollowwake/native-client-0.5.0/audio/Test-AudioPackage.ps1 -ProviderDirectory artifacts/native-client-050/audio -OutputDirectory artifacts/native-client-050
+      - name: Preserve audio behavior evidence before the graphics build
+        if: ${{ always() && steps.audio_candidate.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-audio-provider-evidence
+          path: |
+            artifacts/native-client-050/audio/*.json
+            artifacts/native-client-050/native-audio-probe.json
+          retention-days: 3
       - name: Compile reviewed Mesa UWP WGL candidate
         id: mesa_candidate
         if: ${{ always() && contains(github.event.head_commit.message, '[mesa-uwp]') }}

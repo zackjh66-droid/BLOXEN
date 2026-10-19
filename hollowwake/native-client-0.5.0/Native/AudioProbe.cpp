@@ -1,10 +1,13 @@
 // Original functional check of reviewed audio providers. No game code runs.
 #include <windows.h>
 #include "AudioProvider.h"
+#include "PackagedNamespace.h"
+#include "../../runtime-native-route/NativeSystem.h"
 #include <unknwn.h>
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <cwchar>
 namespace {
 template<class T>T Symbol(HMODULE m,const char* name){return reinterpret_cast<T>(GetProcAddress(m,name));}
 struct AudioApi {
@@ -36,6 +39,13 @@ extern "C" __declspec(dllexport) int __cdecl HWAudioProviderProbe(const wchar_t*
   if(!create||!capture||!captureCreate){result=HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);break;}
   stage="Production DirectSound ordinal/name dispatch";
   if(ResolveAudioProviderImport("DSOUND.dll","#8")!=reinterpret_cast<void*>(capture)||ResolveAudioProviderImport("DSOUND.dll","#11")!=reinterpret_cast<void*>(create)||ResolveAudioProviderImport("DSOUND.dll","#12")!=reinterpret_cast<void*>(captureCreate)||ResolveAudioProviderImport("DSOUND.dll","#9")||ResolveAudioProviderImport("unrelated.dll","#11")){result=E_FAIL;break;}
+  stage="Guest module namespace with real packaged audio provider";
+  using Module=HMODULE(WINAPI*)(LPCWSTR);using Filename=DWORD(WINAPI*)(HMODULE,LPWSTR,DWORD);
+  auto hostModule=reinterpret_cast<Module>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));auto hostFilename=reinterpret_cast<Filename>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameW"));wchar_t root[32768];
+  if(!hostModule||!hostFilename||!hostFilename(hostModule(L"HollowwakeClientRuntime.dll"),root,32768)){result=E_FAIL;break;}auto slash=wcsrchr(root,L'\\');if(!slash){result=E_FAIL;break;}*slash=0;
+  if(!Hollowwake::ConfigurePackagedNamespace(L"HollowwakeClientRuntime.dll",L"Hollowwake owned audio provider test")||!Hollowwake::ConfigurePackagedRoot(root)||!Hollowwake::RegisterPackagedDependency(L"dsound.dll",L"HWAUD.dll",L"6.21/FortniteGame/Binaries/Win64/dsound.dll")){result=E_FAIL;break;}
+  auto guestModule=reinterpret_cast<Module>(Hollowwake::ResolvePackagedNamespaceImport("kernel32.dll","GetModuleHandleW"));auto guestLoad=reinterpret_cast<Module>(Hollowwake::ResolvePackagedNamespaceImport("kernel32.dll","LoadLibraryW"));auto guestProc=reinterpret_cast<decltype(&GetProcAddress)>(Hollowwake::ResolvePackagedNamespaceImport("kernel32.dll","GetProcAddress"));
+  if(!guestModule||!guestLoad||!guestProc||guestModule(L"dsound.dll")!=ds){result=E_FAIL;break;}auto extra=guestLoad(L"dsound.dll");if(!extra){result=HRESULT_FROM_WIN32(GetLastError());break;}bool actual=extra==ds&&guestProc(extra,reinterpret_cast<LPCSTR>(11))==reinterpret_cast<FARPROC>(create);FreeLibrary(extra);if(!actual){result=E_FAIL;break;}
   // Real endpoint creation may report no audio device on a hosted runner. Record
   // that precise result; the loopback mixer is not a claim of audible playback.
   IUnknown* playback=nullptr;createResult=create(nullptr,&playback,nullptr);if(playback)playback->Release();

@@ -46,12 +46,19 @@ def prepare(output):
  # A Mesa-selected system/provider module must come from the package graph.
  # Arbitrary writable-directory DLL loading is not permitted in this port.
  p=source/'src/util/u_dl.c';text=p.read_text();old='return (struct util_dl_library *)LoadLibraryA(filename);';assert text.count(old)==1
+ text=text.replace('#include <windows.h>', '#include <windows.h>\n__declspec(dllimport) HMODULE __cdecl HWLoadGraphicsSystemModule(LPCWSTR);')
  text=text.replace(old,'''wchar_t wide[260];
    if (!filename || !filename[0]) { SetLastError(ERROR_INVALID_NAME); return NULL; }
    for (const char *p = filename; *p; ++p)
       if (!((*p >= 'a' && *p <= 'z') || (*p >= 'A' && *p <= 'Z') || (*p >= '0' && *p <= '9') || *p == '.' || *p == '_' || *p == '-')) { SetLastError(ERROR_INVALID_NAME); return NULL; }
    if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filename, -1, wide, 260)) return NULL;
+   if (!_wcsicmp(wide, L"d3d12.dll") || !_wcsicmp(wide, L"dxgi.dll") || !_wcsicmp(wide, L"dxcore.dll")) return (struct util_dl_library *)HWLoadGraphicsSystemModule(wide);
    return (struct util_dl_library *)LoadPackagedLibrary(wide, 0);''');p.write_text(text)
+ # UWP validator loading uses only an explicit packaged public DXIL library.
+ # Do not search the current directory or select any GDK compiler binary.
+ p=source/'src/microsoft/compiler/dxil_validator.cpp';text=p.read_text();begin=text.index('   /* First, try to load DXIL.dll');end=text.index('\n}\n',begin)
+ text=text[:begin]+'   return LoadPackagedLibrary(L"DXIL.dll", 0);\n'+text[end:]
+ text=text.replace('LoadLibraryA("dxcompiler.dll")','LoadPackagedLibrary(L"dxcompiler.dll", 0)');p.write_text(text)
  # Official portable parser generators; used only as hosted build tools.
  parser=root/'win-flex-bison.zip';urllib.request.urlretrieve('https://github.com/lexxmark/winflexbison/releases/download/v2.5.25/win_flex_bison-2.5.25.zip',parser)
  if hashlib.sha256(parser.read_bytes()).hexdigest()!='8d324b62be33604b2c45ad1dd34ab93d722534448f55a16ca7292de32b6ac135':raise ValueError('Pinned parser tool archive differs')

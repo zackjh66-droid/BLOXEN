@@ -30,6 +30,11 @@ if($LASTEXITCODE){throw 'Owned identity module compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\PackagedNamespace.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $repo 'runtime-native-route\NativeProxyDispatch.cpp') (Join-Path $source 'tests\PackagedIdentityTest.cpp') kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$OutputDirectory\PackagedIdentityTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-build.log')
 if($LASTEXITCODE){throw 'Packaged identity compilation failed'}
 & "$OutputDirectory\PackagedIdentityTest.exe" (Join-Path $OutputDirectory 'OwnedIdentity.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-test.log');if($LASTEXITCODE){throw 'Converted main identity behavior failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\GraphicsModule.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\GraphicsModuleTest.cpp') kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$OutputDirectory\GraphicsModuleTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'graphics-module-build.log')
+if($LASTEXITCODE){throw 'Graphics module policy compilation failed'}
+& "$OutputDirectory\GraphicsModuleTest.exe" (Join-Path $OutputDirectory 'OwnedIdentity.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'graphics-module-test.log');if($LASTEXITCODE){throw 'Real graphics provider namespace failed'}
+& (Join-Path $source 'tests\Test-DelayLoadPolicy.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'delay-load-policy-test.log')
+if($LASTEXITCODE){throw 'Native normal/delay import policy did not match Windows behavior'}
 # Focused fixes for the actual Xbox missing-binding inventory. Owned callbacks,
 # real scheduling/cancellation, and actual native D3D11 annotation operations.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\MultimediaTimers.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\MultimediaTimersTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-build.log')

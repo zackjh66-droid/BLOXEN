@@ -11,7 +11,8 @@ std::string Json(const char* text){std::string s="\"";for(auto p=text;*p;++p){un
 struct Loaded {HMODULE handle=nullptr;DWORD error=0;const char* method="none";};
 FARPROC Symbol(HMODULE module,const char* name){if(name[0]!='#')return GetProcAddress(module,name);unsigned ordinal=0;for(auto p=name+1;*p;++p){if(*p<'0'||*p>'9'||ordinal>6553)return nullptr;ordinal=ordinal*10+*p-'0';}return ordinal&&ordinal<=65535?GetProcAddress(module,reinterpret_cast<LPCSTR>((ULONG_PTR)ordinal)):nullptr;}
 }
-unsigned AuditPlatformImports(const wchar_t* output){
+unsigned AuditPlatformImports(const wchar_t* output,unsigned* requiredMissing){
+ if(requiredMissing)*requiredMissing=(unsigned)-1;
  std::ofstream report(output,std::ios::trunc);if(!report){SetLastError(ERROR_WRITE_FAULT);return (unsigned)-1;}
  // The earlier package-only probe rejected even already loaded Windows DLLs.
  // Probe the actual system provider namespace: retain a loaded module or use
@@ -37,6 +38,6 @@ unsigned AuditPlatformImports(const wchar_t* output){
   if(!address){++missing;if(pair.normal)++normalMissing;if(pair.mainImage)++mainMissing;}
   if(total++)report<<',';report<<"\n{\"name\":"<<Json((std::string(pair.dll)+"!"+pair.symbol).c_str())<<",\"resolved\":"<<(address?"true":"false")<<",\"error\":"<<error<<",\"providerMethod\":"<<Json(method)<<",\"osResolved\":"<<(osResolved?"true":"false")<<",\"adapterBound\":"<<(method==std::string("hollowwake-startup-adapter")?"true":"false")<<",\"normalImport\":"<<(pair.normal?"true":"false")<<",\"mainImage\":"<<(pair.mainImage?"true":"false")<<'}';
  }
- report<<"\n],\"total\":"<<total<<",\"missing\":"<<missing<<",\"normalMissing\":"<<normalMissing<<",\"mainMissing\":"<<mainMissing<<",\"osMissing\":"<<osMissing<<",\"adapterCount\":"<<adapterCount<<",\"dlls\":"<<modules.size()<<",\"xboxTested\":false}";report.flush();bool written=report.good();for(auto& module:modules)if(module.second.handle)FreeLibrary(module.second.handle);
- if(!written){SetLastError(ERROR_WRITE_FAULT);return (unsigned)-1;}return missing;
+ report<<"\n],\"total\":"<<total<<",\"missing\":"<<missing<<",\"normalMissing\":"<<normalMissing<<",\"delayOnlyMissing\":"<<(missing-normalMissing)<<",\"mainMissing\":"<<mainMissing<<",\"osMissing\":"<<osMissing<<",\"adapterCount\":"<<adapterCount<<",\"dlls\":"<<modules.size()<<",\"xboxTested\":false}";report.flush();bool written=report.good();for(auto& module:modules)if(module.second.handle)FreeLibrary(module.second.handle);
+ if(!written){SetLastError(ERROR_WRITE_FAULT);return (unsigned)-1;}if(requiredMissing)*requiredMissing=normalMissing;return missing;
 }
