@@ -6,6 +6,7 @@ $source=Join-Path $env:RUNNER_TEMP 'HollowwakeReviewedMesaSources'
 python (Join-Path $PSScriptRoot 'prepare_mesa.py') $source
 if($LASTEXITCODE){throw 'Pinned Mesa preparation failed'}
 Copy-Item (Join-Path $source 'mesa-source-review.json') $OutputDirectory
+$env:PATH=(Join-Path $source 'parser-tools')+';'+$env:PATH
 python -m pip install --disable-pip-version-check meson==1.5.2 mako==1.3.8 packaging==24.2 ninja==1.11.1.3
 if($LASTEXITCODE){throw 'Legitimate pinned Mesa build tools unavailable'}
 $store=Join-Path $env:VCToolsInstallDir 'lib/x64/store'

@@ -147,6 +147,6 @@ jobs:
             artifacts/native-client-050/native-imports-unresolved.txt
           retention-days: 3
       - name: Reject requested provider compilation failures
-        if: ${{ always() && ((contains(github.event.head_commit.message, '[audio-uwp]') && steps.audio_candidate.outcome != 'success') || (contains(github.event.head_commit.message, '[mesa-uwp]') && steps.mesa_candidate.outcome != 'success')) }}
+        if: ${{ always() && ((contains(github.event.head_commit.message, '[audio-uwp]') && steps.audio_candidate.outcome != 'success') || (contains(github.event.head_commit.message, '[mesa-uwp]') && steps.mesa_candidate.outcome != 'success') || steps.audio_behavior.outcome == 'failure') }}
         shell: powershell
         run: throw 'Requested provider candidate did not compile. Inspect per-provider outcome and logs; no compatibility success is claimed.'
