@@ -14,7 +14,7 @@ std::recursive_mutex gate;
 std::wstring mainName,originalMainPath;std::string originalMainBase;std::wstring command;std::string commandA;
 struct Facade {std::string name;};std::map<std::string,Facade> facades;
 std::map<std::string,std::wstring> packaged;
-std::wstring packageRoot;std::map<std::wstring,std::string> pathAliases;
+std::wstring packageRoot,packageRootDisplay;std::map<std::wstring,std::string> pathAliases;
 bool Normalize(LPCWSTR value,std::string& name){
  if(!value)return false;
  for(unsigned i=0;i<256;++i){wchar_t c=value[i];if(!c){if(name.empty())return false;if(name.find('.')==std::string::npos)name+=".dll";return true;}
@@ -85,14 +85,14 @@ LPWSTR WINAPI CommandW(){return command.empty()?nullptr:&command[0];}LPSTR WINAP
 }
 namespace Hollowwake {
 char* __cdecl PackagedWinMainTail(){std::lock_guard<std::recursive_mutex> lock(gate);if(commandA.empty())return nullptr;size_t i=0;bool quoted=false;while(i<commandA.size()){char c=commandA[i];if(c=='"')quoted=!quoted;else if(!quoted&&(c==' '||c=='\t'))break;++i;}while(i<commandA.size()&&(commandA[i]==' '||commandA[i]=='\t'))++i;return &commandA[0]+i;}
-bool ConfigurePackagedRoot(const wchar_t* root){std::lock_guard<std::recursive_mutex> lock(gate);auto path=Canonical(root);if(path.empty()||(!packageRoot.empty()&&packageRoot!=path))return false;packageRoot=path;return true;}
+bool ConfigurePackagedRoot(const wchar_t* root){std::lock_guard<std::recursive_mutex> lock(gate);auto path=Canonical(root);if(path.empty()||(!packageRoot.empty()&&packageRoot!=path))return false;if(packageRoot.empty())packageRootDisplay=root;packageRoot=path;return true;}
 bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relative,const wchar_t* original){std::lock_guard<std::recursive_mutex> lock(gate);std::string key;if(!Normalize(module,key)||!relative||!relative[0]||wcsnlen_s(relative,512)==512||NativeSystemFacadeAvailable(key.c_str()))return false;std::wstring path(relative);if(path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;for(auto c:path)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'/'||c==L'\\'))return false;if(packageRoot.empty()||!original||wcsnlen_s(original,512)==512)return false;auto origin=Canonical(original);if(origin.empty()||origin[0]==L'\\'||origin.find(L':')!=std::wstring::npos||origin.find(L"..")!=std::wstring::npos)return false;pathAliases[packageRoot+L"\\"+origin]=key;auto old=packaged.find(key);if(old!=packaged.end())return old->second==path;packaged[key]=path;return true;}
 bool RegisterPackagedMainIdentity(const wchar_t* original){
  std::lock_guard<std::recursive_mutex> lock(gate);if(!original||wcsnlen_s(original,512)==512||packageRoot.empty()||mainName.empty())return false;
  std::wstring relative(original);for(auto& c:relative)if(c==L'/')c=L'\\';if(relative.empty()||relative[0]==L'\\'||relative.find(L':')!=std::wstring::npos||relative.find(L"..")!=std::wstring::npos)return false;
  for(auto c:relative)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'\\'))return false;
  auto slash=relative.find_last_of(L'\\');auto base=relative.substr(slash==std::wstring::npos?0:slash+1);std::string key,physical;if(!Normalize(base.c_str(),key)||key.size()<5||key.substr(key.size()-4)!=".exe"||!Normalize(mainName.c_str(),physical))return false;
- auto path=packageRoot+L"\\"+relative;if(!originalMainPath.empty())return originalMainPath==path;
+ auto path=packageRootDisplay+L"\\"+relative;if(!originalMainPath.empty())return originalMainPath==path;
  originalMainPath=path;originalMainBase=key;pathAliases[Canonical(path.c_str())]=physical;pathAliases[Canonical(relative.c_str())]=physical;return true;
 }
 bool ConfigurePackagedNamespace(const wchar_t* name,const wchar_t* line){std::lock_guard<std::recursive_mutex> lock(gate);std::string normalized;if(!Normalize(name,normalized)||!line||wcsnlen_s(line,32768)==32768)return false;

@@ -27,6 +27,7 @@ namespace Hollowwake
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWNativeWindowProbe(string reportPath);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWMultimediaTimerProbe(string reportPath);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWNetworkAvailabilityProbe(out uint flags,out uint error);
+        [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern int HWAudioProviderProbe(string reportPath);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWFactoryBridgePolicy();
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl,CharSet=CharSet.Unicode)] private static extern bool HWConfigureNetwork(string hostname,ushort port);
         [DllImport("HollowwakeClientRuntime.dll",CallingConvention=CallingConvention.Cdecl)] private static extern int HWClockContract();
@@ -100,6 +101,7 @@ namespace Hollowwake
                 catch(Exception ex){await ManagedLog("Native initialization HRESULT="+ex.HResult.ToString("X8"));}
                 finally{if(File.Exists(pending))File.Delete(pending);}
             }
+            if(App.AudioPreflight){var audioResult=await Task.Run(()=>HWAudioProviderProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-audio-probe.json")));StatusText.Text="Owned audio provider test HRESULT="+audioResult+". No game code ran.";return;}
             if(App.NativePreflight){try{await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("packaged-content-plan.json",CreationCollisionOption.ReplaceExisting),await ContentDownload.AuditPackagedPlan());var nativeWindowResult=await Task.Run(()=>HWNativeWindowProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-window-probe.json")));await ManagedLog("OWNED_NATIVE_WINDOW_ROUTE result="+nativeWindowResult+"; not Fortnite execution");if(await Task.Run(()=>HWMultimediaTimerProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-multimedia-timers.json")))<0)throw new InvalidOperationException("Actual UWP multimedia timer scheduling/cancellation failed");uint networkFlags,networkError;var networkResult=HWNetworkAvailabilityProbe(out networkFlags,out networkError);
                     bool knownLan=false,unknownNetwork=false;int activeProfiles=0;
                     foreach(var profile in Windows.Networking.Connectivity.NetworkInformation.GetConnectionProfiles()){

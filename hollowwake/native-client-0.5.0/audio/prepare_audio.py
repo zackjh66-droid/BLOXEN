@@ -36,6 +36,7 @@ def prepare(root):
  s=s.replace('#define INITGUID','#define INITGUID\n#include <windows.h>\nextern "C" __declspec(dllimport) BOOL __cdecl HWRetainAudioModule(HMODULE);')
  begin=s.index('        if(const WCHAR *wstr{_wgetenv');end=s.index('        TRACE("Initializing library',begin)
  s=s[:begin]+'#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)\n'+s[begin:end]+'#endif\n'+s[end:];p.write_text(s)
+ p=root/'dsoal/src/factory.h';text=p.read_text();assert '#include <windows.h>' in text;text=text.replace('#include <windows.h>','#include "hw_com_types.h"');p.write_text(text)
  p=root/'dsoal/src/comhelpers.h';text=p.read_text();assert 'CoInitialize(nullptr)' in text;text=text.replace('CoInitialize(nullptr)', 'CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)');p.write_text(text)
  p=root/'dsoal/CMakeLists.txt';s=p.read_text();s+='\n# Hollowwake: candidate native DLL, no claim that flags alone port APIs.\nif(MSVC)\n target_link_options(dsound PRIVATE /APPCONTAINER)\n target_compile_definitions(dsound PRIVATE WIN32_LEAN_AND_MEAN)\n target_link_libraries(dsound PRIVATE "${HW_RUNTIME_LIBRARY}")\nendif()\n';p.write_text(s)
  # Pinned NuGet version from upstream, official feed only, no floating package.
