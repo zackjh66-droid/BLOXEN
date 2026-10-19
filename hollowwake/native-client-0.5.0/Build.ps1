@@ -4,6 +4,8 @@ if($PrivateContentDirectory-and !$PrivatePreparedDirectory){throw 'Bundled conte
 if(Test-Path (Join-Path $source 'App\bundled-content.json')){throw 'Use a fresh source checkout; stale bundled content marker exists'}
 if(!$OutputDirectory){$OutputDirectory=Join-Path $source 'artifacts'}
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
+python (Join-Path $source 'tests\VerifiedDownloadTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'verified-download-test.log')
+if($LASTEXITCODE){throw 'Pinned archive resume behavior failed'}
 python (Join-Path $source 'tests\BundledContentTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'bundled-staging-test.log')
 if($LASTEXITCODE){throw 'Bundled staging/hash behavior failed'}
 python (Join-Path $source 'tests\FullContentMappingTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'full-mapping-test.log')

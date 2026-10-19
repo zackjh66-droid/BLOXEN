@@ -1,0 +1,31 @@
+name: Hollowwake recover private full-content delivery
+on:
+  push:
+    branches: ['hollowwake/native-system-route']
+    paths: ['.github/workflows/hollowwake-resplit-private-full.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Download existing recipient-encrypted output; no decryption or game execution
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: '12199699026'
+          run-id: '39273995153'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery
+      - name: Install pinned artifact delivery SDK
+        run: npm ci --ignore-scripts --prefix hollowwake/native-client-0.5.0/private-package/delivery-tools
+      - name: Publish bounded recipient-encrypted full delivery
+        uses: ./hollowwake/native-client-0.5.0/private-package/delivery-tools
+        with:
+          directory: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery
+          prefix: hollowwake-full-recovered

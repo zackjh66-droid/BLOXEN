@@ -12,7 +12,7 @@ import time
 import urllib.request
 import zipfile
 from bundle_content import PIN, SIZE, records, inspect, stage
-from fetch_boot import NoRedirect
+from verified_download import download
 
 SOURCE = 'https://public-build-archives-bucket.erafn.dev/6.21.zip'
 
@@ -37,27 +37,7 @@ def acquire(work, content_manifest, code_manifest):
         raise ValueError('Invalid pinned code inventory')
     work.mkdir(mode=0o700)
     archive = work / 'DisposableVerifiedSource.zip'
-    h = hashlib.sha256()
-    count = 0
-    last = time.monotonic()
-    request = urllib.request.Request(SOURCE, headers={'User-Agent': 'Hollowwake-PrivateStaticBuild/0.5'})
-    with urllib.request.build_opener(NoRedirect()).open(request, timeout=90) as response, archive.open('xb') as output:
-        if response.status != 200 or response.headers.get('Content-Length') not in (None, str(SIZE)):
-            raise ValueError('Unexpected archive status/length')
-        while True:
-            block = response.read(4 * 1024**2)
-            if not block:
-                break
-            count += len(block)
-            if count > SIZE:
-                raise ValueError('Archive exceeds pinned size')
-            h.update(block)
-            output.write(block)
-            if time.monotonic() - last >= 20:
-                print(json.dumps({'downloadedBytes': count, 'expectedBytes': SIZE}), flush=True)
-                last = time.monotonic()
-    if count != SIZE or h.hexdigest() != PIN:
-        raise ValueError(f'Complete archive mismatch: bytes={count}, sha256={h.hexdigest()}')
+    download(SOURCE, archive, SIZE, PIN)
     with zipfile.ZipFile(archive) as z:
         result = inspect(z, files)
         # The complete ZIP inventory was checked before any member extraction.

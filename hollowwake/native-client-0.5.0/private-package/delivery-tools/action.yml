@@ -1,0 +1,12 @@
+name: Recipient-encrypted bounded delivery
+description: Upload encrypted delivery files in groups below the connector's 512 MiB ceiling
+inputs:
+  directory:
+    required: true
+    description: Directory containing only encrypted parts and delivery metadata
+  prefix:
+    required: true
+    description: Artifact name prefix
+runs:
+  using: node24
+  main: index.cjs

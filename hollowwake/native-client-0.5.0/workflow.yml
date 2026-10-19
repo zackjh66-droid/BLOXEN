@@ -9,7 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -39,14 +39,16 @@ jobs:
         shell: pwsh
         run: |
           ./hollowwake/native-client-0.5.0/private-package/Export-EncryptedFull.ps1 -ResultFile './artifacts/native-client-050/full-content-result.json' -OutputDirectory "$env:RUNNER_TEMP/HollowwakeFullEncryptedDelivery" -RecipientPublicKey './hollowwake/native-client-0.5.0/private-package/delivery-recipient-public.pem'
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Install pinned artifact delivery SDK
         if: ${{ steps.full_encrypt.outcome == 'success' }}
+        shell: pwsh
+        run: npm ci --ignore-scripts --prefix hollowwake/native-client-0.5.0/private-package/delivery-tools
+      - name: Publish bounded recipient-encrypted full delivery
+        if: ${{ steps.full_encrypt.outcome == 'success' }}
+        uses: ./hollowwake/native-client-0.5.0/private-package/delivery-tools
         with:
-          name: hollowwake-private-full-client-recipient-encrypted
-          path: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery/
-          compression-level: 0
-          if-no-files-found: error
-          retention-days: 1
+          directory: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery
+          prefix: hollowwake-full-private
       - name: Private game-input packaging check; never upload its files
         id: private_source
         if: ${{ !contains(github.event.head_commit.message, '[ui-only]') && !contains(github.event.head_commit.message, '[no-private-inputs]') }}
