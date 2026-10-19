@@ -11,6 +11,10 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 namespace Hollowwake.Services {
+ public sealed class ContentProgress {
+  public string Phase="Checking",FileName="";public int TotalFiles,VerifiedFiles;public long RequiredBytes,VerifiedBytes,NetworkBytes,DownloadBytes,OnDiskBytes,CurrentBytes,CurrentFileBytes;public double BytesPerSecond;public bool Complete;
+  public ContentProgress Copy(){return (ContentProgress)MemberwiseClone();}
+ }
  public sealed class ContentFile {public string Path;public long Bytes;public string Sha256;public long Offset=-1,Compressed;public int Method=-1;}
  public sealed class ContentPlan {
   public string Build,Id,ArchiveUrl,ArchiveSha256;public long ArchiveBytes,ExpiresAt;public readonly List<ContentFile> Files=new List<ContentFile>();
@@ -27,6 +31,18 @@ namespace Hollowwake.Services {
   }
  }
  public static partial class ContentTransfer {
+  public static async Task<long> VerifyCode(string root,IList<ContentFile> files,IProgress<string> progress,CancellationToken token){
+   var prefix=Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar)+Path.DirectorySeparatorChar;
+   var seen=new HashSet<string>(StringComparer.OrdinalIgnoreCase);long total=0;int done=0;
+   foreach(var file in files){
+    token.ThrowIfCancellationRequested();
+    if(String.IsNullOrEmpty(file.Path)||file.Path.Contains("\\\\")||file.Path.Contains(":")||!file.Path.EndsWith(".dll",StringComparison.OrdinalIgnoreCase)||!ContentPlan.Hash(file.Sha256)||file.Bytes<1||!seen.Add(file.Path))throw new IOException("Invalid signed code record.");
+    var path=Path.GetFullPath(Path.Combine(prefix,file.Path.Replace('/',Path.DirectorySeparatorChar)));
+    if(!path.StartsWith(prefix,StringComparison.OrdinalIgnoreCase)||!await Matches(path,file.Bytes,file.Sha256,token))throw new IOException("Installed client code missing or changed: "+Path.GetFileName(file.Path));
+    total=checked(total+new FileInfo(path).Length);progress.Report("Client code "+(++done)+" / "+files.Count+" verified");
+   }
+   if(done==0)throw new IOException("No installed client code was verified.");return total;
+  }
   static string Hex(byte[] b){return BitConverter.ToString(b).Replace("-","").ToLowerInvariant();}
   public static async Task<bool> Matches(string path,long bytes,string expected,CancellationToken token){
    if(!File.Exists(path)||new FileInfo(path).Length!=bytes)return false;

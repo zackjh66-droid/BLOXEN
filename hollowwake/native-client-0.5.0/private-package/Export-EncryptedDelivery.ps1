@@ -47,7 +47,7 @@ only 139 pinned data files using small HTTPS byte ranges. Each file is streamed
 and SHA-256 checked before becoming ready. No full ZIP is stored. About 12.36 GB
 is transferred and 26.45 GB of data is installed, plus client code/dependencies.
 Allow at least 27.6 GB of free app storage for the complete first download.
-Use PAUSE (B) to stop, or DOWNLOAD / VERIFY CONTENT to retry. Verified files
+The progress view separates received compressed bytes from verified installed bytes.\nIt independently rehashes the final data paths and all 38 installed code files.\nA measured report is uploaded after verification/failure. Zero new bytes means\nexisting data was reused; the final on-disk count must still pass.\nUse PAUSE (B) to stop, or DOWNLOAD / VERIFY CONTENT to retry. Verified files
 are retained across pauses/restarts; the unfinished file restarts on reopening.
 Original ZIPs previously imported by you are not deleted by this workflow.
 The archive host receives no Hollowwake password, bearer token or cookies.

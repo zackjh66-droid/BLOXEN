@@ -11,6 +11,7 @@ public class IndexedContentTransferTest {
   }catch{try{context.Response.Abort();}catch{}}}});}
   public void Dispose(){listener.Stop();listener.Close();serving.GetAwaiter().GetResult();}
  }
+ sealed class Capture:IProgress<ContentProgress>{public ContentProgress Last;public void Report(ContentProgress value){Last=value;}}
  public static void Main(){Run().GetAwaiter().GetResult();}
  public static async Task Run(){var folder=Path.Combine(Path.GetTempPath(),"HwOwnedIndexed-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(folder);try{
   var payload=new byte[20*1024*1024+321];new Random(621).NextBytes(payload);var name="6.21/FortniteGame/Content/Hollowwake-owned-fixture.txt";var archive=Path.Combine(folder,"owned.zip");
@@ -20,6 +21,21 @@ public class IndexedContentTransferTest {
   foreach(var mode in new[]{"normal","cut"})using(var server=new Server(bytes,mode))using(var http=new HttpClient(new HttpClientHandler{UseCookies=false,AllowAutoRedirect=false})){
    var target=Path.Combine(folder,mode,"fixture.txt");await ContentTransfer.DownloadIndexedFile(http,server.Url,bytes.Length,target,file,allow,progress,CancellationToken.None);Check(await ContentTransfer.Matches(target,file.Bytes,file.Sha256,CancellationToken.None),"Actual resumed bytes differ");Check(server.Requests>=(mode=="cut"?3:2),"Actual ranged chunking/resume did not occur");Check(!server.SawCredentials,"Credentials leaked to data host");Check(!File.Exists(target+".download.part"),"Temporary file left after verification");
   }
+  var reuse=Path.Combine(folder,"reuse");var existing=Path.Combine(reuse,"GameClean",name.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(existing));File.Copy(Path.Combine(folder,"normal","fixture.txt"),existing);
+  var plan=new ContentPlan{Build="6.21-CL-4526925",Id=Hash(new byte[]{6,2,1}),ArchiveUrl="https://public-build-archives-bucket.erafn.dev/6.21.zip",ArchiveBytes=12528679454L,ArchiveSha256="bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5"};plan.Files.Add(file);
+  var captured=new Capture();File.WriteAllText(Path.Combine(reuse,"content-ready.txt"),"old writable marker");
+  await ContentTransfer.EnsureIndexed(plan,reuse,allow,n=>{throw new Exception("Valid files must not require new storage");},progress,CancellationToken.None,captured);
+  Check(captured.Last.Complete&&captured.Last.NetworkBytes==0&&captured.Last.VerifiedFiles==1&&captured.Last.OnDiskBytes==payload.Length,"Existing data was not independently measured and verified");
+  int auditChecks=0;bool tamperRejected=false;
+  try{await ContentTransfer.EnsureIndexed(plan,reuse,()=>{if(++auditChecks==2)File.WriteAllBytes(existing,new byte[]{1,2,3});return Task.CompletedTask;},n=>Task.CompletedTask,progress,CancellationToken.None,captured);}catch(IOException){tamperRejected=true;}
+  Check(tamperRejected&&!captured.Last.Complete&&captured.Last.OnDiskBytes==3&&!File.Exists(Path.Combine(reuse,"content-ready.txt")),"Changed final data retained a false ready marker");
+  var diskFull=Path.Combine(folder,"disk-full");Directory.CreateDirectory(diskFull);File.WriteAllText(Path.Combine(diskFull,"content-ready.txt"),"stale");bool noSpace=false;
+  try{await ContentTransfer.EnsureIndexed(plan,diskFull,allow,n=>{Check(n==payload.Length+1073741824L,"Wrong required storage size");throw new IOException("Owned insufficient-storage fixture");},progress,CancellationToken.None,captured);}catch(IOException){noSpace=true;}
+  Check(noSpace&&!captured.Last.Complete&&captured.Last.NetworkBytes==0&&captured.Last.OnDiskBytes==0&&!File.Exists(Path.Combine(diskFull,"content-ready.txt")),"Low space became fake installed content");
+  var codeRoot=Path.Combine(folder,"owned-code");Directory.CreateDirectory(codeRoot);var code=Path.Combine(codeRoot,"OwnFixture.dll");File.WriteAllBytes(code,new byte[]{6,2,1});
+  var codeFiles=new List<ContentFile>{new ContentFile{Path="OwnFixture.dll",Bytes=3,Sha256=Hash(new byte[]{6,2,1})}};
+  Check(await ContentTransfer.VerifyCode(codeRoot,codeFiles,progress,CancellationToken.None)==3,"Installed code bytes not measured");
+  File.WriteAllBytes(code,new byte[]{6,2,0});bool changedCode=false;try{await ContentTransfer.VerifyCode(codeRoot,codeFiles,progress,CancellationToken.None);}catch(IOException){changedCode=true;}Check(changedCode,"Changed code was accepted");
   foreach(var mode in new[]{"ignored","corrupt"})using(var server=new Server(bytes,mode))using(var http=new HttpClient()){
    var target=Path.Combine(folder,mode,"fixture.txt");bool rejected=false;try{await ContentTransfer.DownloadIndexedFile(http,server.Url,bytes.Length,target,file,allow,progress,CancellationToken.None);}catch(Exception ex)when(ex is IOException||ex is InvalidDataException){rejected=true;}Check(rejected&&!File.Exists(target)&&!File.Exists(target+".download.part"),"Invalid response became ready content");if(mode=="ignored")Check(server.Requests==1,"Ignored range caused an uncontrolled full-archive fallback");
   }
@@ -35,6 +51,6 @@ public class IndexedContentTransferTest {
    var empty=new ContentFile{Path="6.21/FortniteGame/Content/Owned-empty-stored.txt",Bytes=0,Sha256=Hash(new byte[0]),Offset=64,Compressed=0,Method=0};var target=Path.Combine(folder,"empty-stored","fixture.txt");await ContentTransfer.DownloadIndexedFile(http,server.Url,emptyBytes.Length,target,empty,allow,progress,CancellationToken.None);Check(new FileInfo(target).Length==0&&server.Requests==0,"Stored empty entry must verify empty SHA without an invalid byte range");
    empty.Bytes=1;bool rejected=false;try{await ContentTransfer.DownloadIndexedFile(http,server.Url,emptyBytes.Length,target,empty,allow,progress,CancellationToken.None);}catch(IOException){rejected=true;}Check(rejected,"Nonempty file with zero compressed bytes accepted");
   }
-  Check(authorized>=4,"Authorization was not rechecked before commit");Console.WriteLine("PASS real HTTP range download, 16 MiB chunk boundaries, interrupted compressed-stream resume, actual 20 MiB decompression and SHA-256 verification, ignored-range/corruption rejection, no account credentials on archive requests, authorization before transfer and commit, cancellation and temporary-file cleanup. Original fixtures only; no game/Xbox execution.");
+  Check(authorized>=4,"Authorization was not rechecked before commit");Console.WriteLine("PASS real HTTP range download, 16 MiB chunk boundaries, interrupted compressed-stream resume, actual 20 MiB decompression and SHA-256 verification, ignored-range/corruption rejection, no account credentials on archive requests, authorization before transfer and commit, cancellation and temporary-file cleanup; final-path independent rehash, measured reuse, post-download tamper rejection, stale-marker removal, insufficient-space rejection and installed-code hash verification. Original fixtures only; no game/Xbox execution.");
  }finally{Directory.Delete(folder,true);}}
 }

@@ -11,7 +11,7 @@ namespace Hollowwake.Services {
  public static class ContentDownload {
   static ContentPlan Parse(JsonObject document){
    if(document.GetNamedNumber("schema")!=1)throw new IOException("Unknown content manifest schema.");var a=document.GetNamedObject("archive");var p=new ContentPlan{Build=document.GetNamedString("build"),Id=document.GetNamedString("manifestId"),ArchiveUrl=a.GetNamedString("url"),ArchiveSha256=a.GetNamedString("sha256"),ArchiveBytes=(long)a.GetNamedNumber("bytes"),ExpiresAt=(long)document.GetNamedNumber("expiresAt")};
-   foreach(var x in document.GetNamedArray("files")){var f=x.GetObject();double count=f.GetNamedNumber("bytes");if(count<0||count!=Math.Floor(count)||count>12L*1024*1024*1024)throw new IOException("Invalid content size.");p.Files.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)count,Sha256=f.GetNamedString("sha256")});}p.Validate();return p;
+   foreach(var x in document.GetNamedArray("files")){var f=x.GetObject();double count=f.GetNamedNumber("bytes");if(count<0||count!=Math.Floor(count)||count>12L*1024*1024*1024)throw new IOException("Invalid content size.");p.Files.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)count,Sha256=f.GetNamedString("sha256")});}if(p.Files.Count!=139||p.Validate()!=26449827840L)throw new IOException("Required Season 6 data inventory differs.");return p;
   }
   static async Task<ContentPlan> Packaged(){
    // Only the immutable signed installed package can supply this fallback.
@@ -31,21 +31,55 @@ namespace Hollowwake.Services {
   public static async Task<string> AuditPackagedPlan(){
    var plan=await Packaged();await AttachIndex(plan);return "{\"scope\":\"Signed installed metadata parse only; no download, authentication, game or Xbox test\",\"files\":"+plan.Files.Count+",\"expandedBytes\":"+plan.Validate()+",\"archiveBytes\":"+plan.ArchiveBytes+",\"manifestId\":\""+plan.Id+"\"}";
   }
-  public static async Task Run(ApiClient api,string projectToken,IProgress<string> progress,CancellationToken token){
-   // A missing deployment endpoint must not turn into an account bypass.
-   await api.SendAsync("/api/device/profile",null,projectToken,token);ContentPlan plan;bool fromPackage=false;
-   string installed=Windows.ApplicationModel.Package.Current.InstalledLocation.Path;
-   if(File.Exists(Path.Combine(installed,"bundled-content.json"))){
-    var marker=JsonObject.Parse(File.ReadAllText(Path.Combine(installed,"bundled-content.json")));plan=await Packaged();
-    if(marker.GetNamedNumber("schema")!=1||marker.GetNamedString("build")!=plan.Build||marker.GetNamedString("mode")!="installed-package-only"||marker.GetNamedString("contentPlanSha256")!=plan.Id||marker.GetNamedNumber("files")!=plan.Files.Count||marker.GetNamedNumber("expandedBytes")!=plan.Validate())throw new IOException("Bundled content marker differs from signed content inventory.");
-    long lastAuthorization=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();Func<Task> check=async()=>{long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastAuthorization>=30000){await api.SendAsync("/api/device/profile",null,projectToken,token);lastAuthorization=now;}};
-    await Task.Run(()=>ContentTransfer.VerifyInstalled(installed,plan.Files,check,progress,token));await api.SendAsync("/api/device/profile",null,projectToken,token);progress.Report("Bundled content verified; no game-content download required.");return;
+  static async Task<long> FreeBytes(){
+   var info=await ApplicationData.Current.LocalFolder.Properties.RetrievePropertiesAsync(new[]{"System.FreeSpace"});
+   if(!info.ContainsKey("System.FreeSpace"))throw new IOException("Xbox app-storage free space is unavailable.");return checked((long)Convert.ToUInt64(info["System.FreeSpace"]));
+  }
+  static async Task<long> AuditCode(string installed,IProgress<string> progress,CancellationToken token){
+   string root=ApplicationData.Current.LocalFolder.Path;File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes=0 total=38 registered=0 missing=38\\n");
+   var doc=JsonObject.Parse(await FileIO.ReadTextAsync(await Windows.ApplicationModel.Package.Current.InstalledLocation.GetFileAsync("package-code-index.json")));
+   if(doc.GetNamedNumber("schema")!=1||doc.GetNamedString("build")!="6.21-CL-4526925")throw new IOException("Unknown installed code inventory.");
+   var records=new System.Collections.Generic.List<ContentFile>();
+   foreach(var value in doc.GetNamedArray("files")){var f=value.GetObject();records.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)f.GetNamedNumber("bytes"),Sha256=f.GetNamedString("sha256")});}
+   if(records.Count!=38)throw new IOException("Installed native code inventory is incomplete.");
+   long bytes=await Task.Run(()=>ContentTransfer.VerifyCode(installed,records,progress,token));
+   File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes="+bytes+" total=38 registered=38 missing=0\\n");progress.Report("Client installed: "+(bytes/1000000.0).ToString("F1")+" MB · 38/38 code files verified");return bytes;
+  }
+  sealed class Capture:IProgress<ContentProgress>{
+   readonly IProgress<ContentProgress> target;public ContentProgress Last;
+   public Capture(IProgress<ContentProgress> output){target=output;}
+   public void Report(ContentProgress state){Last=state;target?.Report(state);}
+  }
+  public static async Task<ContentProgress> Run(ApiClient api,string projectToken,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null,IProgress<string> codeProgress=null){
+   await api.SendAsync("/api/device/profile",null,projectToken,token);
+   string root=ApplicationData.Current.LocalFolder.Path,installed=Windows.ApplicationModel.Package.Current.InstalledLocation.Path;long before=await FreeBytes();
+   File.WriteAllText(Path.Combine(root,"content-space-audit.txt"),"CONTENT_SPACE_BEFORE bytes="+before+"\\n");
+   try{
+    await AuditCode(installed,codeProgress??progress,token);
+    var plan=await Packaged();await AttachIndex(plan);var capture=new Capture(details);
+    long lastCheck=0;
+    Func<Task> authorize=async()=>{
+     long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastCheck<30000&&now<plan.ExpiresAt)return;
+     await api.SendAsync("/api/device/profile",null,projectToken,token);
+     if(now>=plan.ExpiresAt)plan.ExpiresAt=now+15*60*1000;lastCheck=now;
+    };
+    if(File.Exists(Path.Combine(installed,"bundled-content.json"))){
+     var marker=JsonObject.Parse(File.ReadAllText(Path.Combine(installed,"bundled-content.json")));
+     if(marker.GetNamedNumber("schema")!=1||marker.GetNamedString("build")!=plan.Build||marker.GetNamedString("mode")!="installed-package-only"||marker.GetNamedString("contentPlanSha256")!=plan.Id||marker.GetNamedNumber("files")!=plan.Files.Count||marker.GetNamedNumber("expandedBytes")!=plan.Validate())throw new IOException("Bundled content marker differs.");
+     await Task.Run(()=>ContentTransfer.VerifyInstalled(installed,plan.Files,authorize,progress,token));await api.SendAsync("/api/device/profile",null,projectToken,token);
+     long bytes=ContentTransfer.MeasureSelected(installed,plan.Files);
+     var state=new ContentProgress{Phase="Verified",Complete=true,TotalFiles=plan.Files.Count,VerifiedFiles=plan.Files.Count,RequiredBytes=plan.Validate(),VerifiedBytes=bytes,OnDiskBytes=bytes};
+     File.WriteAllText(Path.Combine(root,"content-data-audit.txt"),"CONTENT_INVENTORY bytes="+bytes+" total="+plan.Files.Count+" registered="+plan.Files.Count+" missing=0\\nCONTENT_TRANSFER bytes=0 total=0\\nCONTENT_DATA_READY bytes="+bytes+" total="+plan.Validate()+"\\n");capture.Report(state);return state;
+    }
+    progress.Report("Preparing the automatic game-data download.");
+    Func<long,Task> space=async required=>{if(await FreeBytes()<required)throw new IOException("Insufficient Xbox app storage. Required free bytes: "+required);};
+    await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,root,authorize,space,progress,token,capture));
+    await api.SendAsync("/api/device/profile",null,projectToken,token);
+    if(capture.Last==null||!capture.Last.Complete||capture.Last.VerifiedFiles!=139||capture.Last.VerifiedBytes!=26449827840L||capture.Last.OnDiskBytes!=26449827840L)throw new IOException("Final data audit is incomplete.");
+    return capture.Last;
+   }finally{
+    try{long after=await FreeBytes();File.AppendAllText(Path.Combine(root,"content-space-audit.txt"),"CONTENT_SPACE_AFTER bytes="+after+"\\n");}catch{}
    }
-   plan=await Packaged();await AttachIndex(plan);fromPackage=true;
-   progress.Report("Downloading only pinned game data directly; no full archive or executable download is required.");
-   long lastCheck=0;Func<Task> authorize=async()=>{long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();if(now-lastCheck<30000&&now<plan.ExpiresAt)return;await api.SendAsync("/api/device/profile",null,projectToken,token);if(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()>=plan.ExpiresAt){if(fromPackage){plan.ExpiresAt=now+15*60*1000;}else{var renewed=Parse(await api.SendAsync("/api/device/content/6.21",null,projectToken,token));if(renewed.Id!=plan.Id)throw new IOException("Content manifest changed during transfer; restart the download.");plan.ExpiresAt=renewed.ExpiresAt;}}lastCheck=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();};
-   Func<long,Task> space=async required=>{var info=await ApplicationData.Current.LocalFolder.Properties.RetrievePropertiesAsync(new[]{"System.FreeSpace"});if(!info.ContainsKey("System.FreeSpace")||Convert.ToUInt64(info["System.FreeSpace"])<(ulong)required)throw new IOException("Insufficient Xbox app storage for verified content. Required free bytes: "+required);};
-   string localRoot=ApplicationData.Current.LocalFolder.Path;await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,localRoot,authorize,space,progress,token));
   }
  }
 }

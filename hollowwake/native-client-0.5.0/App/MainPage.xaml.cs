@@ -245,7 +245,13 @@ namespace Hollowwake
             if(!File.Exists(Path.Combine(Windows.ApplicationModel.Package.Current.InstalledLocation.Path,"native-package-manifest.json"))){StatusText.Text="The actual client is not included in this package. Install the private client build before downloading game content.";return false;}
             int ticket=generation;var token=sessionToken;importBusy=true;contentReady=false;LaunchButton.IsEnabled=false;ImportButton.IsEnabled=false;PauseContentButton.IsEnabled=true;ContentRing.IsActive=true;
             using(var cancel=CancellationTokenSource.CreateLinkedTokenSource(operation.Token)){contentOperation=cancel;
-                try{var progress=new Progress<string>(message=>{if(ticket==generation)ContentStatusText.Text=message;});await ContentDownload.Run(api,token,progress,cancel.Token);cancel.Token.ThrowIfCancellationRequested();if(ticket!=generation||token!=sessionToken)return false;contentReady=true;StatusText.Text="Game content verified. Launch performs runtime checks; original lobby compatibility remains unfinished.";await ManagedLog("CONTENT_READY signed per-file index and all selected content hashes verified; no full ZIP stored");return true;}
+                try{var progress=new Progress<string>(message=>{if(ticket==generation)ContentStatusText.Text=message;});
+                    var codeProgress=new Progress<string>(message=>{if(ticket==generation)CodeStatusText.Text=message;});
+                    var detail=new Progress<ContentProgress>(state=>{if(ticket!=generation)return;ContentStatusText.Text=state.Phase+" · "+state.FileName;
+                        ContentProgressBar.Value=state.Phase=="Downloading"?(state.DownloadBytes==0?0:100.0*state.NetworkBytes/state.DownloadBytes):100.0*state.VerifiedBytes/Math.Max(1,state.RequiredBytes);
+                        ContentBytesText.Text="Downloaded this session: "+(state.NetworkBytes/1000000000.0).ToString("F2")+" GB / "+(state.DownloadBytes/1000000000.0).ToString("F2")+" GB\\nVerified: "+state.VerifiedFiles+"/"+state.TotalFiles+" files · "+(state.VerifiedBytes/1000000000.0).ToString("F2")+"/"+(state.RequiredBytes/1000000000.0).ToString("F2")+" GB"+(state.Phase=="Downloading"?" · "+(state.BytesPerSecond/1000000.0).ToString("F1")+" MB/s":"");});
+                    var result=await ContentDownload.Run(api,token,progress,cancel.Token,detail,codeProgress);
+                    if(!result.Complete||result.OnDiskBytes!=26449827840L)throw new IOException("Installed data audit is incomplete.");cancel.Token.ThrowIfCancellationRequested();if(ticket!=generation||token!=sessionToken)return false;contentReady=true;StatusText.Text="Selected data on disk: "+(result.OnDiskBytes/1000000000.0).ToString("F2")+" GB; this session downloaded "+(result.NetworkBytes/1000000000.0).ToString("F2")+" GB. Native client login/lobby remain unfinished.";await ManagedLog("CONTENT_READY bytes="+result.OnDiskBytes+" total="+result.VerifiedFiles+" missing=0");await ClientDiagnostics.SubmitAsync(api,token,"manual");return true;}
                 catch(OperationCanceledException){if(ticket==generation)StatusText.Text="Download paused. Verified files are retained; Retry restarts only unfinished files.";return false;}
                 catch(Exception ex){if(ticket==generation)StatusText.Text=(ex is IOException||ex is InvalidDataException)?ex.Message:"Content download could not complete. Check connection and Retry.";await ManagedLog("CONTENT_FAILED HRESULT="+ex.HResult.ToString("X8"));var receipt=await ClientDiagnostics.SubmitAsync(api,token,"preflight");return false;}
                 finally{contentOperation=null;importBusy=false;ContentRing.IsActive=false;PauseContentButton.IsEnabled=false;ImportButton.IsEnabled=true;LaunchButton.IsEnabled=true;}
@@ -273,7 +279,7 @@ namespace Hollowwake
         }
         private async void Log_Click(object sender,RoutedEventArgs e){
             string native="",policy="",managed="";
-            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log","native-imports-unresolved.txt","native-platform-imports.json"}){
+            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log","native-imports-unresolved.txt","native-platform-imports.json","content-data-audit.txt","content-code-audit.txt","content-space-audit.txt"}){
                 try{var content=await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync(name));if(name=="native-launch.log")native=content;else if(name=="runtime-policy.txt")policy=content;else managed+=name+"\n"+content+"\n";}catch{}
             }
             int start=native.LastIndexOf("ATTEMPT_BEGIN",StringComparison.Ordinal);string latest=start>=0?native.Substring(start):native;

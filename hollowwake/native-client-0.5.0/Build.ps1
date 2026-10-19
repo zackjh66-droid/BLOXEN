@@ -57,7 +57,7 @@ if($LASTEXITCODE){throw 'Exact dependency proxy build failed'}
 if($PrivatePreparedDirectory){
  & (Join-Path $source 'private-package\Build-Proxies.ps1') -PreparedDirectory $PrivatePreparedDirectory -RuntimeLibrary (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.lib')
  Copy-Item (Join-Path $PrivatePreparedDirectory 'GamePayload\*') (Join-Path $source 'App') -Recurse -Force
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.3.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.4.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
@@ -118,6 +118,10 @@ try {
    if($actual-ne $record.sha256){throw 'Packaged game image differs from private preparation hash'}
   }
   foreach($proxy in $plan.proxyDlls){if(!$package.GetEntry($proxy.proxyDll)){throw 'Native import proxy missing from private APPX'}}
+  $codeIndex=$package.GetEntry('package-code-index.json');if(!$codeIndex){throw 'Signed client code index missing'}
+  $reader=[IO.StreamReader]::new($codeIndex.Open());try{$codePlan=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
+  if($codePlan.files.Count-ne 38){throw 'Unexpected installed client code count'}
+  foreach($record in $codePlan.files){$entry=$package.GetEntry($record.path);if(!$entry-or $entry.Length-ne $record.bytes){throw 'Installed client code missing/resized'};$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open();try{$actual=([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()};if($actual-ne $record.sha256){throw 'Installed client code hash differs'}}
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }
 }finally{$package.Dispose()}
