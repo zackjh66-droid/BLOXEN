@@ -48,7 +48,7 @@ $next=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object 
 $previous=$dialog.FindFirst([Windows.Automation.TreeScope]::Descendants,(New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::NameProperty,'Previous page')))
 if(!$next-or !$previous){throw 'Paged diagnostics buttons missing'}
 ([Windows.Automation.InvokePattern]$next.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern)).Invoke();Start-Sleep -Milliseconds 350
-if($summary.Current.Name-eq $before){throw 'Accessible Next page action did not change diagnostic content'}
+if($before-notmatch '^PAGE 1 / 1(?:\r?\n)' -and $summary.Current.Name-eq $before){throw 'Accessible Next page action did not change multi-page diagnostic content'}
 $bounds=$dialog.Current.BoundingRectangle
 foreach($element in @($summary,$next,$previous)){ $rect=$element.Current.BoundingRectangle;if($rect.Width-le 0-or $rect.Height-le 0){throw 'Diagnostic element has no visible bounds'};if($rect.Top-lt $bounds.Top-or $rect.Bottom-gt $bounds.Bottom-or $rect.Left-lt $bounds.Left-or $rect.Right-gt $bounds.Right){throw 'Diagnostics overflowed dialog bounds'}}
 @{result='PASS Windows UIA pagination and content/button bounds';physicalXboxControllerTested=$false;customScrollViewerUsed=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'diagnostics-ui-results.json')

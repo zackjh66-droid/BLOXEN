@@ -15,6 +15,11 @@ $native=Join-Path $source 'App';New-Item -ItemType Directory -Force $native|Out-
 Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll') $native
 & dumpbin.exe /nologo /exports (Join-Path $env:SystemRoot 'System32\wldap32.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'windows-wldap-ordinal-reference.log')
 if($LASTEXITCODE){throw 'OS ordinal reference read failed'}
+& ml64.exe /nologo /c ("/Fo"+(Join-Path $OutputDirectory 'StackProbeFixture.obj')) (Join-Path $source 'tests\StackProbeFixture.asm')
+if($LASTEXITCODE){throw 'Original stack-probe ABI fixture assembly failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\StackProbeTest.cpp') (Join-Path $OutputDirectory 'StackProbeFixture.obj') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\StackProbeTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-probe-build.log')
+if($LASTEXITCODE){throw 'Stack-probe production resolver fixture compilation failed'}
+& "$OutputDirectory\StackProbeTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-probe-test.log');if($LASTEXITCODE){throw 'Actual stack-probe ABI/guard-page behavior failed'}
 # Original entry fixture validates actual OS thread/TLS/COM/stack behavior.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NativeClientThread.cpp') (Join-Path $source 'tests\NativeClientThreadTest.cpp') kernel32.lib ole32.lib /Fe:"$OutputDirectory\NativeClientThreadTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-build.log')
 if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
@@ -61,6 +66,9 @@ if($LASTEXITCODE){throw 'Data route test build failed'}
 & "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnDataFixture') 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-test.log');if($LASTEXITCODE){throw 'Actual data routing failed'}
 & "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnedBundledDataFixture') bundled 2>&1|Tee-Object (Join-Path $OutputDirectory 'bundled-data-test.log');if($LASTEXITCODE){throw 'Actual bundled-data routing failed'}
 $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
+& $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe')) (Join-Path $source 'App\Services\DiagnosticSanitizer.cs') (Join-Path $source 'tests\DiagnosticSanitizerTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-build.log')
+if($LASTEXITCODE){throw 'Diagnostic sanitizer compilation failed'}
+& (Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-test.log');if($LASTEXITCODE){throw 'Diagnostic secret/field boundary tests failed'}
 & $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'ContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'tests\ContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test-build.log')
 if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
 & (Join-Path $OutputDirectory 'ContentTransferTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test.log')

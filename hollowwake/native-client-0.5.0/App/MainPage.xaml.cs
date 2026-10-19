@@ -218,7 +218,7 @@ namespace Hollowwake
                 UsernameText.Text = profile.GetNamedString("publicUsername");
                 await api.SendAsync("/api/device/renew", new JsonObject(), token, operation.Token);
                 StatusText.Text = policyReady?"Account verified. Native client code must be installed in the private package; legacy imports are disabled. Client compatibility remains unfinished.":"Native graphics window binding failed. Open the launch log for details.";
-                heartbeat.Start(); if (focus) LaunchButton.Focus(FocusState.Programmatic);
+                heartbeat.Start(); if(focus){var receipt=await ClientDiagnostics.SubmitAsync(api,token,"next_start");if(receipt!=null)StatusText.Text+=" Failure report uploaded: "+receipt;}else{var ignored=ClientDiagnostics.FlushAsync(api,token);} if (focus) LaunchButton.Focus(FocusState.Programmatic);
             }
             catch (ApiException ex) when (ex.Status == HttpStatusCode.Unauthorized)
             {
@@ -242,10 +242,10 @@ namespace Hollowwake
             catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8")+(ex is IOException?" "+ex.Message:""));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
         }
         private async void Launch_Click(object sender,RoutedEventArgs e){
-            if(loadBusy||importBusy)return;if(!policyReady){StatusText.Text="Native graphics window binding failed. Open launch logs.";return;}
+            if(loadBusy||importBusy)return;if(!policyReady){StatusText.Text="Native graphics window binding failed. Open launch logs.";await ManagedLog("NATIVE_STARTUP_FAILED window binding unavailable");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}loadBusy=true;
-            try{await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED native packaged-client path; no project credential is passed into guest code.");var origin=new Uri(api.Origin);if(!HWConfigureNetwork(origin.DnsSafeHost,(ushort)origin.Port))throw new InvalidOperationException("Native backend host configuration rejected");var compatibility=await Task.Run(()=>HWPreflightClient());if(compatibility<0){StatusText.Text="Native imports remain incomplete. Content download was not started. Open launch logs for exact names.";await ManagedLog("CLIENT_NOT_READY import preflight blocked content transfer and native entry");return;}var contentProgress=new Progress<string>(text=>StatusText.Text=text);await ContentDownload.Run(api,sessionToken,contentProgress,operation.Token);await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await ManagedLog("CONTENT_READY authenticated manifest and all selected content hashes verified");var result=await Task.Run(()=>HWAttemptPackagedClient());await ManagedLog("Native loading returned "+result+". Original lobby success has not been established.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another native load attempt.";}
-            catch(Exception ex){if(ex is IOException){await ManagedLog("CONTENT_FAILED "+ex.Message);StatusText.Text=ex.Message;}else{await ManagedLog("Native call HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}}finally{loadBusy=false;}
+            try{ClientDiagnostics.BeginAttempt();await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED native packaged-client path; no project credential is passed into guest code.");var origin=new Uri(api.Origin);if(!HWConfigureNetwork(origin.DnsSafeHost,(ushort)origin.Port))throw new InvalidOperationException("Native backend host configuration rejected");var compatibility=await Task.Run(()=>HWPreflightClient());if(compatibility<0){StatusText.Text="Native imports remain incomplete. Content download was not started. Open launch logs for exact names.";await ManagedLog("CLIENT_NOT_READY import preflight blocked content transfer and native entry");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}var contentProgress=new Progress<string>(text=>StatusText.Text=text);await ContentDownload.Run(api,sessionToken,contentProgress,operation.Token);await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await ManagedLog("CONTENT_READY authenticated manifest and all selected content hashes verified");ClientDiagnostics.MarkEntryPending();await ClientDiagnostics.SubmitAsync(api,sessionToken,"before_entry");var result=await Task.Run(()=>HWAttemptPackagedClient());ClientDiagnostics.CompleteAttempt();await ManagedLog("Native loading returned "+result+". Original lobby success has not been established.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another native load attempt.";var uploaded=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(uploaded!=null)StatusText.Text+=" Report uploaded: "+uploaded;}
+            catch(Exception ex){if(ex is IOException){await ManagedLog("CONTENT_FAILED "+ex.Message);StatusText.Text=ex.Message;}else{await ManagedLog("NATIVE_LOAD_EXCEPTION HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}ClientDiagnostics.CompleteAttempt();var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;}finally{loadBusy=false;}
         }
         private async void Log_Click(object sender,RoutedEventArgs e){
             string native="",policy="",managed="";
@@ -259,7 +259,7 @@ namespace Hollowwake
                 if(IsFailureLine(line))important.Add(line);
                 if(line.StartsWith("NATIVE_")||line.StartsWith("ATTEMPT_BEGIN")||line.StartsWith("HASH ")||line.StartsWith("IMPORT ")||line.StartsWith("PROTECT ")||line.StartsWith("UNWIND ")||line.StartsWith("DEPENDENCY ")||line.StartsWith("EXECUTE "))phases.Add(line);
             }
-            string summary="CLIENT FAILURE SUMMARY — runtime 0.5.0.0\n";
+            string summary="CLIENT FAILURE SUMMARY — package "+ClientDiagnostics.Version()+"\n";
             if(important.Count>0)summary+=important[important.Count-1];
             else{
                 summary+=loadBusy?"The latest client attempt is still in progress.":"The latest attempt has not recorded a named failure.";
@@ -268,17 +268,18 @@ namespace Hollowwake
                 if(previous.Count>0)summary+="\n\nPREVIOUS RECORDED FAILURE (earlier attempt)\n"+previous[previous.Count-1];
             }
             if(phases.Count>0)summary+="\n\nLAST STAGE\n"+phases[phases.Count-1];
+            try{var upload=Path.Combine(ApplicationData.Current.LocalFolder.Path,"diagnostic-upload-status.txt");if(File.Exists(upload))summary+="\n\n"+File.ReadAllText(upload);}catch{}
             summary+="\n\nNative route: game DLLs must be installed in the private client package. A LocalState boot import cannot provide them. The original lobby has not been reached.";
 
             string full="runtime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
             var block=new TextBlock{Text=summary,FontSize=18,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(block,"FailureSummary");
-            var dialog=new ContentDialog{Title="Native client diagnostics — 0.5.0",CloseButtonText="Close",PrimaryButtonText="Missing imports",SecondaryButtonText="Full log",Content=block};
+            var dialog=new ContentDialog{Title="Native client diagnostics — "+ClientDiagnostics.Version(),CloseButtonText="Close",PrimaryButtonText="Missing imports",SecondaryButtonText="Full log",Content=block};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(dialog,"ClientDiagnostics");
             Button previousDiagnostic=null;dialog.GotFocus+=(diagnosticSender,focusArgs)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previousDiagnostic!=null){previousDiagnostic.ClearValue(Button.BackgroundProperty);previousDiagnostic.ClearValue(Button.ForegroundProperty);}previousDiagnostic=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
             string[] lines=null;int page=0;const int pageSize=10;
             Action render=()=>{int count=Math.Max(1,(lines.Length+pageSize-1)/pageSize);block.Text="PAGE "+(page+1)+" / "+count+"\n\n"+String.Join("\n",lines,page*pageSize,Math.Min(pageSize,lines.Length-page*pageSize));dialog.PrimaryButtonText="Next page";dialog.SecondaryButtonText="Previous page";};
-            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){var report=managed;int marker=report.IndexOf("native-imports-unresolved.txt",StringComparison.Ordinal);report=marker>=0?report.Substring(marker):"No missing-import report. Choose Full log after reopening diagnostics.";lines=DiagnosticRows(report);page=0;}else page=(page+1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
+            dialog.PrimaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){var report=ClientDiagnostics.MissingText();lines=DiagnosticRows(report);page=0;}else page=(page+1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
             dialog.SecondaryButtonClick+=(d,args)=>{args.Cancel=true;if(lines==null){lines=DiagnosticRows(full);page=0;}else page=(page+Math.Max(1,(lines.Length+pageSize-1)/pageSize)-1)%Math.Max(1,(lines.Length+pageSize-1)/pageSize);render();};
             await dialog.ShowAsync();
         }

@@ -7,6 +7,9 @@
 #include <roapi.h>
 #include <cstring>
 #include <mutex>
+// MSVC supplies the real x64 compiler stack-probe implementation. Its custom
+// RAX calling convention is preserved by returning its address, not a C wrapper.
+extern "C" void __chkstk();
 #if !defined(_M_X64)
 #error This investigation targets the Windows x64 ABI only.
 #endif
@@ -72,6 +75,7 @@ bool NativeSystemFacadeAvailable(const char* dll){
 }
 void* ResolveNativeSystemImport(const char* dll,const char* name){
  if(!dll||!name||!name[0])return nullptr;
+ if((!_stricmp(dll,"kernel32.dll")||!_stricmp(dll,"kernelbase.dll"))&&!strcmp(name,"__chkstk"))return reinterpret_cast<void*>(&::__chkstk);
  // A public WinRT SDK import establishes the OS provider dependency. It is
  // not an AppContainer bypass and performs no activation during lookup.
  if(!_strnicmp(dll,"api-ms-win-core-winrt-",sizeof("api-ms-win-core-winrt-")-1)&&!strcmp(name,"RoInitialize"))return reinterpret_cast<void*>(&::RoInitialize);
