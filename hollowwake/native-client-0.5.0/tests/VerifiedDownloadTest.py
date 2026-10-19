@@ -27,4 +27,4 @@ class DownloadTest(unittest.TestCase):
  def test_actual_truncation_and_exact_resume(self):self.run_case('good')
  def test_changed_etag_is_rejected(self):self.run_case('changed')
  def test_ignored_resume_range_is_rejected(self):self.run_case('ignored')
-if __name__=='__main__':unittest.main()
+if __name__=='__main__':unittest.main(testRunner=unittest.TextTestRunner(stream=sys.stdout,verbosity=2))
