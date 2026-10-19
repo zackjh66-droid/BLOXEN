@@ -132,7 +132,7 @@ try {
   foreach($proxy in $plan.proxyDlls){if(!$package.GetEntry($proxy.proxyDll)){throw 'Native import proxy missing from private APPX'}}
   $codeIndex=$package.GetEntry('package-code-index.json');if(!$codeIndex){throw 'Signed client code index missing'}
   $reader=[IO.StreamReader]::new($codeIndex.Open());try{$codePlan=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
-  if($codePlan.files.Count-ne 40){throw 'Unexpected installed client code count'}
+  if($codePlan.files.Count-ne 41){throw 'Unexpected installed client code count'}
   foreach($record in $codePlan.files){$entry=$package.GetEntry($record.path);if(!$entry-or $entry.Length-ne $record.bytes){throw 'Installed client code missing/resized'};$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open();try{$actual=([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()};if($actual-ne $record.sha256){throw 'Installed client code hash differs'}}
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }

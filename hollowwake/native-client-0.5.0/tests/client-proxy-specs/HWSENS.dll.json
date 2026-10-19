@@ -1,0 +1,7 @@
+{
+  "sourceDll": "SensApi.dll",
+  "proxyDll": "HWSENS.dll",
+  "symbols": [
+    "IsNetworkAlive"
+  ]
+}
