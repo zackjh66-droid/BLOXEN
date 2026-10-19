@@ -28,11 +28,20 @@ static HANDLE WINAPI LoadGameImage(HINSTANCE instance,LPCWSTR name,UINT type,int
  return load(instance,name,type,cx,cy,flags);
 }
 static HCURSOR WINAPI LoadGameCursor(LPCWSTR name){
+ auto module=UserResources().module;auto load=reinterpret_cast<CursorLoader>(module?GetProcAddress(module,"LoadCursorFromFileW"):nullptr);
+ auto image=reinterpret_cast<ImageLoader>(module?GetProcAddress(module,"LoadImageW"):nullptr);
+ return LoadGameCursorWithProviders(name,load,image);
+}
+}
+HCURSOR LoadGameCursorWithProviders(LPCWSTR name,HWCursorFileProvider direct,HWImageFileProvider image){
  if((ULONG_PTR)name<=65535){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}
  auto path=MapReadOnlyImageFile(name);if(path.empty())return nullptr;
- auto module=UserResources().module;auto load=reinterpret_cast<CursorLoader>(module?GetProcAddress(module,"LoadCursorFromFileW"):nullptr);
- if(!load){SetLastError(ERROR_PROC_NOT_FOUND);return nullptr;}return load(path.c_str());
-}
+ if(direct)return direct(path.c_str());
+ // Microsoft's documented replacement for LoadCursorFromFile: genuine OS
+ // decoding and ownership, IMAGE_CURSOR, LR_LOADFROMFILE | LR_DEFAULTSIZE.
+ // Do not turn an actual direct-provider failure into a different result.
+ if(image)return reinterpret_cast<HCURSOR>(image(nullptr,path.c_str(),2,0,0,0x10|0x40));
+ SetLastError(ERROR_PROC_NOT_FOUND);return nullptr;
 }
 void* ResolveReadOnlyPlatformImport(const char* dll,const char* name){
  if(!dll||!name)return nullptr;HMODULE module=nullptr;
@@ -48,7 +57,7 @@ void* ResolveReadOnlyPlatformImport(const char* dll,const char* name){
   // They never receive a virtual HWND. GetDC/BeginPaint remain absent because
   // they require a window surface. File decoding uses the content bridge above.
   if(!strcmp(name,"LoadImageW"))return UserResources().module&&GetProcAddress(UserResources().module,name)?reinterpret_cast<void*>(&LoadGameImage):nullptr;
-  if(!strcmp(name,"LoadCursorFromFileW"))return UserResources().module&&GetProcAddress(UserResources().module,name)?reinterpret_cast<void*>(&LoadGameCursor):nullptr;
+  if(!strcmp(name,"LoadCursorFromFileW"))return UserResources().module&&(GetProcAddress(UserResources().module,name)||GetProcAddress(UserResources().module,"LoadImageW"))?reinterpret_cast<void*>(&LoadGameCursor):nullptr;
   const char* allowed[]={"GetKeyboardLayout","MapVirtualKeyW","GetProcessWindowStation","GetUserObjectInformationW",
    "DisableProcessWindowsGhosting","CreateIconIndirect","DestroyIcon","DestroyCursor","LoadIconW","DrawStateW","GetIconInfo"};
   bool found=false;for(auto item:allowed)if(!strcmp(name,item))found=true;if(!found)return nullptr;

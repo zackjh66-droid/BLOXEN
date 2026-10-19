@@ -64,6 +64,14 @@ int main(){try{
  BITMAP cursorBitmap={};if(!GetObjectW(obtained.hbmColor,sizeof(cursorBitmap),&cursorBitmap)||cursorBitmap.bmWidth<=0||cursorBitmap.bmHeight<=0||obtained.xHotspot!=3*cursorBitmap.bmWidth/16||obtained.yHotspot!=5*cursorBitmap.bmHeight/16)throw std::runtime_error("Default-size cursor scaling/hotspot mismatch");DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);cursorDestroy(fileCursor);
  SetLastError(0);if(imageLoad(nullptr,(root/L"outside.bmp").c_str(),IMAGE_BITMAP,0,0,LR_LOADFROMFILE)||GetLastError()!=ERROR_ACCESS_DENIED)throw std::runtime_error("Outside image path accepted");
  SetLastError(0);if(cursorLoad(L"..\\..\\Content\\untrusted.dll")||GetLastError()!=ERROR_ACCESS_DENIED)throw std::runtime_error("Code payload passed to image decoder");
+ auto fallbackCursor=LoadGameCursorWithProviders(L"..\\..\\Content\\fixture.cur",nullptr,&LoadImageW);
+ if(!fallbackCursor||!info((HICON)fallbackCursor,&obtained)||obtained.fIcon)throw std::runtime_error("Documented cursor-file replacement failed actual decode");
+ BITMAP fallbackBitmap={};if(!GetObjectW(obtained.hbmColor,sizeof(fallbackBitmap),&fallbackBitmap)||fallbackBitmap.bmWidth<=0||obtained.xHotspot!=3*fallbackBitmap.bmWidth/16||obtained.yHotspot!=5*fallbackBitmap.bmHeight/16)throw std::runtime_error("Replacement cursor hotspot differs");
+ DeleteObject(obtained.hbmColor);DeleteObject(obtained.hbmMask);if(!cursorDestroy(fallbackCursor))throw std::runtime_error("Replacement cursor cleanup failed");
+ SetLastError(0);if(LoadGameCursorWithProviders(L"..\\..\\Content\\missing.cur",nullptr,&LoadImageW)||GetLastError()!=ERROR_FILE_NOT_FOUND)throw std::runtime_error("Replacement swallowed missing-file failure");
+ SetLastError(0);if(LoadGameCursorWithProviders(L"..\\..\\Content\\fixture.cur",nullptr,nullptr)||GetLastError()!=ERROR_PROC_NOT_FOUND)throw std::runtime_error("Missing cursor providers became success");
+ SetLastError(0);if(LoadGameCursorWithProviders(L"..\\..\\Content\\untrusted.dll",nullptr,&LoadImageW)||GetLastError()!=ERROR_ACCESS_DENIED)throw std::runtime_error("Replacement admitted executable input");
+ std::cout<<"PASS genuine LoadImageW cursor replacement when LoadCursorFromFileW is unavailable; actual dimensions/hotspots, cleanup, missing-file/provider and content-path errors. Xbox provider availability unverified.\n";
  fs::remove_all(root);
  std::cout<<"PASS real BMP/CUR decoding through package-to-content path mapping, bitmap pixel/hotspot checks, outside-path/code rejection.\n";
  SelectObject(dc,prior);DeleteObject(target);DeleteDC(dc);DeleteObject(color);DeleteObject(mask);

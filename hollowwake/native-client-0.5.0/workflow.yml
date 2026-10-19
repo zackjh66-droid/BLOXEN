@@ -9,7 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -20,6 +20,33 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
+      - name: Verify supplied Neo VCLibs without installing or executing it
+        id: neo_dependency
+        continue-on-error: true
+        shell: powershell
+        run: |
+          ./hollowwake/native-client-0.5.0/tests/Test-NeoDependency.ps1 -OutputDirectory artifacts/native-client-050
+      - name: Build full private integrated client and bundled content
+        id: full_content
+        if: ${{ contains(github.event.head_commit.message, '[full-content]') }}
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          powershell -NoProfile -File hollowwake\native-client-0.5.0\private-package\Build-FullContent.ps1 -EvidenceDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
+      - name: Encrypt full private MSIX and dependencies for the recipient
+        id: full_encrypt
+        if: ${{ steps.full_content.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          ./hollowwake/native-client-0.5.0/private-package/Export-EncryptedFull.ps1 -ResultFile './artifacts/native-client-050/full-content-result.json' -OutputDirectory "$env:RUNNER_TEMP/HollowwakeFullEncryptedDelivery" -RecipientPublicKey './hollowwake/native-client-0.5.0/private-package/delivery-recipient-public.pem'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ steps.full_encrypt.outcome == 'success' }}
+        with:
+          name: hollowwake-private-full-client-recipient-encrypted
+          path: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
       - name: Private game-input packaging check; never upload its files
         id: private_source
         if: ${{ !contains(github.event.head_commit.message, '[ui-only]') && !contains(github.event.head_commit.message, '[no-private-inputs]') }}
@@ -54,7 +81,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force artifacts/native-client-050|Out-Null
-          @{publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
+          @{fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -6,6 +6,8 @@ if(!$OutputDirectory){$OutputDirectory=Join-Path $source 'artifacts'}
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 python (Join-Path $source 'tests\BundledContentTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'bundled-staging-test.log')
 if($LASTEXITCODE){throw 'Bundled staging/hash behavior failed'}
+python (Join-Path $source 'tests\FullContentMappingTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'full-mapping-test.log')
+if($LASTEXITCODE){throw 'Full content mapping/audit behavior failed'}
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe';$vs=& $vswhere -latest -products '*' -property installationPath;$msbuild=Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
 & $msbuild (Join-Path $source 'Native\Native.vcxproj') /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-build.log')
 if($LASTEXITCODE){throw 'Native client integration compilation failed'}
