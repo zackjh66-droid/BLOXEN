@@ -44,11 +44,22 @@ jobs:
         shell: pwsh
         run: npm ci --ignore-scripts --prefix hollowwake/native-client-0.5.0/private-package/delivery-tools
       - name: Publish bounded recipient-encrypted full delivery
+        id: bounded_delivery
+        continue-on-error: true
         if: ${{ steps.full_encrypt.outcome == 'success' }}
         uses: ./hollowwake/native-client-0.5.0/private-package/delivery-tools
         with:
           directory: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery
           prefix: hollowwake-full-private
+      - name: Preserve encrypted full delivery if bounded export fails
+        if: ${{ steps.full_encrypt.outcome == 'success' && steps.bounded_delivery.outcome == 'failure' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-full-private-monolithic-fallback
+          path: ${{ runner.temp }}/HollowwakeFullEncryptedDelivery/
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
       - name: Private game-input packaging check; never upload its files
         id: private_source
         if: ${{ !contains(github.event.head_commit.message, '[ui-only]') && !contains(github.event.head_commit.message, '[no-private-inputs]') }}

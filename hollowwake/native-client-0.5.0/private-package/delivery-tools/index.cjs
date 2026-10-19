@@ -1,15 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { DefaultArtifactClient } = require('@actions/artifact');
 async function main() {
+  const { DefaultArtifactClient } = await import('@actions/artifact');
   const root = path.resolve(process.env.INPUT_DIRECTORY || '');
   const prefix = process.env.INPUT_PREFIX;
   if (!/^[a-z0-9-]{1,80}$/.test(prefix || '')) throw Error('Invalid artifact prefix');
   const metaFile = path.join(root, 'delivery.json');
   const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
   if (meta.format !== 'HollowwakePrivateFullArtifact2' || !Array.isArray(meta.parts) || meta.parts.length > 2048) throw Error('Invalid encrypted delivery metadata');
-  const allowed = new Set(['delivery.json']);
+  const allowed = new Set(['delivery.json', 'delivery-index.json']);
   for (let i = 0; i < meta.parts.length; i++) {
     const p = meta.parts[i];
     if (p.index !== i || p.file !== `part-${String(i).padStart(5, '0')}.hwenc` || p.bytes < 1 || p.bytes > 16 * 1024 * 1024) throw Error('Invalid encrypted part name/size');
