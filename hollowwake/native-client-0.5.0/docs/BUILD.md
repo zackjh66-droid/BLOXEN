@@ -29,8 +29,19 @@ python private-package/prepare.py <verified-inputs>/6.21 <new-private-prepared-d
 powershell -NoProfile -File Build.ps1 -PrivatePreparedDirectory <new-private-prepared-dir> -PrivateAudioDirectory <reviewed-built-audio-dir> -OutputDirectory <private-output-dir>
 ```
 
-Current preparation selects 26 game images and 18 generated import proxies. With the runtime and two audio implementations, the signed code index contains 47 files. Passing the separate Mesa behavior check permits `-PrivateMesaDirectory <built-mesa-dir>`, adds its three actual DLLs and licensed source, and creates a 50-file `audio-mesa` index. The shader/context/readback/presentation receipt and all provider hashes must match; a missing or failed receipt prevents inclusion. Both variants retain the original client inventory and audit additional provider imports separately. Private packaging refuses absent or receipt-hash-mismatched audio DLLs and audits all installed code hashes. The signed package also contains the inventory of actual licensed-provider imports. These additional pairs are audited separately before native client loading; they do not replace or shrink either original inventory. A converted EXE/export/manifest is not proof that its entry can execute correctly.
+Current preparation selects 26 game images and 18 generated import proxies. With the runtime and two audio implementations, the signed code index contains 47 files. Passing the separate Mesa behavior check permits `-PrivateMesaDirectory <built-mesa-dir>`, adds its three compiled DLLs, the exact unmodified Microsoft DXIL redistributable, and licensed source/notices, and creates a 51-file `audio-mesa` index. The shader/context/readback/presentation receipt and all provider hashes must match; a missing or failed receipt prevents inclusion. Both variants retain the original client inventory and audit additional provider imports separately. Private packaging refuses absent or receipt-hash-mismatched audio DLLs and audits all installed code hashes. The signed package also contains the inventory of actual licensed-provider imports. These additional pairs are audited separately before native client loading; they do not replace or shrink either original inventory. A converted EXE/export/manifest is not proof that its entry can execute correctly.
 
 Game images are kept in the installed signed package. Downloaded data lives under this app's `LocalState/GameClean/6.21`, with original logical paths translated by the file-access bridge. The separate indexed download installs 26.45 GB of data from approximately 12.36 GB of selected compressed entries. It requires room for missing expanded files plus a 1 GiB reserve and reports actual I/O failures. Actual Xbox quotas/free-space behavior remains unverified.
 
 Private game-containing outputs must remain private. Hosted delivery encrypts them for the established recipient; never upload plaintext game packages or signing keys to public CI artifacts. The 0.5.5 rollback is preserved. New 0.5.6 packaging is conditional on the current private build/sign/content checks completing; source implementation or public fixture success is not a delivered game package. A package is not a demonstrated Fortnite port until the original client/lobby is observed on Xbox.
+
+The Mesa candidate also requires Microsoft's unmodified `DXIL.dll` shader
+validator. `Build-Mesa.ps1` obtains the pinned official Microsoft.Direct3D.DXC
+1.8.2407.12 NuGet package, verifies package/file SHA-256 and Microsoft
+Authenticode, retains `LICENSE-MS.txt`, `LICENSE-LLVM.txt` and the explicit
+redistributable-file list, and includes its actual imports in the additional
+inventory. This particular DLL has no AppContainer image flag: the inventory
+reports that fact and accepts only its exact pinned bytes, not arbitrary desktop
+DLLs. Owned UWP loading, actual validator-object creation and GPU behavior must
+pass. The Microsoft DLL is never patched or re-signed. Its license terms apply
+to that component; no Microsoft source or private SDK is supplied.

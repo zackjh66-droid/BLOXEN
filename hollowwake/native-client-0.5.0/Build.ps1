@@ -90,8 +90,8 @@ if($PrivatePreparedDirectory){
   $behavior=Get-Content (Join-Path (Split-Path $PrivateMesaDirectory -Parent) 'native-wgl-probe.json') -Raw|ConvertFrom-Json
   if($behavior.hresult-ne 0-or !$behavior.pixelReadback-or !$behavior.compositionPresent-or !$behavior.currentContextAndGuestDc-or $behavior.gameExecuted-or $behavior.xboxTested){throw 'Mesa private inclusion requires the actual owned UWP behavior receipt'}
   $mesaInventory=Get-Content (Join-Path $PrivateMesaDirectory 'provider-imports.json') -Raw|ConvertFrom-Json
-  $extraCode=@('HWMGL.dll','libgallium_wgl.dll','libglapi.dll')
-  if($mesaInventory.files.Count-ne 3){throw 'Unexpected Mesa provider inventory'}
+  $extraCode=@('HWMGL.dll','libgallium_wgl.dll','libglapi.dll','DXIL.dll')
+  if($mesaInventory.files.Count-ne 4){throw 'Unexpected Mesa provider inventory'}
   foreach($name in $extraCode){
    $record=@($mesaInventory.files|Where-Object file -eq $name);$path=Join-Path $PrivateMesaDirectory $name
    if($record.Count-ne 1-or (Get-Item $path).Length-ne $record[0].bytes-or (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()-ne $record[0].sha256){throw 'Mesa provider bytes differ from compiled inventory'}
@@ -99,7 +99,7 @@ if($PrivatePreparedDirectory){
   }
   $providerInventory.files=@($providerInventory.files)+@($mesaInventory.files)
   $mesaSource=Join-Path $OutputDirectory 'LicensedMesaSource';New-Item -ItemType Directory -Force $mesaSource|Out-Null
-  foreach($name in @('mesa-source.tar.gz','directx-headers-source.tar.gz','prepare_mesa.py','CoreWindowGdi.cpp','Build-Mesa.ps1','mesa-source-review.json','mesa-build.json','provider-imports.json')){Copy-Item (Join-Path $PrivateMesaDirectory $name) $mesaSource}
+  foreach($name in @('mesa-source.tar.gz','directx-headers-source.tar.gz','prepare_mesa.py','CoreWindowGdi.cpp','Build-Mesa.ps1','mesa-source-review.json','mesa-build.json','provider-imports.json','dxil-redistributable.json','DXIL-LICENSE-MS.txt','DXIL-LICENSE-LLVM.txt','DXIL-distributable-files.txt')){Copy-Item (Join-Path $PrivateMesaDirectory $name) $mesaSource}
  }
  $providerInventory.additionalUniquePairs=@($providerInventory.files|ForEach-Object {$_.imports}|ForEach-Object {$_.module.ToLowerInvariant()+'!'+$_.symbol}|Sort-Object -Unique).Count
  $providerInventory|ConvertTo-Json -Depth 14|Set-Content -Encoding ASCII (Join-Path $source 'App\provider-imports.json')

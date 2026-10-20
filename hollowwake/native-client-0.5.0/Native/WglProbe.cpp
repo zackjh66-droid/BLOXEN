@@ -29,6 +29,14 @@ extern "C" __declspec(dllexport) int __cdecl HWWglProviderProbe(const wchar_t* r
   std::wstring inventory=std::wstring(package->Data())+L"\\provider-imports.json";
   std::wstring reportPath(report);auto slash=reportPath.find_last_of(L"/\\");
   if(slash==std::wstring::npos||AuditAdditionalProviderImports(inventory.c_str(),(reportPath.substr(0,slash+1)+L"native-provider-imports.json").c_str())!=0){error=ERROR_PROC_NOT_FOUND;break;}
+  stage=mark("Official packaged DXIL validator object creation");
+  static HMODULE dxil=LoadPackagedLibrary(L"DXIL.dll",0);if(!dxil){error=GetLastError();break;}
+  using CreateDxc=HRESULT(WINAPI*)(REFCLSID,REFIID,LPVOID*);auto createDxc=reinterpret_cast<CreateDxc>(GetProcAddress(dxil,"DxcCreateInstance"));
+  if(!createDxc){error=ERROR_PROC_NOT_FOUND;break;}
+  const GUID validatorClass={0x8ca3e215,0xf728,0x4cf3,{0x8c,0xdd,0x88,0xaf,0x91,0x75,0x87,0xa1}};
+  const GUID validatorInterface={0xa6e82bd2,0x1fd7,0x4826,{0x98,0x11,0x28,0x57,0xe7,0x97,0xf4,0x9a}};
+  IUnknown* validator=nullptr;auto validation=createDxc(validatorClass,validatorInterface,reinterpret_cast<void**>(&validator));
+  if(FAILED(validation)){result=validation;break;}if(!validator){error=ERROR_INVALID_DATA;break;}validator->Release();
   stage=mark("Native owned window providers");
   if(!reg||!create||!get||!release||!destroy||!unreg||!originalDefault||!instance){error=ERROR_PROC_NOT_FOUND;break;}
   OwnedClass cls={sizeof(OwnedClass),0x20,OwnedWindow,0,0,instance,nullptr,nullptr,nullptr,nullptr,L"HollowwakeOwnedWgl",nullptr};if(!reg(&cls)){error=GetLastError();break;}hwnd=create(0,cls.name,L"Owned WGL bridge fixture",0x80000000,0,0,64,64,nullptr,nullptr,instance,nullptr);if(!hwnd){error=GetLastError();break;}dc=get(hwnd);if(!dc){error=GetLastError();break;}

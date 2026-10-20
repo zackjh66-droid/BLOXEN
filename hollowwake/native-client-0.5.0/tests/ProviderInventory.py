@@ -12,7 +12,8 @@ def inventory(directory, names, output):
   file=root/name
   if not file.is_file() or file.is_symlink() or not 1024<=file.stat().st_size<=128*1024*1024:raise ValueError('Invalid provider file '+name)
   raw=file.read_bytes();pe=pefile.PE(data=raw,fast_load=True)
-  if pe.FILE_HEADER.Machine!=0x8664 or pe.OPTIONAL_HEADER.Magic!=0x20b or not pe.OPTIONAL_HEADER.DllCharacteristics&0x1000:raise ValueError('Expected x64 AppContainer DLL '+name)
+  official=(name=='DXIL.dll' and len(raw)==1612216 and hashlib.sha256(raw).hexdigest()=='783bc73ce44cd23d735751c39e9340eed50e267cc6738884a29ed284ab9400a6')
+  if pe.FILE_HEADER.Machine!=0x8664 or pe.OPTIONAL_HEADER.Magic!=0x20b or (not pe.OPTIONAL_HEADER.DllCharacteristics&0x1000 and not official):raise ValueError('Expected x64 AppContainer DLL or exact unmodified Microsoft redistributable '+name)
   pe.parse_data_directories(directories=[0,1,13]);imports=[]
   for attr,kind in [('DIRECTORY_ENTRY_IMPORT','normal'),('DIRECTORY_ENTRY_DELAY_IMPORT','delay')]:
    for module in getattr(pe,attr,[]):
@@ -24,7 +25,7 @@ def inventory(directory, names, output):
   exports=[]
   for symbol in getattr(getattr(pe,'DIRECTORY_ENTRY_EXPORT',None),'symbols',[]):
    exports.append({'ordinal':symbol.ordinal,'name':symbol.name.decode('ascii') if symbol.name else None,'forwarder':symbol.forwarder.decode('ascii') if symbol.forwarder else None})
-  records.append({'file':name,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'imports':imports,'exports':exports});pe.close()
+  records.append({'file':name,'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest(),'appContainerFlag':bool(pe.OPTIONAL_HEADER.DllCharacteristics&0x1000),'officialMicrosoftRedistributable':official,'imports':imports,'exports':exports});pe.close()
  result={'scope':'Static additional provider dependency inventory; original 838-pair baseline remains unchanged. Export presence is not behavior or Xbox validation.','files':records,'additionalUniquePairs':len(pairs),'gameExecuted':False,'xboxTested':False}
  Path(output).write_text(json.dumps(result,indent=2));print('Inventoried '+str(len(records))+' actual compiled providers, '+str(len(pairs))+' additional dependency pairs; no execution claims')
 if __name__=='__main__':

@@ -8,7 +8,7 @@ $staging=Join-Path $env:RUNNER_TEMP 'HollowwakeOwnedWglPackage'
 & (Join-Path $sdk 'makeappx.exe') unpack /p $PackagePath /d $staging /o
 if($LASTEXITCODE){throw 'Owned fixture unpack failed'}
 if((Test-Path (Join-Path $staging '6.21'))-or (Test-Path (Join-Path $staging 'native-package-manifest.json'))){throw 'Refusing wgl fixture test with proprietary code'}
-foreach($name in @('HWMGL.dll','libgallium_wgl.dll','libglapi.dll')){Copy-Item (Join-Path $ProviderDirectory $name) (Join-Path $staging $name)}
+foreach($name in @('HWMGL.dll','libgallium_wgl.dll','libglapi.dll','DXIL.dll')){Copy-Item (Join-Path $ProviderDirectory $name) (Join-Path $staging $name)}
 Copy-Item (Join-Path $ProviderDirectory 'provider-imports.json') (Join-Path $staging 'provider-imports.json')
 foreach($name in @('AppxSignature.p7x','AppxBlockMap.xml','[Content_Types].xml')){Remove-Item -LiteralPath (Join-Path $staging $name) -Force -ErrorAction SilentlyContinue}
 $appx=Join-Path $env:RUNNER_TEMP 'HollowwakeOwnedWgl.appx'
@@ -43,7 +43,7 @@ try {
  Write-Output 'PASS actual packaged provider loading, WGL context/DC, GPU pixel readback and composition presentation; not game/Xbox or original lobby proof'
 }finally{
  $local=Split-Path $data
- foreach($pair in @(@('native-launch.log','wgl-native-launch.log'),@('native-wgl-probe.json.stage.txt','native-wgl-stage.log'),@('native-provider-imports.json','wgl-provider-imports.json'))){$inputFile=Join-Path $local $pair[0];if(Test-Path $inputFile){Copy-Item $inputFile (Join-Path $OutputDirectory $pair[1])}}
+ foreach($pair in @(@('native-launch.log','wgl-native-launch.log'),@('wgl-managed-failure.log','wgl-managed-failure.log'),@('native-wgl-probe.json.stage.txt','native-wgl-stage.log'),@('native-provider-imports.json','wgl-provider-imports.json'))){$inputFile=Join-Path $local $pair[0];if(Test-Path $inputFile){Copy-Item $inputFile (Join-Path $OutputDirectory $pair[1])}}
  $process=Get-Process -Id $pidWgl -ErrorAction SilentlyContinue
  @{pid=$pidWgl;aliveAtEnd=[bool]$process;receiptWritten=(Test-Path $data);scope='Owned UWP provider test only; no game/Xbox'}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'wgl-process-status.json')
  @(Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=$begin;Id=1000,1001,1026} -ErrorAction SilentlyContinue|Where-Object {$_.Message-match 'Hollowwake|libgallium|HWMGL'}|Select-Object TimeCreated,Id,Message)|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'wgl-owned-crash-events.json')
