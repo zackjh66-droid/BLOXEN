@@ -186,6 +186,7 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
  if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);Hollowwake::SetChainViewportProvider(&HWReadViewport);Hollowwake::ConfigureNativeFactoryBridge(boundCoreWindow.Get(),reinterpret_cast<BOOL(WINAPI*)(HWND)>(ResolveWindowImport("user32.dll","IsWindow")));
+ ConfigureWglProviderLogger([](const char* stage,DWORD error){Log(std::string("WGL_PROVIDER ")+stage+" code="+std::to_string(error));});
  ConfigureWglProvider(boundCoreWindow.Get(),[](LONG* width,LONG* height)->BOOL{UINT w=0,h=0;auto result=HWReadViewport(&w,&h);if(FAILED(result))return FALSE;*width=(LONG)w;*height=(LONG)h;return TRUE;});
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }

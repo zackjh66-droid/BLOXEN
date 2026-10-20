@@ -102,7 +102,7 @@ if($PrivatePreparedDirectory){
   foreach($name in @('mesa-source.tar.gz','directx-headers-source.tar.gz','prepare_mesa.py','CoreWindowGdi.cpp','Build-Mesa.ps1','mesa-source-review.json','mesa-build.json','provider-imports.json')){Copy-Item (Join-Path $PrivateMesaDirectory $name) $mesaSource}
  }
  $providerInventory.additionalUniquePairs=@($providerInventory.files|ForEach-Object {$_.imports}|ForEach-Object {$_.module.ToLowerInvariant()+'!'+$_.symbol}|Sort-Object -Unique).Count
- $providerInventory|ConvertTo-Json -Depth 14|Set-Content -Encoding UTF8 (Join-Path $source 'App\provider-imports.json')
+ $providerInventory|ConvertTo-Json -Depth 14|Set-Content -Encoding ASCII (Join-Path $source 'App\provider-imports.json')
  $licensedSource=Join-Path $OutputDirectory 'LicensedAudioSource';New-Item -ItemType Directory -Force $licensedSource|Out-Null
  foreach($name in @('dsoal.tar.gz','openal-soft.tar.gz','prepare_audio.py','Build-Audio.ps1','source-review.json')){Copy-Item (Join-Path $PrivateAudioDirectory $name) $licensedSource}
  Copy-Item (Join-Path $source 'Native\AudioModule.cpp') $licensedSource

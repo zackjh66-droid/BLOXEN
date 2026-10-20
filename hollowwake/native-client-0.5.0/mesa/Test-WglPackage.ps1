@@ -30,6 +30,7 @@ public class HwWglActivation{public static uint Launch(string id){var m=(IHwWglA
 '@
 $data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\LocalState\native-wgl-probe.json')
 Remove-Item $data -Force -ErrorAction SilentlyContinue
+$begin=[DateTime]::UtcNow
 $pidWgl=[HwWglActivation]::Launch($package.PackageFamilyName+'!App');$deadline=[DateTime]::UtcNow.AddSeconds(45)
 try {
  while(!(Test-Path $data)-and[DateTime]::UtcNow-lt $deadline){Start-Sleep -Milliseconds 300}
@@ -39,4 +40,11 @@ try {
  $result=Get-Content $data -Raw|ConvertFrom-Json
  if($result.hresult-lt 0-or !$result.pixelReadback-or !$result.compositionPresent-or !$result.currentContextAndGuestDc-or $result.gameExecuted-or $result.xboxTested){throw ('Actual UWP wgl provider check failed: '+(Get-Content $data -Raw))}
  Write-Output 'PASS actual packaged provider loading, WGL context/DC, GPU pixel readback and composition presentation; not game/Xbox or original lobby proof'
-}finally{Stop-Process -Id $pidWgl -Force -ErrorAction SilentlyContinue}
+}finally{
+ $local=Split-Path $data
+ foreach($pair in @(@('native-launch.log','wgl-native-launch.log'),@('native-wgl-probe.json.stage.txt','native-wgl-stage.log'),@('native-provider-imports.json','wgl-provider-imports.json'))){$inputFile=Join-Path $local $pair[0];if(Test-Path $inputFile){Copy-Item $inputFile (Join-Path $OutputDirectory $pair[1])}}
+ $process=Get-Process -Id $pidWgl -ErrorAction SilentlyContinue
+ @{pid=$pidWgl;aliveAtEnd=[bool]$process;receiptWritten=(Test-Path $data);scope='Owned UWP provider test only; no game/Xbox'}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'wgl-process-status.json')
+ @(Get-WinEvent -FilterHashtable @{LogName='Application';StartTime=$begin;Id=1000,1001,1026} -ErrorAction SilentlyContinue|Where-Object {$_.Message-match 'Hollowwake|libgallium|HWMGL'}|Select-Object TimeCreated,Id,Message)|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'wgl-owned-crash-events.json')
+ Stop-Process -Id $pidWgl -Force -ErrorAction SilentlyContinue
+}

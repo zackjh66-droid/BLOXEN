@@ -5,16 +5,19 @@
 #include <set>
 #include <string>
 #include <cstring>
+#include <atomic>
 using Microsoft::WRL::ComPtr;
 namespace {
+std::atomic<void(*)(const char*,DWORD)> diagnostic{nullptr};
+void Trace(const char* text,DWORD error=0){auto last=GetLastError();if(auto callback=diagnostic.load())callback(text,error);SetLastError(last);}
 std::recursive_mutex gate;ComPtr<IUnknown> window;BOOL(__cdecl* viewport)(LONG*,LONG*)=nullptr;HMODULE mesa=nullptr,gallium=nullptr;std::set<HGLRC> contexts;thread_local HDC boundGuestDC=nullptr;
 using FromDc=HWND(WINAPI*)(HDC);using Owner=DWORD(WINAPI*)(HWND,LPDWORD);FromDc fromDc=nullptr;Owner owner=nullptr;
 template<class T>T Sys(const char* dll,const char* symbol){return reinterpret_cast<T>(Hollowwake::ResolveNativeSystemImport(dll,symbol));}
 template<class T>T Api(const char* name){return mesa?reinterpret_cast<T>(GetProcAddress(mesa,name)):nullptr;}
 bool Ready(){std::lock_guard<std::recursive_mutex> lock(gate);if(mesa&&gallium)return true;if(!window||!viewport){SetLastError(ERROR_INVALID_STATE);return false;}
- auto g=LoadPackagedLibrary(L"libgallium_wgl.dll",0);if(!g)return false;auto m=LoadPackagedLibrary(L"HWMGL.dll",0);if(!m){auto error=GetLastError();FreeLibrary(g);SetLastError(error);return false;}
+ Trace("LoadPackagedLibrary libgallium_wgl.dll begin");auto g=LoadPackagedLibrary(L"libgallium_wgl.dll",0);Trace("LoadPackagedLibrary libgallium_wgl.dll returned",g?0:GetLastError());if(!g)return false;Trace("LoadPackagedLibrary HWMGL.dll begin");auto m=LoadPackagedLibrary(L"HWMGL.dll",0);Trace("LoadPackagedLibrary HWMGL.dll returned",m?0:GetLastError());if(!m){auto error=GetLastError();FreeLibrary(g);SetLastError(error);return false;}
  auto configure=reinterpret_cast<HRESULT(__cdecl*)(IUnknown*,BOOL(__cdecl*)(LONG*,LONG*))>(GetProcAddress(g,"HWMesaConfigureWindow"));auto getWindow=Sys<HMODULE(WINAPI*)(LPCWSTR)>("kernel32.dll","GetModuleHandleW");auto user=getWindow?getWindow(L"user32.dll"):nullptr;fromDc=user?reinterpret_cast<FromDc>(GetProcAddress(user,"WindowFromDC")):nullptr;owner=user?reinterpret_cast<Owner>(GetProcAddress(user,"GetWindowThreadProcessId")):nullptr;
- HRESULT hr=configure?configure(window.Get(),viewport):HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);if(FAILED(hr)||!fromDc||!owner){FreeLibrary(m);FreeLibrary(g);SetLastError(FAILED(hr)?static_cast<DWORD>(hr):ERROR_PROC_NOT_FOUND);return false;}mesa=m;gallium=g;return true;
+ Trace("HWMesaConfigureWindow begin");HRESULT hr=configure?configure(window.Get(),viewport):HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);Trace("HWMesaConfigureWindow returned",hr);if(!fromDc)Trace("Missing USER32.dll!WindowFromDC",ERROR_PROC_NOT_FOUND);if(!owner)Trace("Missing USER32.dll!GetWindowThreadProcessId",ERROR_PROC_NOT_FOUND);if(FAILED(hr)||!fromDc||!owner){FreeLibrary(m);FreeLibrary(g);SetLastError(FAILED(hr)?static_cast<DWORD>(hr):ERROR_PROC_NOT_FOUND);return false;}mesa=m;gallium=g;return true;
 }
 HDC CoreDc(HDC guest){if(!Ready())return nullptr;DWORD process=0;auto hwnd=guest?fromDc(guest):nullptr;if(!hwnd||!owner(hwnd,&process)||process!=GetCurrentProcessId()){SetLastError(ERROR_INVALID_HANDLE);return nullptr;}
  auto get=reinterpret_cast<HDC(__cdecl*)()>(GetProcAddress(gallium,"HWMesaCoreDC"));if(!get){SetLastError(ERROR_PROC_NOT_FOUND);return nullptr;}return get();
@@ -47,6 +50,7 @@ BOOL WINAPI SetFormat(HDC guest,int index,const PIXELFORMATDESCRIPTOR* value){au
 BOOL WINAPI Swap(HDC guest){auto dc=CoreDc(guest);auto call=Api<BOOL(WINAPI*)(HDC)>("wglSwapBuffers");return dc&&call?call(dc):FALSE;}
 }
 void ConfigureWglProvider(IUnknown* value,BOOL(__cdecl* size)(LONG*,LONG*)){std::lock_guard<std::recursive_mutex> lock(gate);window=value;viewport=size;}
+void ConfigureWglProviderLogger(void(*value)(const char*,DWORD)){diagnostic.store(value);}
 void* ResolveWglProviderImport(const char* dll,const char* name,bool requireCandidate){if(!dll||!name)return nullptr;bool gl=!_stricmp(dll,"opengl32.dll"),gdi=!_stricmp(dll,"gdi32.dll");if(!gl&&!gdi)return nullptr;
  // Do not replace a native Windows OpenGL stack with the candidate unless an
  // owned functional test explicitly requests the candidate implementation.
