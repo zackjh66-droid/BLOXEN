@@ -7,7 +7,9 @@
 namespace {
 using Def=LRESULT(WINAPI*)(HWND,UINT,WPARAM,LPARAM);Def originalDefault=nullptr;
 LRESULT CALLBACK OwnedWindow(HWND w,UINT m,WPARAM p,LPARAM l){return originalDefault?originalDefault(w,m,p,l):0;}
-struct OwnedClass {UINT size,style;WNDPROC proc;int clsExtra,wndExtra;HINSTANCE instance;HICON icon;HCURSOR cursor;HBRUSH brush;LPCWSTR menu,name;HICON small;};
+// WNDPROC's typedef is desktop-partition gated in the UWP SDK. Keep the exact
+// WNDCLASSEXW ABI for the dynamically resolved OS API; do not change partitions.
+struct OwnedClass {UINT size,style;Def proc;int clsExtra,wndExtra;HINSTANCE instance;HICON icon;HCURSOR cursor;HBRUSH brush;LPCWSTR menu,name;HICON small;};
 }
 extern "C" __declspec(dllexport) int __cdecl HWWglProviderProbe(const wchar_t* report){
  if(!report)return E_POINTER;HRESULT result=E_FAIL;DWORD error=0;const char* stage="Native owned window providers";bool pixel=false,present=false,currentVerified=false;HWND hwnd=nullptr;HDC dc=nullptr;HGLRC context=nullptr;
