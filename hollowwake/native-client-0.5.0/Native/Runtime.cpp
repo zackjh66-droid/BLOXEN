@@ -34,6 +34,7 @@
 #include "PlatformAudit.h"
 #include "StartupPlatform.h"
 #include "DesktopCapabilities.h"
+#include "ProviderAudit.h"
 #include <utility>
 #include "PlatformImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
@@ -197,7 +198,9 @@ extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
  // follow the original Windows delay-load helper: they fail on actual request.
  // Their exact missing names/counts remain in the unchanged 838-pair audit.
  Log("NATIVE_PLATFORM_LOAD_TIME_REQUIRED unresolved="+std::to_string(requiredPlatform)+"; delayed unavailable APIs remain reported, not implemented");
- return unavailable||requiredPlatform?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
+ unsigned additionalMissing=0;auto packageRoot=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;std::wstring installed(packageRoot->Data());
+ if(GetFileAttributesW((installed+L"\\native-package-manifest.json").c_str())!=INVALID_FILE_ATTRIBUTES){additionalMissing=AuditAdditionalProviderImports((installed+L"\\provider-imports.json").c_str(),(logName.substr(0,slash+1)+L"native-provider-imports.json").c_str());Log("NATIVE_PROVIDER_PREFLIGHT unresolved="+std::to_string(additionalMissing)+"; additional licensed-provider inventory, original platform baseline unchanged");}
+ return unavailable||requiredPlatform||additionalMissing?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
 }
 
 static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{Log("NATIVE_CRASH code="+std::to_string(code)+" address="+std::to_string((ULONGLONG)data->ExceptionRecord->ExceptionAddress)+"; exception continues to OS");}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}

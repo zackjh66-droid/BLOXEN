@@ -1,6 +1,7 @@
 // Original functional check of reviewed audio providers. No game code runs.
 #include <windows.h>
 #include "AudioProvider.h"
+#include "ProviderAudit.h"
 #include "PackagedNamespace.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include <unknwn.h>
@@ -39,6 +40,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAudioProviderProbe(const wchar_t*
   if(!create||!capture||!captureCreate){result=HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);break;}
   stage="Production DirectSound ordinal/name dispatch";
   if(ResolveAudioProviderImport("DSOUND.dll","#8")!=reinterpret_cast<void*>(capture)||ResolveAudioProviderImport("DSOUND.dll","#11")!=reinterpret_cast<void*>(create)||ResolveAudioProviderImport("DSOUND.dll","#12")!=reinterpret_cast<void*>(captureCreate)||ResolveAudioProviderImport("DSOUND.dll","#9")||ResolveAudioProviderImport("unrelated.dll","#11")){result=E_FAIL;break;}
+  stage="Additional actual audio-provider dependency audit";auto installed=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;std::wstring inventory=std::wstring(installed->Data())+L"\\provider-imports.json";std::wstring output(report);auto outSlash=output.find_last_of(L"/\\");if(outSlash==std::wstring::npos){result=E_INVALIDARG;break;}output=output.substr(0,outSlash+1)+L"native-provider-imports.json";if(AuditAdditionalProviderImports(inventory.c_str(),output.c_str())!=0){result=HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);break;}
   stage="Guest module namespace with real packaged audio provider";
   using Module=HMODULE(WINAPI*)(LPCWSTR);using Filename=DWORD(WINAPI*)(HMODULE,LPWSTR,DWORD);
   auto hostModule=reinterpret_cast<Module>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));auto hostFilename=reinterpret_cast<Filename>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameW"));wchar_t root[32768];

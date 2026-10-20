@@ -81,6 +81,7 @@ if($LASTEXITCODE){throw 'Exact dependency proxy build failed'}
 if($PrivatePreparedDirectory){
  if(!$PrivateAudioDirectory){throw 'Real DirectSound integration requires the reviewed built audio provider directory; do not package missing providers'}
  $audioReceipt=Get-Content (Join-Path $PrivateAudioDirectory 'audio-build.json') -Raw|ConvertFrom-Json
+ Copy-Item (Join-Path $PrivateAudioDirectory 'provider-imports.json') (Join-Path $source 'App\provider-imports.json')
  foreach($audioName in @('HWAUD.dll','dsoal-aldrv.dll')){
   $audioPath=Join-Path $PrivateAudioDirectory $audioName
   $expectedAudio=if($audioName-eq 'HWAUD.dll'){$audioReceipt.dsoalSha256}else{$audioReceipt.openalSha256}

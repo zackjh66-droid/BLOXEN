@@ -8,7 +8,7 @@ $staging=Join-Path $env:RUNNER_TEMP 'HollowwakeOwnedAudioPackage'
 & (Join-Path $sdk 'makeappx.exe') unpack /p $PackagePath /d $staging /o
 if($LASTEXITCODE){throw 'Owned fixture unpack failed'}
 if((Test-Path (Join-Path $staging '6.21'))-or (Test-Path (Join-Path $staging 'native-package-manifest.json'))){throw 'Refusing audio fixture test with proprietary code'}
-foreach($name in @('HWAUD.dll','dsoal-aldrv.dll')){Copy-Item (Join-Path $ProviderDirectory $name) (Join-Path $staging $name)}
+foreach($name in @('HWAUD.dll','dsoal-aldrv.dll','provider-imports.json')){Copy-Item (Join-Path $ProviderDirectory $name) (Join-Path $staging $name)}
 foreach($name in @('AppxSignature.p7x','AppxBlockMap.xml','[Content_Types].xml')){Remove-Item -LiteralPath (Join-Path $staging $name) -Force -ErrorAction SilentlyContinue}
 $appx=Join-Path $env:RUNNER_TEMP 'HollowwakeOwnedAudio.appx'
 & (Join-Path $sdk 'makeappx.exe') pack /d $staging /p $appx /o
@@ -34,6 +34,7 @@ try {
  while(!(Test-Path $data)-and[DateTime]::UtcNow-lt $deadline){Start-Sleep -Milliseconds 300}
  if(!(Test-Path $data)){throw 'Actual UWP audio probe produced no result'}
  Copy-Item $data (Join-Path $OutputDirectory 'native-audio-probe.json')
+ $providerAudit=Join-Path (Split-Path $data) 'native-provider-imports.json';if(Test-Path $providerAudit){Copy-Item $providerAudit $OutputDirectory}
  $result=Get-Content $data -Raw|ConvertFrom-Json
  if($result.hresult-lt 0-or !$result.pcmMixed-or $result.gameExecuted-or $result.xboxTested){throw ('Actual UWP audio provider check failed: '+(Get-Content $data -Raw))}
  Write-Output 'PASS actual packaged provider loading, PCM mixing and endpoint operations; not game/Xbox or audible playback proof'
