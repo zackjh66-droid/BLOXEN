@@ -30,6 +30,7 @@ public class HwWglActivation{public static uint Launch(string id){var m=(IHwWglA
 '@
 $data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\LocalState\native-wgl-probe.json')
 Remove-Item $data -Force -ErrorAction SilentlyContinue
+Remove-Item ($data+'.stage.txt') -Force -ErrorAction SilentlyContinue
 $begin=[DateTime]::UtcNow
 $pidWgl=[HwWglActivation]::Launch($package.PackageFamilyName+'!App');$deadline=[DateTime]::UtcNow.AddSeconds(45)
 try {

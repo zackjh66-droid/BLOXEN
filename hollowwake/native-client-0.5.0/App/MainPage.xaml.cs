@@ -63,7 +63,7 @@ namespace Hollowwake
         public MainPage()
         {
             InitializeComponent();
-            var core=CoreWindow.GetForCurrentThread();core.SizeChanged+=(s,e)=>{if(policyReady)HWViewport((int)e.Size.Width,(int)e.Size.Height);};core.Activated+=(s,e)=>{HWHostActivation(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);HWSetControllerFocus(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);};core.KeyDown+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,1,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.KeyUp+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,0,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWCharacterDetails(e.KeyCode,e.KeyStatus.ScanCode);};
+            var core=CoreWindow.GetForCurrentThread();core.SizeChanged+=(s,e)=>{if(policyReady)HWViewport((int)e.Size.Width,(int)e.Size.Height);};core.Activated+=(s,e)=>{HWHostActivation(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);HWSetControllerFocus(core.ActivationMode==CoreWindowActivationMode.ActivatedInForeground?1:0);};core.KeyDown+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,1,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.KeyUp+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,0,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWCharacterDetails(e.KeyCode,e.KeyStatus.ScanCode);};
             core.PointerMoved += ForwardPointer; core.PointerPressed += (s,e)=>ForwardPointer(s,e,2); core.PointerReleased += (s,e)=>ForwardPointer(s,e,4); core.PointerWheelChanged += ForwardPointer;
             // Relative motion comes from the real host mouse device, never inferred from a warped cursor.
             var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
@@ -366,7 +366,7 @@ namespace Hollowwake
         public async void Resume()
         {
             var core=CoreWindow.GetForCurrentThread();
-            HWSetControllerFocus(core!=null&&core.ActivationMode!=CoreWindowActivationMode.Deactivated?1:0);
+            HWSetControllerFocus(core!=null&&core.ActivationMode==CoreWindowActivationMode.ActivatedInForeground?1:0);
             if(loadBusy)return; // Resume guest input without restarting launcher linking.
             if (!ready || api == null) return;
             if (sessionToken != null) await ValidateSessionAsync(true); else await StartLinkAsync();

@@ -21,6 +21,9 @@ extern "C" __declspec(dllexport) int __cdecl HWWglProviderProbe(const wchar_t* r
  auto reg=user?reinterpret_cast<Reg>(GetProcAddress(user,"RegisterClassExW")):nullptr;auto create=user?reinterpret_cast<Create>(GetProcAddress(user,"CreateWindowExW")):nullptr;auto get=user?reinterpret_cast<Get>(GetProcAddress(user,"GetDC")):nullptr;auto release=user?reinterpret_cast<Release>(GetProcAddress(user,"ReleaseDC")):nullptr;auto destroy=user?reinterpret_cast<Destroy>(GetProcAddress(user,"DestroyWindow")):nullptr;auto unreg=user?reinterpret_cast<Unreg>(GetProcAddress(user,"UnregisterClassW")):nullptr;originalDefault=user?reinterpret_cast<Def>(GetProcAddress(user,"DefWindowProcW")):nullptr;
  using Make=BOOL(WINAPI*)(HDC,HGLRC);using Delete=BOOL(WINAPI*)(HGLRC);Make make=nullptr;Delete erase=nullptr;
  do{
+  stage=mark("Actual provider load/unload before any screen exists");
+  auto cold=LoadPackagedLibrary(L"libgallium_wgl.dll",0);if(!cold){error=GetLastError();break;}if(!FreeLibrary(cold)){error=GetLastError();break;}
+  stage=mark("Cold provider unload completed");
   stage=mark("Actual additional Mesa provider dependency audit");
   auto package=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
   std::wstring inventory=std::wstring(package->Data())+L"\\provider-imports.json";
@@ -34,10 +37,10 @@ extern "C" __declspec(dllexport) int __cdecl HWWglProviderProbe(const wchar_t* r
   stage=mark("Mesa wglCreateContext");context=factory(dc);if(!context){error=GetLastError();break;}stage=mark("Mesa wglMakeCurrent");if(!make(dc,context)){error=GetLastError();break;}currentVerified=current()==context&&currentDc()==dc;if(!currentVerified){error=ERROR_INVALID_STATE;break;}
   stage=mark("Actual Mesa D3D12 OpenGL clear and GPU pixel readback");
   auto clearColor=reinterpret_cast<void(APIENTRY*)(float,float,float,float)>(proc("glClearColor"));auto clear=reinterpret_cast<void(APIENTRY*)(unsigned)>(proc("glClear"));auto read=reinterpret_cast<void(APIENTRY*)(int,int,int,int,unsigned,unsigned,void*)>(proc("glReadPixels"));auto glError=reinterpret_cast<unsigned(APIENTRY*)()>(proc("glGetError"));auto finish=reinterpret_cast<void(APIENTRY*)()>(proc("glFinish"));if(!clearColor||!clear||!read||!glError||!finish){error=ERROR_PROC_NOT_FOUND;break;}
-  clearColor(.25f,.5f,.75f,1);clear(0x4000);finish();unsigned char rgba[4]={};read(0,0,1,1,0x1908,0x1401,rgba);pixel=glError()==0&&rgba[0]>=62&&rgba[0]<=66&&rgba[1]>=126&&rgba[1]<=130&&rgba[2]>=189&&rgba[2]<=193&&rgba[3]==255;if(!pixel){error=ERROR_INVALID_DATA;break;}
+  stage=mark("glClearColor");clearColor(.25f,.5f,.75f,1);stage=mark("glClear");clear(0x4000);stage=mark("glFinish");finish();unsigned char rgba[4]={};stage=mark("glReadPixels");read(0,0,1,1,0x1908,0x1401,rgba);pixel=glError()==0&&rgba[0]>=62&&rgba[0]<=66&&rgba[1]>=126&&rgba[1]<=130&&rgba[2]>=189&&rgba[2]<=193&&rgba[3]==255;if(!pixel){error=ERROR_INVALID_DATA;break;}
   stage=mark("Actual composition swap present");auto swap=reinterpret_cast<BOOL(WINAPI*)(HDC)>(ResolveWglProviderImport("gdi32.dll","SwapBuffers",true));present=swap&&swap(dc);if(!present){error=GetLastError();break;}
   if(!make(nullptr,nullptr)||current()!=nullptr||currentDc()!=nullptr){error=ERROR_INVALID_STATE;break;}if(!erase(context)){error=GetLastError();break;}context=nullptr;result=S_OK;stage=mark("Six WGL calls, real pixel readback and composition present complete");
  }while(false);
- if(context){if(make)make(nullptr,nullptr);if(erase)erase(context);}if(dc&&release)release(hwnd,dc);if(hwnd&&destroy)destroy(hwnd);if(unreg&&instance)unreg(L"HollowwakeOwnedWgl",instance);if(FAILED(result)&&error)result=HRESULT_FROM_WIN32(error);
+ mark("Context cleanup");if(context){if(make)make(nullptr,nullptr);if(erase)erase(context);}mark("Native window cleanup");if(dc&&release)release(hwnd,dc);if(hwnd&&destroy)destroy(hwnd);if(unreg&&instance)unreg(L"HollowwakeOwnedWgl",instance);if(FAILED(result)&&error)result=HRESULT_FROM_WIN32(error);
  std::ofstream out(report,std::ios::trunc);out<<"{\"scope\":\"Owned actual WGL bridge behavior, not game/Xbox\",\"hresult\":"<<(long)result<<",\"stage\":\""<<stage<<"\",\"error\":"<<error<<",\"currentContextAndGuestDc\":"<<(currentVerified?"true":"false")<<",\"pixelReadback\":"<<(pixel?"true":"false")<<",\"compositionPresent\":"<<(present?"true":"false")<<",\"gameExecuted\":false,\"xboxTested\":false}";return result;
 }

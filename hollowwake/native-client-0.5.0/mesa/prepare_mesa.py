@@ -42,6 +42,12 @@ def prepare(output):
  (root/('DirectX-Headers-'+dxpin)).rename(source/'subprojects/DirectX-Headers-1.0')
  options=source/'meson_options.txt';text=options.read_text();assert "'uwp'" not in text;text+="\noption('uwp', type : 'boolean', value : true, description : 'Use the public CoreWindow UWP backend')\n";options.write_text(text)
  gdi=source/'src/gallium/winsys/uwp/gdi_uwp.cpp';gdi.write_text((Path(__file__).parent/'CoreWindowGdi.cpp').read_text())
+ # A real LoadPackagedLibrary/FreeLibrary cycle can end before any screen was
+ # created. Upstream cleanup dereferences that null screen unconditionally;
+ # the owned UWP test recorded an AV at the corresponding destroy call.
+ p=source/'src/gallium/frontends/wgl/stw_device.c';text=p.read_text();begin=text.index('void\nstw_cleanup(void)');head,cleanup=text[:begin],text[begin:]
+ old='   stw_dev->screen->destroy(stw_dev->screen);';assert cleanup.count(old)==1
+ cleanup=cleanup.replace(old,'   if (stw_dev->screen)\n      stw_dev->screen->destroy(stw_dev->screen);');p.write_text(head+cleanup)
  p=source/'src/gallium/winsys/uwp/meson.build';text=p.read_text().replace("  cpp_args : '/ZW',","  cpp_args : [],");p.write_text(text)
  # A Mesa-selected system/provider module must come from the package graph.
  # Arbitrary writable-directory DLL loading is not permitted in this port.
