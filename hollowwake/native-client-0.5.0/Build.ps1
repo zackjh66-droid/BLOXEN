@@ -38,6 +38,9 @@ if($LASTEXITCODE){throw 'Native normal/delay import policy did not match Windows
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\DesktopCapabilities.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\DesktopCapabilitiesTest.cpp') kernel32.lib runtimeobject.lib windowsapp.lib imm32.lib opengl32.lib dwmapi.lib d3d9.lib user32.lib /Fe:"$OutputDirectory\DesktopCapabilitiesTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'desktop-capabilities-build.log')
 if($LASTEXITCODE){throw 'Typed desktop API delegation compilation failed'}
 & "$OutputDirectory\DesktopCapabilitiesTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'desktop-capabilities-test.log');if($LASTEXITCODE){throw 'Real desktop API delegation behavior differs'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'tests\ControllerStateTest.cpp') /Fe:"$OutputDirectory\ControllerStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'controller-state-build.log')
+if($LASTEXITCODE){throw 'Controller production state compilation failed'}
+& "$OutputDirectory\ControllerStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'controller-state-test.log');if($LASTEXITCODE){throw 'Controller translation/lifecycle state failed'}
 # Focused fixes for the actual Xbox missing-binding inventory. Owned callbacks,
 # real scheduling/cancellation, and actual native D3D11 annotation operations.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\MultimediaTimers.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\MultimediaTimersTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-build.log')
