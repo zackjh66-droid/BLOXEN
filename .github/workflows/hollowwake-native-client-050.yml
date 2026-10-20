@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 jobs:
   build:
     runs-on: windows-2022
@@ -36,6 +37,41 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           msbuild hollowwake\native-client-0.5.0\Native\Native.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo
+      - name: Reuse exact previously tested licensed providers
+        id: reuse_providers
+        if: ${{ contains(github.event.head_commit.message, '[reuse-providers]') && steps.public_build.outcome == 'success' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: '12280182348'
+          run-id: '39454362155'
+          github-token: ${{ github.token }}
+          path: artifacts/native-client-050
+      - name: Retrieve original provider behavior receipts
+        id: reuse_receipts
+        if: ${{ steps.reuse_providers.outcome == 'success' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          artifact-ids: '12279788622'
+          run-id: '39454362155'
+          github-token: ${{ github.token }}
+          path: ${{ runner.temp }}/HollowwakePriorEvidence
+      - name: Validate reused provider files against their original inventories
+        id: reuse_verified
+        if: ${{ steps.reuse_receipts.outcome == 'success' }}
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($group in @('audio','mesa')) {
+            $root=Join-Path 'artifacts/native-client-050' $group
+            $inventory=Get-Content (Join-Path $root 'provider-imports.json') -Raw|ConvertFrom-Json
+            foreach($record in $inventory.files) {
+              $file=Join-Path $root $record.file
+              if((Get-Item $file).Length-ne $record.bytes-or (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()-ne $record.sha256){throw 'Reused provider hash differs'}
+            }
+          }
+          Copy-Item (Join-Path $env:RUNNER_TEMP 'HollowwakePriorEvidence/native-wgl-probe.json') artifacts/native-client-050/native-wgl-probe.json
+          Copy-Item (Join-Path $env:RUNNER_TEMP 'HollowwakePriorEvidence/native-audio-probe.json') artifacts/native-client-050/native-audio-probe.json
+          @{sourceCommit='d17120872a3e3ef03445fa2e12f603e195b7acd0';run=39454362155;providerArtifact=12280182348;receiptArtifact=12279788622;recompiled=$false;gameExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/reused-provider-provenance.json
       - name: Compile reviewed Mesa UWP WGL candidate
         id: mesa_candidate
         if: ${{ always() && contains(github.event.head_commit.message, '[mesa-uwp]') }}
@@ -126,7 +162,7 @@ jobs:
           retention-days: 1
       - name: Private game-input packaging check; never upload its files
         id: private_source
-        if: ${{ !contains(github.event.head_commit.message, '[ui-only]') && !contains(github.event.head_commit.message, '[no-private-inputs]') && steps.public_build.outcome == 'success' && steps.audio_behavior.outcome == 'success' && (!contains(github.event.head_commit.message, '[mesa-uwp]') || steps.mesa_behavior.outcome == 'success') }}
+        if: ${{ !contains(github.event.head_commit.message, '[ui-only]') && !contains(github.event.head_commit.message, '[no-private-inputs]') && steps.public_build.outcome == 'success' && (steps.reuse_verified.outcome == 'success' || (steps.audio_behavior.outcome == 'success' && (!contains(github.event.head_commit.message, '[mesa-uwp]') || steps.mesa_behavior.outcome == 'success'))) }}
         timeout-minutes: 18
         continue-on-error: true
         shell: cmd

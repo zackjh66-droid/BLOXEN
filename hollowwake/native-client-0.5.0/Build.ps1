@@ -41,6 +41,9 @@ if($LASTEXITCODE){throw 'Typed desktop API delegation compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'tests\ControllerStateTest.cpp') /Fe:"$OutputDirectory\ControllerStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'controller-state-build.log')
 if($LASTEXITCODE){throw 'Controller production state compilation failed'}
 & "$OutputDirectory\ControllerStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'controller-state-test.log');if($LASTEXITCODE){throw 'Controller translation/lifecycle state failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'tests\ClientLaunchIdentityTest.cpp') /Fe:"$OutputDirectory\ClientLaunchIdentityTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'client-identity-build.log')
+if($LASTEXITCODE){throw 'Game launch identity state compilation failed'}
+& "$OutputDirectory\ClientLaunchIdentityTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'client-identity-test.log');if($LASTEXITCODE){throw 'Game launch ticket identity/expiry behavior failed'}
 # Focused fixes for the actual Xbox missing-binding inventory. Owned callbacks,
 # real scheduling/cancellation, and actual native D3D11 annotation operations.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\MultimediaTimers.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\MultimediaTimersTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-build.log')
@@ -118,7 +121,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.6.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.7.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')

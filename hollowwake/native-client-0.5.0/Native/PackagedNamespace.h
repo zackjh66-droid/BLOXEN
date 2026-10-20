@@ -2,7 +2,8 @@
 #include <windows.h>
 namespace Hollowwake {
 // Configure before loading any guest DLL. Names are package basenames, never paths.
-// No refresh token, password or account credential belongs in commandLine.
+// Only an ephemeral, one-use game exchange ticket may be supplied.
+// Never pass project sessions, passwords or game refresh/access tokens.
 bool ConfigurePackagedRoot(const wchar_t* installedRoot);
 bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relativePath,const wchar_t* originalRelativePath);
 bool RegisterPackagedMainIdentity(const wchar_t* originalRelativePath);

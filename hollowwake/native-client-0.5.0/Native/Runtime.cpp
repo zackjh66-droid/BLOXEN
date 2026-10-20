@@ -1,3 +1,4 @@
+#include "ClientLaunchIdentity.h"
 #include "LegacyCrt.h"
 #include "LegacyStartup.h"
 #include "KernelStartup.h"
@@ -214,18 +215,23 @@ static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::ato
 
 // Explicit native-loader experiment. It accepts no download URL, credentials,
 // arbitrary DLL path or user command line. The UI's existing mapper is unchanged.
+static Hollowwake::ClientLaunchIdentity gameIdentity;
+extern "C" __declspec(dllexport) int __cdecl HWConfigureClientLogin(const wchar_t* code,unsigned seconds){
+ if(!code||wcsnlen_s(code,44)!=43)return E_INVALIDARG;
+ return gameIdentity.Configure(std::wstring(code),seconds,GetTickCount64())?S_OK:E_ACCESSDENIED;
+}
 extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.5.6.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.5.7.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
   std::wstring file=std::wstring(location->Data())+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
   auto size=in.tellg();if(size!=100733440){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
-  static const BYTE expected[32]={0x95,0x19,0x6e,0x6a,0x0e,0x5a,0xb1,0xe2,0x3a,0x15,0xda,0xbf,0xe6,0x0c,0x09,0x48,0x82,0x5a,0xdf,0x1b,0x93,0xcb,0x58,0xd8,0x7b,0x10,0x65,0x5e,0xfb,0x03,0x7f,0x92};
+  static const BYTE expected[32]={0x85,0x48,0xe7,0xed,0xc2,0x21,0xa4,0x8d,0x12,0x64,0x8c,0x98,0x50,0x00,0x92,0xbf,0xeb,0x3c,0x0c,0x6d,0x0e,0x4e,0x69,0xd6,0x6e,0x41,0x7a,0x24,0x5c,0x20,0x15,0xaf};
   if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}auto clientDos=reinterpret_cast<const IMAGE_DOS_HEADER*>(bytes.data());
   if(clientDos->e_magic!=IMAGE_DOS_SIGNATURE||clientDos->e_lfanew<64||!Range(clientDos->e_lfanew,sizeof(IMAGE_NT_HEADERS64),bytes.size()))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
   auto clientHeaders=reinterpret_cast<const IMAGE_NT_HEADERS64*>(bytes.data()+clientDos->e_lfanew);
@@ -234,8 +240,9 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   bytes.clear();
   UINT launchWidth=0,launchHeight=0;auto sizeResult=HWReadViewport(&launchWidth,&launchHeight);if(FAILED(sizeResult))return sizeResult;
   std::wstring launchCommand=L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX="+std::to_wstring(launchWidth)+L" -ResY="+std::to_wstring(launchHeight);
+  std::wstring gameLogin;if(!gameIdentity.Consume(GetTickCount64(),gameLogin)){Log("NATIVE_LOAD_BLOCKED a fresh linked-account launch ticket is required");return E_ACCESSDENIED;}launchCommand+=gameLogin;
   if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",launchCommand.c_str())){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
-  Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; no login credentials in command line");
+  Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; one-time game exchange ticket configured; no project session supplied");
   using AddHandler=PVOID(WINAPI*)(ULONG,PVECTORED_EXCEPTION_HANDLER);auto addHandler=reinterpret_cast<AddHandler>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","AddVectoredExceptionHandler"));if(!addHandler||!addHandler(1,NativeCrashRecord))Log("NATIVE_DIAGNOSTIC vectored crash recorder unavailable");
   Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
   std::wstring manifestPath=std::wstring(location->Data())+L"\\native-package-manifest.json";std::ifstream metadata(manifestPath,std::ios::binary);if(!metadata){Log("NATIVE_LOAD_BLOCKED private dependency manifest missing");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
