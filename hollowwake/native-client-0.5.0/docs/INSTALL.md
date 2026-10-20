@@ -1,4 +1,4 @@
-# Xbox installation — 0.5.6 integrated startup experiment
+# Xbox installation — 0.5.7 linked-account startup experiment
 
 The private game-containing build includes the converted original 6.21 client, its selected native dependencies and Hollowwake's runtime. The public source-only CI fixture does not contain Fortnite. Do not confuse the two. Neither is a demonstrated lobby release.
 
@@ -8,7 +8,7 @@ The private game-containing build includes the converted original 6.21 client, i
 4. Content download starts after linking or session restoration. Expect about 12.36 GB of compressed transfer and **26,449,827,840 expanded data bytes**, plus installed client code. Provision at least 27.6 GB of *app-accessible* storage. General disk free space does not establish an Xbox app's actual quota.
 5. The progress panel separates received bytes from verified bytes/files. PAUSE (B) cancels safely; DOWNLOAD / VERIFY CONTENT retries or reuses independently verified files. No full ZIP is retained. Do not remove the installed app to retry: uninstalling can delete its downloaded data.
 6. Boot code belongs inside the signed package. Importing boot DLLs into LocalState does not provide native package dependencies. No boot import is required for the private integrated build.
-7. Once final verification passes, select LAUNCH NATIVE CLIENT once. This invokes `HWAttemptPackagedClient`, not another application or a recreated lobby. Preflight still blocks unresolved required imports. An explicit error from an unavailable optional desktop feature is not a working implementation of that feature. The new native D3D11/DXGI path attaches tagged client windows to the launcher surface; the controller bridge reads actual WinRT Gamepads. Both need physical game/Xbox verification.
+7. Once final verification passes, select LAUNCH NATIVE CLIENT once. This invokes `HWAttemptPackagedClient`, not another application or a recreated lobby. Preflight still blocks unresolved required imports. An explicit error from an unavailable optional desktop feature is not a working implementation of that feature. The new native D3D11/DXGI path attaches tagged client windows to the launcher surface; the controller bridge reads actual WinRT Gamepads. The linked account now supplies a one-time game login ticket to that path. These code paths need physical game/Xbox verification.
 
 ## Focused test checklist
 
@@ -24,4 +24,4 @@ Where the console offers it: highlight the installed app in Dev Home, press View
 
 References: [DirectX and UWP on Xbox One](https://walbourn.github.io/directx-and-uwp-on-xbox-one/) and [Microsoft resource allocation](https://learn.microsoft.com/en-us/windows/uwp/xbox-apps/system-resource-allocation).
 
-Fortnite-compatible endpoint/login wiring, presence, original lobby/character rendering, locker/shop persistence and real Xbox graphics/input behavior remain incomplete or unverified. Matchmaking is disabled. Never enter Epic account credentials.
+The account ticket handoff, account/game hostname redirection and rotating game credentials are implemented and covered by owned tests. Their acceptance by the actual client on Xbox is UNTESTED. Presence remains unimplemented; original loading, lobby/character rendering, locker/shop behavior and Xbox graphics/input have not been demonstrated. Matchmaking is disabled. Never enter Epic account credentials.
