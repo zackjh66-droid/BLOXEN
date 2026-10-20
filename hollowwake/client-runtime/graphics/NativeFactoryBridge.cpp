@@ -55,6 +55,10 @@ static HRESULT RestoreSlot(const Slot& slot){
 void ConfigureNativeFactoryBridge(IUnknown* window,BOOL(WINAPI*validate)(HWND)){std::lock_guard<std::mutex> lock(gate);presentationWindow=window;guestWindow=validate;}
 HRESULT BridgeDeviceFactories(ID3D11Device* device){
  if(!device)return E_INVALIDARG;ComPtr<IDXGIDevice> dxgi;auto hr=device->QueryInterface(IID_PPV_ARGS(&dxgi));if(FAILED(hr))return hr;ComPtr<IDXGIAdapter> adapter;hr=dxgi->GetAdapter(&adapter);if(FAILED(hr))return hr;ComPtr<IDXGIFactory> factory;hr=adapter->GetParent(IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;
+ return BridgeNativeFactory(factory.Get());
+}
+HRESULT BridgeNativeFactory(IUnknown* value){
+ if(!value)return E_INVALIDARG;ComPtr<IDXGIFactory> factory;auto hr=value->QueryInterface(IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;
  std::lock_guard<std::mutex> lock(gate);if(!presentationWindow||!guestWindow)return E_UNEXPECTED;
  std::set<void**> existing;try{for(auto& entry:slots)existing.insert(entry.first);}catch(const std::bad_alloc&){return E_OUTOFMEMORY;}
  auto failed=[&](HRESULT error){

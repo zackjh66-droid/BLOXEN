@@ -29,7 +29,7 @@ $windowProbe=Get-Content (Join-Path $data 'native-window-probe.json') -Raw|Conve
 $contentPlan=Get-Content (Join-Path $data 'packaged-content-plan.json') -Raw|ConvertFrom-Json
 if($contentPlan.files-ne 139-or $contentPlan.expandedBytes-ne 26449827840-or $contentPlan.archiveBytes-ne 12528679454-or $contentPlan.manifestId-notmatch '^[0-9a-f]{64}$'){throw 'Signed package content metadata differs from inspected source'}
 if($windowProbe.hresult-lt 0){throw ('Native window route failed operation='+$windowProbe.operation+' Win32='+$windowProbe.win32Error+'; game not executed')}
-if(!$windowProbe.nativeWindowCreated-or !$windowProbe.nativeDc-or !$windowProbe.paintPixelReadback-or !$windowProbe.ownMessageDispatched-or !$windowProbe.nativeSwapChain-or !$windowProbe.gpuPixelReadback){throw 'Native window route lacks actual behavior evidence'}
+if(!$windowProbe.nativeWindowCreated-or !$windowProbe.nativeDc-or !$windowProbe.paintPixelReadback-or !$windowProbe.ownMessageDispatched-or !$windowProbe.hostCompositionAttached-or !$windowProbe.unregisteredNativePreserved-or !$windowProbe.gpuPixelReadback){throw 'Native window route lacks actual behavior evidence'}
 if($graphicsPolicy.hresult-lt 0){throw ('Actual AppContainer factory bridge policy failed HRESULT='+$graphicsPolicy.hresult)}
 if($platform.total-ne 838-or $platform.pairs.Count-ne 838){throw 'Unredirected inventory changed or audit incomplete'}
 if($platform.gameExecuted-or $platform.xboxTested){throw 'Invalid platform audit scope claim'}

@@ -36,9 +36,24 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           msbuild hollowwake\native-client-0.5.0\Native\Native.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo
+      - name: Compile reviewed Mesa UWP WGL candidate
+        id: mesa_candidate
+        if: ${{ always() && contains(github.event.head_commit.message, '[mesa-uwp]') }}
+        continue-on-error: true
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          powershell -NoProfile -File hollowwake\native-client-0.5.0\mesa\Build-Mesa.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa"
+          if not exist "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa\mesa-build.json" exit /b 1
+      - name: Exercise actual WGL candidate inside owned UWP package
+        id: mesa_behavior
+        if: ${{ steps.mesa_candidate.outcome == 'success' && steps.public_build.outcome == 'success' }}
+        continue-on-error: true
+        shell: powershell
+        run: ./hollowwake/native-client-0.5.0/mesa/Test-WglPackage.ps1 -ProviderDirectory artifacts/native-client-050/mesa -OutputDirectory artifacts/native-client-050
       - name: Compile reviewed DirectSound and UWP OpenAL candidate
         id: audio_candidate
-        if: ${{ always() && contains(github.event.head_commit.message, '[audio-uwp]') }}
+        if: ${{ contains(github.event.head_commit.message, '[audio-uwp]') && (!contains(github.event.head_commit.message, '[mesa-uwp]') || steps.mesa_behavior.outcome == 'success') }}
         continue-on-error: true
         shell: cmd
         run: |
@@ -60,21 +75,6 @@ jobs:
             artifacts/native-client-050/audio/*.json
             artifacts/native-client-050/native-audio-probe.json
           retention-days: 3
-      - name: Compile reviewed Mesa UWP WGL candidate
-        id: mesa_candidate
-        if: ${{ always() && contains(github.event.head_commit.message, '[mesa-uwp]') }}
-        continue-on-error: true
-        shell: cmd
-        run: |
-          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
-          powershell -NoProfile -File hollowwake\native-client-0.5.0\mesa\Build-Mesa.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa"
-          if not exist "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa\mesa-build.json" exit /b 1
-      - name: Exercise actual WGL candidate inside owned UWP package
-        id: mesa_behavior
-        if: ${{ steps.mesa_candidate.outcome == 'success' && steps.public_build.outcome == 'success' }}
-        continue-on-error: true
-        shell: powershell
-        run: ./hollowwake/native-client-0.5.0/mesa/Test-WglPackage.ps1 -ProviderDirectory artifacts/native-client-050/mesa -OutputDirectory artifacts/native-client-050
       - name: Preserve licensed provider candidates and corresponding source
         if: ${{ always() && (steps.audio_candidate.outcome == 'success' || steps.mesa_candidate.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
