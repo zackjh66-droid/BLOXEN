@@ -14,7 +14,26 @@ $build=Join-Path $source 'build'
 $runtime=(Join-Path (Split-Path $PSScriptRoot -Parent) 'Native/bin/x64/Release/HollowwakeClientRuntime.lib').Replace('\','/')
 # Use only the public UWP/CoreWindow path. Gaming.Xbox/GDK targets, the optional
 # swap allocator, software-GDI output and unrelated drivers are not selected.
-$mesaArgs=@('setup',$build,(Join-Path $source 'mesa'),'--backend=ninja','--buildtype=release','--wrap-mode=nodownload','-Duwp=true','-Dxbox-swap=false','-Dplatforms=windows','-Dgallium-drivers=d3d12','-Dvulkan-drivers=[]','-Dgallium-d3d12-video=disabled','-Dglx=disabled','-Degl=disabled','-Dgbm=disabled','-Dgles1=disabled','-Dgles2=disabled','-Dopengl=true','-Dshared-glapi=true','-Dllvm=disabled','-Ddraw-use-llvm=false','-Dglvnd=false','-Dshader-cache=disabled','-Dxmlconfig=disabled','-Dzlib=disabled','-Dzstd=disabled','-Dlmsensors=disabled','-Dvideo-codecs=[]','-Dbuild-tests=false','-Db_pch=false','-Dc_winlibs=[]','-Dcpp_winlibs=[]',"-Dc_args=['/D_XBOX_UWP','/DWINAPI_FAMILY=WINAPI_FAMILY_APP']","-Dcpp_args=['/D_XBOX_UWP','/DWINAPI_FAMILY=WINAPI_FAMILY_APP']","-Dc_link_args=['/APPCONTAINER','/LIBPATH:$store','$runtime','windowsapp.lib']","-Dcpp_link_args=['/APPCONTAINER','/LIBPATH:$store','$runtime','windowsapp.lib']")
+# UWP executables require package activation and framework dependency binding.
+# Tell Meson this is an actual WindowsStore cross target, not a desktop process
+# it may launch for configuration probes. This changes build-system detection,
+# not game preflight or the behavior of any API implementation.
+$cross=Join-Path $source 'windows-store-x64.ini'
+@'
+[binaries]
+c = 'cl'
+cpp = 'cl'
+ar = 'lib'
+strip = 'llvm-strip'
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+[properties]
+needs_exe_wrapper = true
+'@|Set-Content -Encoding ASCII $cross
+$mesaArgs=@('setup','--cross-file',$cross,$build,(Join-Path $source 'mesa'),'--backend=ninja','--buildtype=release','--wrap-mode=nodownload','-Duwp=true','-Dxbox-swap=false','-Dplatforms=windows','-Dgallium-drivers=d3d12','-Dvulkan-drivers=[]','-Dgallium-d3d12-video=disabled','-Dglx=disabled','-Degl=disabled','-Dgbm=disabled','-Dgles1=disabled','-Dgles2=disabled','-Dopengl=true','-Dshared-glapi=true','-Dllvm=disabled','-Ddraw-use-llvm=false','-Dglvnd=false','-Dshader-cache=disabled','-Dxmlconfig=disabled','-Dzlib=disabled','-Dzstd=disabled','-Dlmsensors=disabled','-Dvideo-codecs=[]','-Dbuild-tests=false','-Db_pch=false','-Dc_winlibs=[]','-Dcpp_winlibs=[]',"-Dc_args=['/D_XBOX_UWP','/DWINAPI_FAMILY=WINAPI_FAMILY_APP']","-Dcpp_args=['/D_XBOX_UWP','/DWINAPI_FAMILY=WINAPI_FAMILY_APP']","-Dc_link_args=['/APPCONTAINER','/LIBPATH:$store','$runtime','windowsapp.lib']","-Dcpp_link_args=['/APPCONTAINER','/LIBPATH:$store','$runtime','windowsapp.lib']")
 & meson @mesaArgs 2>&1|Tee-Object (Join-Path $OutputDirectory 'mesa-configure.log')
 if($LASTEXITCODE){throw 'Mesa UWP configuration failed'}
 & meson compile -C $build -j 4 opengl32 libgallium_wgl 2>&1|Tee-Object (Join-Path $OutputDirectory 'mesa-build.log')

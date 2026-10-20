@@ -29,7 +29,7 @@ python private-package/prepare.py <verified-inputs>/6.21 <new-private-prepared-d
 powershell -NoProfile -File Build.ps1 -PrivatePreparedDirectory <new-private-prepared-dir> -PrivateAudioDirectory <reviewed-built-audio-dir> -OutputDirectory <private-output-dir>
 ```
 
-Current preparation selects 26 game images and 18 generated import proxies. With the runtime and two audio implementations, the signed code index contains 47 files. Private packaging refuses absent or receipt-hash-mismatched audio DLLs and audits all installed code hashes. A converted EXE/export/manifest is not proof that its entry can execute correctly.
+Current preparation selects 26 game images and 18 generated import proxies. With the runtime and two audio implementations, the signed code index contains 47 files. Private packaging refuses absent or receipt-hash-mismatched audio DLLs and audits all installed code hashes. The signed package also contains the inventory of actual licensed-provider imports. These additional pairs are audited separately before native client loading; they do not replace or shrink either original inventory. A converted EXE/export/manifest is not proof that its entry can execute correctly.
 
 Game images are kept in the installed signed package. Downloaded data lives under this app's `LocalState/GameClean/6.21`, with original logical paths translated by the file-access bridge. The separate indexed download installs 26.45 GB of data from approximately 12.36 GB of selected compressed entries. It requires room for missing expanded files plus a 1 GiB reserve and reports actual I/O failures. Actual Xbox quotas/free-space behavior remains unverified.
 
