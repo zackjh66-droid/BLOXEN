@@ -71,7 +71,7 @@ namespace Hollowwake
             Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
             Loaded += async (s, e) => { if (!ready) { ready = true; await InitializeAsync(); } };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
-            SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; await CancelLinkAsync(); };
+            SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; if(!loadBusy)await CancelLinkAsync(); };
         }
         private void ForwardPointer(CoreWindow sender, PointerEventArgs args){ForwardPointer(sender,args,1);}
         private void ForwardPointer(CoreWindow sender, PointerEventArgs args,uint touchPhase)
@@ -365,6 +365,9 @@ namespace Hollowwake
         public void Pause() { HWSetControllerFocus(0); ResetOperation(); heartbeat.Stop(); }
         public async void Resume()
         {
+            var core=CoreWindow.GetForCurrentThread();
+            HWSetControllerFocus(core!=null&&core.ActivationMode!=CoreWindowActivationMode.Deactivated?1:0);
+            if(loadBusy)return; // Resume guest input without restarting launcher linking.
             if (!ready || api == null) return;
             if (sessionToken != null) await ValidateSessionAsync(true); else await StartLinkAsync();
         }

@@ -1,6 +1,7 @@
 // Owned focused test for the six actual missing WGL entry points and their
 // necessary pixel-format/presentation bridge. No game code or fake GL context.
 #include "WglProvider.h"
+#include "ProviderAudit.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include <fstream>
 #include <string>
@@ -18,6 +19,12 @@ extern "C" __declspec(dllexport) int __cdecl HWWglProviderProbe(const wchar_t* r
  auto reg=user?reinterpret_cast<Reg>(GetProcAddress(user,"RegisterClassExW")):nullptr;auto create=user?reinterpret_cast<Create>(GetProcAddress(user,"CreateWindowExW")):nullptr;auto get=user?reinterpret_cast<Get>(GetProcAddress(user,"GetDC")):nullptr;auto release=user?reinterpret_cast<Release>(GetProcAddress(user,"ReleaseDC")):nullptr;auto destroy=user?reinterpret_cast<Destroy>(GetProcAddress(user,"DestroyWindow")):nullptr;auto unreg=user?reinterpret_cast<Unreg>(GetProcAddress(user,"UnregisterClassW")):nullptr;originalDefault=user?reinterpret_cast<Def>(GetProcAddress(user,"DefWindowProcW")):nullptr;
  using Make=BOOL(WINAPI*)(HDC,HGLRC);using Delete=BOOL(WINAPI*)(HGLRC);Make make=nullptr;Delete erase=nullptr;
  do{
+  stage="Actual additional Mesa provider dependency audit";
+  auto package=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
+  std::wstring inventory=std::wstring(package->Data())+L"\\provider-imports.json";
+  std::wstring reportPath(report);auto slash=reportPath.find_last_of(L"/\\");
+  if(slash==std::wstring::npos||AuditAdditionalProviderImports(inventory.c_str(),(reportPath.substr(0,slash+1)+L"native-provider-imports.json").c_str())!=0){error=ERROR_PROC_NOT_FOUND;break;}
+  stage="Native owned window providers";
   if(!reg||!create||!get||!release||!destroy||!unreg||!originalDefault||!instance){error=ERROR_PROC_NOT_FOUND;break;}
   OwnedClass cls={sizeof(OwnedClass),0x20,OwnedWindow,0,0,instance,nullptr,nullptr,nullptr,nullptr,L"HollowwakeOwnedWgl",nullptr};if(!reg(&cls)){error=GetLastError();break;}hwnd=create(0,cls.name,L"Owned WGL bridge fixture",0x80000000,0,0,64,64,nullptr,nullptr,instance,nullptr);if(!hwnd){error=GetLastError();break;}dc=get(hwnd);if(!dc){error=GetLastError();break;}
   stage="Packaged Mesa provider and native-to-CoreWindow HDC";

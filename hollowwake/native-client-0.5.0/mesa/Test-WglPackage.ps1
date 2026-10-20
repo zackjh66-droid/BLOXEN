@@ -9,6 +9,7 @@ $staging=Join-Path $env:RUNNER_TEMP 'HollowwakeOwnedWglPackage'
 if($LASTEXITCODE){throw 'Owned fixture unpack failed'}
 if((Test-Path (Join-Path $staging '6.21'))-or (Test-Path (Join-Path $staging 'native-package-manifest.json'))){throw 'Refusing wgl fixture test with proprietary code'}
 foreach($name in @('HWMGL.dll','libgallium_wgl.dll','libglapi.dll')){Copy-Item (Join-Path $ProviderDirectory $name) (Join-Path $staging $name)}
+Copy-Item (Join-Path $ProviderDirectory 'provider-imports.json') (Join-Path $staging 'provider-imports.json')
 foreach($name in @('AppxSignature.p7x','AppxBlockMap.xml','[Content_Types].xml')){Remove-Item -LiteralPath (Join-Path $staging $name) -Force -ErrorAction SilentlyContinue}
 $appx=Join-Path $env:RUNNER_TEMP 'HollowwakeOwnedWgl.appx'
 & (Join-Path $sdk 'makeappx.exe') pack /d $staging /p $appx /o
