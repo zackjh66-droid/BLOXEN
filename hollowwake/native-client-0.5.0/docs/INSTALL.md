@@ -1,4 +1,4 @@
-# Xbox installation — 0.5.5 integrated startup experiment
+# Xbox installation — 0.5.6 integrated startup experiment
 
 The private game-containing build includes the converted original 6.21 client, its selected native dependencies and Hollowwake's runtime. The public source-only CI fixture does not contain Fortnite. Do not confuse the two. Neither is a demonstrated lobby release.
 
@@ -8,7 +8,7 @@ The private game-containing build includes the converted original 6.21 client, i
 4. Content download starts after linking or session restoration. Expect about 12.36 GB of compressed transfer and **26,449,827,840 expanded data bytes**, plus installed client code. Provision at least 27.6 GB of *app-accessible* storage. General disk free space does not establish an Xbox app's actual quota.
 5. The progress panel separates received bytes from verified bytes/files. PAUSE (B) cancels safely; DOWNLOAD / VERIFY CONTENT retries or reuses independently verified files. No full ZIP is retained. Do not remove the installed app to retry: uninstalling can delete its downloaded data.
 6. Boot code belongs inside the signed package. Importing boot DLLs into LocalState does not provide native package dependencies. No boot import is required for the private integrated build.
-7. Once final verification passes, select LAUNCH NATIVE CLIENT once. This invokes `HWAttemptPackagedClient`, not another application or a recreated lobby. Preflight still blocks unresolved required imports. An explicit error from an unavailable optional desktop feature is not a working implementation of that feature.
+7. Once final verification passes, select LAUNCH NATIVE CLIENT once. This invokes `HWAttemptPackagedClient`, not another application or a recreated lobby. Preflight still blocks unresolved required imports. An explicit error from an unavailable optional desktop feature is not a working implementation of that feature. The new native D3D11/DXGI path attaches tagged client windows to the launcher surface; the controller bridge reads actual WinRT Gamepads. Both need physical game/Xbox verification.
 
 ## Focused test checklist
 

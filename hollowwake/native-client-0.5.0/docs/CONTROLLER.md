@@ -31,3 +31,9 @@ https://learn.microsoft.com/en-us/uwp/extension-sdks/uwp-limitations-on-xbox
 After the client can execute, physical verification must cover menus, sticks,
 triggers, vibration, guide/focus changes, suspend/resume and reconnect. No such
 game/Xbox success is claimed by a hosted controller fixture.
+
+Official API reference: https://learn.microsoft.com/en-us/windows/uwp/gaming/gamepad-and-vibration
+The system manages Gamepads; an empty startup snapshot does not create a
+virtual connected pad. The production bridge refreshes the actual snapshot on
+every state/output call. Game classification is a resource-budget setting,
+not an assumed prerequisite for this documented UWP input API.
