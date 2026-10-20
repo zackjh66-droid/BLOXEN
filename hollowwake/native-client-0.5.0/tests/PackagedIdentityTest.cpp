@@ -1,3 +1,4 @@
+#include "../Native/ClientLaunchIdentity.h"
 #include "../Native/PackagedNamespace.h"
 #include <windows.h>
 #include <cassert>
@@ -9,7 +10,11 @@ int wmain(int argc,wchar_t** argv){
  assert(argc==2);wchar_t full[32768];assert(GetFullPathNameW(argv[1],32768,full,nullptr));
  std::wstring physical(full);auto slash=physical.find_last_of(L"\\/");assert(slash!=std::wstring::npos);auto root=physical.substr(0,slash),base=physical.substr(slash+1);
  HMODULE owned=LoadLibraryW(full);assert(owned);auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(owned,"OwnedIdentity"));assert(entry&&entry()==621);
- assert(Hollowwake::ConfigurePackagedNamespace(base.c_str(),L"\"OwnedOriginal.exe\" -d3d11 -nomatchmaking"));
+ Hollowwake::ClientLaunchIdentity identity;std::wstring authTail;assert(identity.Configure(std::wstring(43,L'x'),300,1000));assert(identity.Consume(1001,authTail));
+ auto guestCommand=std::wstring(L"\"OwnedOriginal.exe\" -d3d11 -nomatchmaking")+authTail;
+ assert(Hollowwake::ConfigurePackagedNamespace(base.c_str(),guestCommand.c_str()));
+ auto command=api<decltype(&GetCommandLineW)>("GetCommandLineW");assert(command()&&guestCommand==command());
+ const char* tail=Hollowwake::PackagedWinMainTail();assert(tail&&strstr(tail,"-AUTH_TYPE=exchangecode")&&strstr(tail,"-AUTH_PASSWORD="));
  assert(Hollowwake::ConfigurePackagedRoot(root.c_str()));
  assert(!Hollowwake::RegisterPackagedMainIdentity(L"../outside.exe"));
  assert(Hollowwake::RegisterPackagedMainIdentity(L"6.21/FortniteGame/Binaries/Win64/OwnedOriginal.exe"));
