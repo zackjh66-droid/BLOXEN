@@ -12,6 +12,7 @@
 #include <dxgi1_2.h>
 #include <wrl/client.h>
 extern unsigned ReadCompositionAttachmentSerial();
+extern bool SetOwnedGraphicsProbe(bool value);
 namespace {
 std::atomic<void(*)(const char*,DWORD)> windowLogger{nullptr};
 const wchar_t* surfaceProperty=L"Hollowwake.ClientSurface.6.21";const BYTE surfaceIdentity=0;
@@ -96,6 +97,7 @@ void* ResolveNativePresentationImport(const char* dll,const char* symbol){
 }
 extern "C" int __cdecl HWNativeWindowProbe(const wchar_t* path){
  if(!path)return E_POINTER;static std::mutex gate;std::lock_guard<std::mutex> guard(gate);
+ struct OwnedScope{bool previous;OwnedScope():previous(SetOwnedGraphicsProbe(true)){}~OwnedScope(){SetOwnedGraphicsProbe(previous);}} ownedScope;
  std::string operation="provider";DWORD error=0,cleanupError=0;HRESULT result=E_FAIL;HWND window=nullptr;ATOM atom=0;HINSTANCE instance=nullptr;std::wstring name=L"HollowwakeOwnedNativeWindow_"+std::to_wstring(GetCurrentProcessId())+L"_"+std::to_wstring(GetCurrentThreadId());
  auto reg=reinterpret_cast<Register>(ResolveNativeWindowImport("user32.dll","RegisterClassExW"));auto create=reinterpret_cast<Create>(ResolveNativeWindowImport("user32.dll","CreateWindowExW"));auto is=UserApi<Is>("IsWindow");auto getDc=UserApi<GetDc>("GetDC");auto releaseDc=UserApi<ReleaseDc>("ReleaseDC");auto invalidate=UserApi<Invalidate>("InvalidateRect");auto update=UserApi<Update>("UpdateWindow");auto destroy=UserApi<Destroy>("DestroyWindow");auto unregisterClass=UserApi<Unregister>("UnregisterClassW");auto post=UserApi<Post>("PostMessageW");auto peek=UserApi<Peek>("PeekMessageW");auto dispatch=UserApi<Dispatch>("DispatchMessageW");auto caps=GdiApi<Caps>("GetDeviceCaps");
  Probe probe={UserApi<Default>("DefWindowProcW"),UserApi<Begin>("BeginPaint"),UserApi<End>("EndPaint"),GdiApi<Pixel>("SetPixelV"),GdiApi<ReadPixel>("GetPixel")};bool realDc=false,releasedDc=false,compositionChain=false,unregisteredNativePreserved=false,gpuReadback=false;auto beforeAttachment=ReadCompositionAttachmentSerial();HRESULT graphicsResult=E_PENDING,presentResult=E_PENDING;unsigned driverUsed=0;

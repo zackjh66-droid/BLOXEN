@@ -50,8 +50,9 @@
 static std::mutex logMutex;static std::wstring logName;static BYTE* mapped=nullptr;static SIZE_T mappedSize=0;static bool consumed=false,guestStarted=false;
 std::string DescribeGuestAddress(unsigned long long address){if(mapped&&address>=(ULONGLONG)mapped&&address-(ULONGLONG)mapped<mappedSize)return "FortniteClient-Win64-Shipping.exe RVA="+std::to_string(address-(ULONGLONG)mapped);return DescribeDependencyAddress(address);}
 static void Log(const std::string& text){std::lock_guard<std::mutex> g(logMutex);std::ofstream f(logName,std::ios::app);f<<text<<"\n";f.flush();}
-static bool testingGraphics=false;static std::atomic<unsigned> compositionSerial{0};
+static std::atomic<bool> testingGraphics{false};static std::atomic<unsigned> compositionSerial{0};
 unsigned ReadCompositionAttachmentSerial(){return compositionSerial.load();}
+bool SetOwnedGraphicsProbe(bool value){return testingGraphics.exchange(value);}
 static Microsoft::WRL::ComPtr<ISwapChainPanelNative> gamePanel;
 static Platform::Agile<Windows::UI::Core::CoreDispatcher> gameDispatcher;
 static Microsoft::WRL::ComPtr<IUnknown> boundCoreWindow;
