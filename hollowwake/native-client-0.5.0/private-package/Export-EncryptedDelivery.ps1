@@ -15,6 +15,7 @@ try{
  Copy-Item $packages[0].FullName (Join-Path $stage $packages[0].Name)
  Copy-Item (Join-Path $InputDirectory 'HollowwakeExperiment.cer') (Join-Path $stage 'HollowwakeExperiment.cer')
  Copy-Item $auditPath (Join-Path $stage 'private-package-audit.json')
+ Copy-Item (Join-Path $InputDirectory 'LicensedAudioSource') $stage -Recurse
  $dependencyRoot=Join-Path $stage 'Dependencies/x64';New-Item -ItemType Directory -Force $dependencyRoot|Out-Null
  foreach($file in Get-ChildItem $InputDirectory -Recurse -File -Filter '*.appx'|Where-Object {$_.FullName-match '[\\/]Dependencies[\\/]x64[\\/]'} ){
   $target=Join-Path $dependencyRoot $file.Name
@@ -48,7 +49,7 @@ and SHA-256 checked before becoming ready. No full ZIP is stored. About 12.36 GB
 is transferred and 26.45 GB of data is installed, plus client code/dependencies.
 Allow at least 27.6 GB of free app storage for the complete first download.
 The progress view separates received compressed bytes from verified installed bytes.
-It independently rehashes the final data paths and all 41 installed code files.
+It independently rehashes the final data paths and all 47 installed code files.
 A measured report is uploaded after verification/failure. Zero new bytes means
 existing data was reused; the final on-disk count must still pass.
 Use PAUSE (B) to stop, or DOWNLOAD / VERIFY CONTENT to retry. Verified files
@@ -63,9 +64,18 @@ Link only your Hollowwake account. Use the client-launch action once. Record
 whether an original Fortnite loading screen appears, the exact first error, or
 whether the host closes. After reopening, use launch logs. Device Portal's app
 file explorer can retrieve LocalState/native-launch.log,
-LocalState/native-imports-unresolved.txt and LocalState/managed-launch.log.
+LocalState/native-imports-unresolved.txt, native-platform-imports.json,
+LocalState/native-provider-imports.json and LocalState/managed-launch.log.
 Game-written logs, when created, are under LocalState/GameClean/6.21/
 FortniteGame/Saved/Logs. Do not infer lobby success from a passing preflight.
+
+Twelve typed adapters can return an explicit error for unavailable legacy
+IME/OpenGL/D3D9/compositor functions. Such failure does not implement the
+feature or prove the game can continue. Bluetooth/network-diagnosis delayed
+imports remain unavailable and fail through the real delay-loader if requested.
+The unchanged original import audit and additional audio-provider audit are
+separate. LicensedAudioSource contains the audio sources, patch/build scripts
+and their included licence texts; the project source supplies the runtime API.
 
 Original Fortnite authentication, lobby entry, characters, locker persistence,
 admin shop integration and Xbox presentation remain unverified/incomplete.

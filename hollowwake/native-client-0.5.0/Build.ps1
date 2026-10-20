@@ -82,6 +82,9 @@ if($PrivatePreparedDirectory){
  if(!$PrivateAudioDirectory){throw 'Real DirectSound integration requires the reviewed built audio provider directory; do not package missing providers'}
  $audioReceipt=Get-Content (Join-Path $PrivateAudioDirectory 'audio-build.json') -Raw|ConvertFrom-Json
  Copy-Item (Join-Path $PrivateAudioDirectory 'provider-imports.json') (Join-Path $source 'App\provider-imports.json')
+ $licensedSource=Join-Path $OutputDirectory 'LicensedAudioSource';New-Item -ItemType Directory -Force $licensedSource|Out-Null
+ foreach($name in @('dsoal.tar.gz','openal-soft.tar.gz','prepare_audio.py','Build-Audio.ps1','source-review.json')){Copy-Item (Join-Path $PrivateAudioDirectory $name) $licensedSource}
+ Copy-Item (Join-Path $source 'Native\AudioModule.cpp') $licensedSource
  foreach($audioName in @('HWAUD.dll','dsoal-aldrv.dll')){
   $audioPath=Join-Path $PrivateAudioDirectory $audioName
   $expectedAudio=if($audioName-eq 'HWAUD.dll'){$audioReceipt.dsoalSha256}else{$audioReceipt.openalSha256}
