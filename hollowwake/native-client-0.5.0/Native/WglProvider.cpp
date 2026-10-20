@@ -28,7 +28,16 @@ HGLRC WINAPI Current(){if(!Ready())return nullptr;auto call=Api<HGLRC(WINAPI*)()
 HDC WINAPI CurrentDc(){return Current()?boundGuestDC:nullptr;}
 BOOL WINAPI MakeCurrent(HDC guest,HGLRC context){if(!Ready())return FALSE;std::lock_guard<std::recursive_mutex> lock(gate);if(context&&!contexts.count(context)){SetLastError(ERROR_INVALID_HANDLE);return FALSE;}auto dc=context?CoreDc(guest):nullptr;if(context&&!dc)return FALSE;auto call=Api<BOOL(WINAPI*)(HDC,HGLRC)>("wglMakeCurrent");BOOL result=call?call(dc,context):FALSE;if(result)boundGuestDC=context?guest:nullptr;return result;}
 PROC WINAPI Procedure(LPCSTR name);
-PROC DriverProc(const char* name){auto get=Api<PROC(WINAPI*)(LPCSTR)>("wglGetProcAddress");auto value=get?get(name):nullptr;return value?value:(!strncmp(name,"gl",2)?reinterpret_cast<PROC>(GetProcAddress(mesa,name)):nullptr);}
+PROC DriverProc(const char* name){
+ if(!strncmp(name,"gl",2)){
+  // Upstream DrvGetProcAddress has a compatibility no-op fallback for some
+  // unsupported GL names. Expose only the actual GL dispatch registry here.
+  auto loaded=Sys<HMODULE(WINAPI*)(LPCWSTR)>("kernel32.dll","GetModuleHandleW");auto module=loaded?loaded(L"libglapi.dll"):nullptr;
+  auto lookup=reinterpret_cast<PROC(__cdecl*)(const char*)>(module?GetProcAddress(module,"_glapi_get_proc_address"):nullptr);
+  if(!lookup){SetLastError(ERROR_PROC_NOT_FOUND);return nullptr;}return lookup(name);
+ }
+ auto get=Api<PROC(WINAPI*)(LPCSTR)>("wglGetProcAddress");return get?get(name):nullptr;
+}
 HGLRC WINAPI CreateAttribs(HDC guest,HGLRC shared,const int* attrs){auto dc=CoreDc(guest);if(!dc)return nullptr;{std::lock_guard<std::recursive_mutex> lock(gate);if(shared&&!contexts.count(shared)){SetLastError(ERROR_INVALID_HANDLE);return nullptr;}}auto call=reinterpret_cast<HGLRC(WINAPI*)(HDC,HGLRC,const int*)>(DriverProc("wglCreateContextAttribsARB"));if(!call){SetLastError(ERROR_PROC_NOT_FOUND);return nullptr;}auto context=call(dc,shared,attrs);if(context){std::lock_guard<std::recursive_mutex> lock(gate);contexts.insert(context);}return context;}
 BOOL WINAPI ChooseArb(HDC guest,const int* a,const float* b,UINT count,int* formats,UINT* found){auto dc=CoreDc(guest);if(!dc)return FALSE;auto call=reinterpret_cast<BOOL(WINAPI*)(HDC,const int*,const float*,UINT,int*,UINT*)>(DriverProc("wglChoosePixelFormatARB"));return call?call(dc,a,b,count,formats,found):FALSE;}
 BOOL WINAPI AttributesInt(HDC guest,int format,int layer,UINT count,const int* names,int* values){auto dc=CoreDc(guest);if(!dc)return FALSE;auto call=reinterpret_cast<BOOL(WINAPI*)(HDC,int,int,UINT,const int*,int*)>(DriverProc("wglGetPixelFormatAttribivARB"));return call?call(dc,format,layer,count,names,values):FALSE;}
