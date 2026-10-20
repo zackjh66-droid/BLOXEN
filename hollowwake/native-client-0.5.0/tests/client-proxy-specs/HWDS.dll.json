@@ -1,1 +1,9 @@
-{"sourceDll":"DSOUND.dll","proxyDll":"HWDS.dll","symbols":["#8","#11","#12"]}
+{
+  "sourceDll": "DSOUND.dll",
+  "proxyDll": "HWDS.dll",
+  "symbols": [
+    "#11",
+    "#12",
+    "#8"
+  ]
+}

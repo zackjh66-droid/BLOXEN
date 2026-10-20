@@ -1,5 +1,5 @@
 {
-  "sourceDll": "winmm.dll",
+  "sourceDll": "WINMM.dll",
   "proxyDll": "HWMM.dll",
   "symbols": [
     "midiInAddBuffer",

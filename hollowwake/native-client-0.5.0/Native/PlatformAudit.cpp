@@ -1,5 +1,6 @@
 #include "PlatformAudit.h"
 #include "StartupPlatform.h"
+#include "DesktopCapabilities.h"
 #include "PlatformImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include <fstream>
@@ -22,7 +23,7 @@ unsigned AuditPlatformImports(const wchar_t* output,unsigned* requiredMissing){
  using Load=HMODULE(WINAPI*)(LPCWSTR,HANDLE,DWORD);
  auto hold=reinterpret_cast<Hold>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleExW"));
  auto load=reinterpret_cast<Load>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","LoadLibraryExW"));
- std::map<std::string,Loaded> modules;unsigned missing=0,normalMissing=0,mainMissing=0,total=0,osMissing=0,adapterCount=0;
+ std::map<std::string,Loaded> modules;unsigned missing=0,normalMissing=0,mainMissing=0,total=0,osMissing=0,adapterCount=0,capabilityUnavailable=0;
  report<<"{\"scope\":\"Fixed original platform inventory: OS exports and explicitly redirected Hollowwake adapters; not API behavior or Xbox availability\",\"gameExecuted\":false,\"pairs\":[";
  for(auto& pair:platformImportPairs){
   auto inserted=modules.emplace(pair.dll,Loaded{});auto& loaded=inserted.first->second;
@@ -35,9 +36,10 @@ unsigned AuditPlatformImports(const wchar_t* output,unsigned* requiredMissing){
   SetLastError(0);auto address=loaded.handle?Symbol(loaded.handle,pair.symbol):nullptr;DWORD error=address?0:(loaded.handle?GetLastError():loaded.error);if(!address&&!error)error=ERROR_PROC_NOT_FOUND;
   bool osResolved=address!=nullptr;if(!osResolved)++osMissing;const char* method=loaded.method;
   if(IsStartupPlatformModule(pair.dll)){if(auto adapter=ResolveStartupPlatformAdapter(pair.dll,pair.symbol)){address=reinterpret_cast<FARPROC>(adapter);error=0;method="hollowwake-startup-adapter";++adapterCount;}}
+  bool capabilityAdapter=IsDesktopCapabilityAdapter(pair.dll,pair.symbol);DWORD capabilityError=0;bool capabilityAvailable=!capabilityAdapter||NativeDesktopCapabilityAvailable(pair.dll,pair.symbol,&capabilityError);if(capabilityAdapter&&!capabilityAvailable)++capabilityUnavailable;
   if(!address){++missing;if(pair.normal)++normalMissing;if(pair.mainImage)++mainMissing;}
-  if(total++)report<<',';report<<"\n{\"name\":"<<Json((std::string(pair.dll)+"!"+pair.symbol).c_str())<<",\"resolved\":"<<(address?"true":"false")<<",\"error\":"<<error<<",\"providerMethod\":"<<Json(method)<<",\"osResolved\":"<<(osResolved?"true":"false")<<",\"adapterBound\":"<<(method==std::string("hollowwake-startup-adapter")?"true":"false")<<",\"normalImport\":"<<(pair.normal?"true":"false")<<",\"mainImage\":"<<(pair.mainImage?"true":"false")<<'}';
+  if(total++)report<<',';report<<"\n{\"name\":"<<Json((std::string(pair.dll)+"!"+pair.symbol).c_str())<<",\"resolved\":"<<(address?"true":"false")<<",\"error\":"<<error<<",\"providerMethod\":"<<Json(method)<<",\"osResolved\":"<<(osResolved?"true":"false")<<",\"adapterBound\":"<<(method==std::string("hollowwake-startup-adapter")?"true":"false")<<",\"nativeCapabilityUnavailable\":"<<(capabilityAdapter&&!capabilityAvailable?"true":"false")<<",\"capabilityError\":"<<capabilityError<<",\"normalImport\":"<<(pair.normal?"true":"false")<<",\"mainImage\":"<<(pair.mainImage?"true":"false")<<'}';
  }
- report<<"\n],\"total\":"<<total<<",\"missing\":"<<missing<<",\"normalMissing\":"<<normalMissing<<",\"delayOnlyMissing\":"<<(missing-normalMissing)<<",\"mainMissing\":"<<mainMissing<<",\"osMissing\":"<<osMissing<<",\"adapterCount\":"<<adapterCount<<",\"dlls\":"<<modules.size()<<",\"xboxTested\":false}";report.flush();bool written=report.good();for(auto& module:modules)if(module.second.handle)FreeLibrary(module.second.handle);
+ report<<"\n],\"total\":"<<total<<",\"missing\":"<<missing<<",\"normalMissing\":"<<normalMissing<<",\"delayOnlyMissing\":"<<(missing-normalMissing)<<",\"mainMissing\":"<<mainMissing<<",\"osMissing\":"<<osMissing<<",\"adapterCount\":"<<adapterCount<<",\"capabilityUnavailable\":"<<capabilityUnavailable<<",\"dlls\":"<<modules.size()<<",\"xboxTested\":false}";report.flush();bool written=report.good();for(auto& module:modules)if(module.second.handle)FreeLibrary(module.second.handle);
  if(!written){SetLastError(ERROR_WRITE_FAULT);return (unsigned)-1;}if(requiredMissing)*requiredMissing=normalMissing;return missing;
 }

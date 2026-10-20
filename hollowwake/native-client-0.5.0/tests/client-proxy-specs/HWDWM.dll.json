@@ -1,0 +1,13 @@
+{
+  "sourceDll": "dwmapi.dll",
+  "proxyDll": "HWDWM.dll",
+  "symbols": [
+    "DwmDefWindowProc",
+    "DwmExtendFrameIntoClientArea",
+    "DwmFlush",
+    "DwmGetCompositionTimingInfo",
+    "DwmGetWindowAttribute",
+    "DwmIsCompositionEnabled",
+    "DwmSetWindowAttribute"
+  ]
+}

@@ -18,7 +18,9 @@ if(!$certificate){throw 'Existing nonexportable CI signing key unavailable'}
 & (Join-Path $sdk 'signtool.exe') sign /fd SHA256 /sha1 $certificate.Thumbprint $appx
 if($LASTEXITCODE){throw 'Owned audio fixture signing failed'}
 $installed=Get-AppxPackage -Name 'Hollowwake.NativeClientExperiment';if($installed){Remove-AppxPackage $installed.PackageFullName}
-Add-AppxPackage -Path $appx
+$dependencies=@(Get-ChildItem (Join-Path (Split-Path $PackagePath) 'Dependencies\x64') -Filter '*.appx'|ForEach-Object {$_.FullName})
+if($dependencies.Count-lt 3){throw 'The owned fixture framework dependencies are missing'}
+Add-AppxPackage -Path $appx -DependencyPath $dependencies
 $package=Get-AppxPackage -Name 'Hollowwake.NativeClientExperiment'
 Add-Type @'
 using System;using System.Runtime.InteropServices;

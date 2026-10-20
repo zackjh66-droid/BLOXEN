@@ -54,6 +54,7 @@ def prepare(output):
    if (!MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, filename, -1, wide, 260)) return NULL;
    if (!_wcsicmp(wide, L"d3d12.dll") || !_wcsicmp(wide, L"dxgi.dll") || !_wcsicmp(wide, L"dxcore.dll")) return (struct util_dl_library *)HWLoadGraphicsSystemModule(wide);
    return (struct util_dl_library *)LoadPackagedLibrary(wide, 0);''');p.write_text(text)
+ p=source/'src/gallium/drivers/d3d12/d3d12_screen.cpp';text=p.read_text();old='   struct pipe_screen *pscreen = &screen->base;';assert old in text;text=text.replace(old,old+'\n   (void)pscreen; /* Shader cache can be disabled in this UWP build. */');p.write_text(text)
  # UWP validator loading uses only an explicit packaged public DXIL library.
  # Do not search the current directory or select any GDK compiler binary.
  p=source/'src/microsoft/compiler/dxil_validator.cpp';text=p.read_text();begin=text.index('   /* First, try to load DXIL.dll');end=text.index('\n}\n',begin)

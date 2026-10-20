@@ -9,9 +9,9 @@ Copy-Item (Join-Path $source 'mesa-source-review.json') $OutputDirectory
 $env:PATH=(Join-Path $source 'parser-tools')+';'+$env:PATH
 python -m pip install --disable-pip-version-check meson==1.5.2 mako==1.3.8 packaging==24.2 ninja==1.11.1.3
 if($LASTEXITCODE){throw 'Legitimate pinned Mesa build tools unavailable'}
-$store=Join-Path $env:VCToolsInstallDir 'lib/x64/store'
+$store=(Join-Path $env:VCToolsInstallDir 'lib/x64/store').Replace('\','/')
 $build=Join-Path $source 'build'
-$runtime=Join-Path (Split-Path $PSScriptRoot -Parent) 'Native/bin/x64/Release/HollowwakeClientRuntime.lib'
+$runtime=(Join-Path (Split-Path $PSScriptRoot -Parent) 'Native/bin/x64/Release/HollowwakeClientRuntime.lib').Replace('\','/')
 # Use only the public UWP/CoreWindow path. Gaming.Xbox/GDK targets, the optional
 # swap allocator, software-GDI output and unrelated drivers are not selected.
 $mesaArgs=@('setup',$build,(Join-Path $source 'mesa'),'--backend=ninja','--buildtype=release','--wrap-mode=nodownload','-Duwp=true','-Dxbox-swap=false','-Dplatforms=windows','-Dgallium-drivers=d3d12','-Dvulkan-drivers=[]','-Dgallium-d3d12-video=disabled','-Dglx=disabled','-Degl=disabled','-Dgbm=disabled','-Dgles1=disabled','-Dgles2=disabled','-Dopengl=true','-Dshared-glapi=true','-Dllvm=disabled','-Ddraw-use-llvm=false','-Dglvnd=false','-Dshader-cache=disabled','-Dxmlconfig=disabled','-Dzlib=disabled','-Dzstd=disabled','-Dlmsensors=disabled','-Dvideo-codecs=[]','-Dbuild-tests=false','-Db_pch=false','-Dc_winlibs=[]','-Dcpp_winlibs=[]',"-Dc_args=['/D_XBOX_UWP','/DWINAPI_FAMILY=WINAPI_FAMILY_APP']","-Dcpp_args=['/D_XBOX_UWP','/DWINAPI_FAMILY=WINAPI_FAMILY_APP']","-Dc_link_args=['/APPCONTAINER','/LIBPATH:$store','$runtime','windowsapp.lib']","-Dcpp_link_args=['/APPCONTAINER','/LIBPATH:$store','$runtime','windowsapp.lib']")

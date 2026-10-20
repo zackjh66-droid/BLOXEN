@@ -21,6 +21,15 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050"
+      - name: Preserve startup check evidence before provider builds
+        if: ${{ always() && steps.public_build.outcome != 'skipped' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-startup-check-evidence
+          path: |
+            artifacts/native-client-050/**/*.log
+            artifacts/native-client-050/**/*.json
+          retention-days: 3
       - name: Compile runtime only for focused audio iteration
         if: ${{ contains(github.event.head_commit.message, '[audio-only]') || contains(github.event.head_commit.message, '[providers-only]') }}
         shell: cmd

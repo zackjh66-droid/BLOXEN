@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 $work=Join-Path $OutputDirectory 'OwnedDelayPolicy';New-Item -ItemType Directory -Force $work|Out-Null
 Push-Location $work
 try{
- & cl.exe /nologo /LD /MD (Join-Path $PSScriptRoot 'DelayOptionalProvider.cpp') /link /OUT:OwnedOptional.dll
+ & cl.exe /nologo /LD /MD (Join-Path $PSScriptRoot 'DelayOptionalProvider.cpp') /link /OUT:OwnedOptional.dll /IMPLIB:OwnedOptional.lib
  if($LASTEXITCODE){throw 'Owned optional provider compilation failed'}
  & cl.exe /nologo /LD /MD (Join-Path $PSScriptRoot 'DelayConsumer.cpp') OwnedOptional.lib delayimp.lib /link /OUT:OwnedDelayConsumer.dll /DELAYLOAD:OwnedOptional.dll
  if($LASTEXITCODE){throw 'Real delayed consumer compilation failed'}

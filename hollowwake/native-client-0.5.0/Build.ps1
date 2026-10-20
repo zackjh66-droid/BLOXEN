@@ -35,6 +35,9 @@ if($LASTEXITCODE){throw 'Graphics module policy compilation failed'}
 & "$OutputDirectory\GraphicsModuleTest.exe" (Join-Path $OutputDirectory 'OwnedIdentity.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'graphics-module-test.log');if($LASTEXITCODE){throw 'Real graphics provider namespace failed'}
 & (Join-Path $source 'tests\Test-DelayLoadPolicy.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'delay-load-policy-test.log')
 if($LASTEXITCODE){throw 'Native normal/delay import policy did not match Windows behavior'}
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\DesktopCapabilities.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\DesktopCapabilitiesTest.cpp') kernel32.lib runtimeobject.lib windowsapp.lib imm32.lib opengl32.lib dwmapi.lib d3d9.lib user32.lib /Fe:"$OutputDirectory\DesktopCapabilitiesTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'desktop-capabilities-build.log')
+if($LASTEXITCODE){throw 'Typed desktop API delegation compilation failed'}
+& "$OutputDirectory\DesktopCapabilitiesTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'desktop-capabilities-test.log');if($LASTEXITCODE){throw 'Real desktop API delegation behavior differs'}
 # Focused fixes for the actual Xbox missing-binding inventory. Owned callbacks,
 # real scheduling/cancellation, and actual native D3D11 annotation operations.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\MultimediaTimers.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $source 'tests\MultimediaTimersTest.cpp') kernel32.lib runtimeobject.lib /Fe:"$OutputDirectory\MultimediaTimersTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'multimedia-timers-build.log')
@@ -153,7 +156,7 @@ try {
   foreach($proxy in $plan.proxyDlls){if(!$package.GetEntry($proxy.proxyDll)){throw 'Native import proxy missing from private APPX'}}
   $codeIndex=$package.GetEntry('package-code-index.json');if(!$codeIndex){throw 'Signed client code index missing'}
   $reader=[IO.StreamReader]::new($codeIndex.Open());try{$codePlan=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
-  if($codePlan.files.Count-ne 44){throw 'Unexpected installed client code count'}
+  if($codePlan.files.Count-ne 47){throw 'Unexpected installed client code count'}
   foreach($record in $codePlan.files){$entry=$package.GetEntry($record.path);if(!$entry-or $entry.Length-ne $record.bytes){throw 'Installed client code missing/resized'};$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open();try{$actual=([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()};if($actual-ne $record.sha256){throw 'Installed client code hash differs'}}
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }

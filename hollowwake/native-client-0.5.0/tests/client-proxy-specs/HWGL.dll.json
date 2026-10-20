@@ -1,0 +1,12 @@
+{
+  "sourceDll": "OPENGL32.dll",
+  "proxyDll": "HWGL.dll",
+  "symbols": [
+    "wglCreateContext",
+    "wglDeleteContext",
+    "wglGetCurrentContext",
+    "wglGetCurrentDC",
+    "wglGetProcAddress",
+    "wglMakeCurrent"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "sourceDll": "IMM32.dll",
+  "proxyDll": "HWIM.dll",
+  "symbols": [
+    "ImmAssociateContext",
+    "ImmAssociateContextEx",
+    "ImmCreateContext",
+    "ImmDestroyContext",
+    "ImmGetCompositionStringW",
+    "ImmGetContext",
+    "ImmGetConversionStatus",
+    "ImmGetDescriptionW",
+    "ImmGetIMEFileNameW",
+    "ImmGetProperty",
+    "ImmNotifyIME",
+    "ImmReleaseContext",
+    "ImmSetCandidateWindow",
+    "ImmSetCompositionWindow",
+    "ImmSetConversionStatus",
+    "ImmSetOpenStatus"
+  ]
+}
