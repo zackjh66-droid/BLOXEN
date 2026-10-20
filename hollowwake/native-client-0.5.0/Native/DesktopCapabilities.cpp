@@ -1,4 +1,5 @@
 #include "DesktopCapabilities.h"
+#include "WglProvider.h"
 #include "PlatformImports.generated.h"
 #include "../../runtime-native-route/NativeSystem.h"
 #include <cstring>
@@ -36,7 +37,7 @@ void ConfigureDesktopCapabilityLogger(void(*value)(const char*,const char*,DWORD
 bool IsDesktopCapabilityModule(const char* module){return Module(module)!=nullptr;}
 bool IsDesktopCapabilityAdapter(const char* module,const char* symbol){if(!module||!symbol)return false;for(auto& a:adapters)if(!_stricmp(a.dll,module)&&!strcmp(a.name,symbol))return true;return false;}
 bool NativeDesktopCapabilityAvailable(const char* module,const char* symbol,DWORD* error){DWORD value=0;auto address=module&&symbol?Query(module,symbol,value):nullptr;if(error)*error=module&&symbol?value:ERROR_INVALID_PARAMETER;return address!=nullptr;}
-void* ResolveDesktopCapabilityImport(const char* module,const char* symbol){if(!module||!symbol)return nullptr;for(auto& a:adapters)if(!_stricmp(a.dll,module)&&!strcmp(a.name,symbol))return a.address;
+void* ResolveDesktopCapabilityImport(const char* module,const char* symbol){if(!module||!symbol)return nullptr;if(auto candidate=ResolveWglProviderImport(module,symbol))return candidate;for(auto& a:adapters)if(!_stricmp(a.dll,module)&&!strcmp(a.name,symbol))return a.address;
  // Other imports in these families still require the actual OS export. Never
  // invent a successful association/context/window operation for them.
  bool known=false;for(auto& p:platformImportPairs)if(!_stricmp(p.dll,module)&&!strcmp(p.symbol,symbol)){known=true;break;}if(!known||!IsDesktopCapabilityModule(module))return nullptr;DWORD error=0;return Query(module,symbol,error);

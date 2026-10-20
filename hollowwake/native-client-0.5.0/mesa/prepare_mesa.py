@@ -55,6 +55,20 @@ def prepare(output):
    if (!_wcsicmp(wide, L"d3d12.dll") || !_wcsicmp(wide, L"dxgi.dll") || !_wcsicmp(wide, L"dxcore.dll")) return (struct util_dl_library *)HWLoadGraphicsSystemModule(wide);
    return (struct util_dl_library *)LoadPackagedLibrary(wide, 0);''');p.write_text(text)
  p=source/'src/gallium/drivers/d3d12/d3d12_screen.cpp';text=p.read_text();old='   struct pipe_screen *pscreen = &screen->base;';assert old in text;text=text.replace(old,old+'\n   (void)pscreen; /* Shader cache can be disabled in this UWP build. */');p.write_text(text)
+ # A XAML host owns its CoreWindow surface: present through its actual
+ # SwapChainPanel composition callback instead of creating a competing window chain.
+ for name in ['d3d12_wgl_framebuffer.cpp','d3d12_wgl_framebuffer_uwp.cpp']:
+  p=source/'src/gallium/winsys/d3d12/wgl'/name;text=p.read_text()
+  text='extern "C" __declspec(dllimport) long __cdecl HWAttachMesaSwapChain(struct IUnknown*);\n'+text
+  old='screen->factory->CreateSwapChainForCoreWindow(\n         screen->base.cmdqueue,\n         reinterpret_cast<IUnknown*>(framebuffer->window),\n         &desc,\n         nullptr,\n         &swapchain1)'
+  assert old in text;text=text.replace(old,'screen->factory->CreateSwapChainForComposition(\n         screen->base.cmdqueue, &desc, nullptr, &swapchain1)')
+  text=text.replace('desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;','desc.Flags = 0; desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE; desc.Scaling = DXGI_SCALING_STRETCH;')
+  text=text.replace('Present(0, DXGI_PRESENT_ALLOW_TEARING)','Present(0, 0)')
+  text=text.replace('      swapchain1.As(&framebuffer->swapchain);','      if (FAILED(HWAttachMesaSwapChain(swapchain1.Get()))) return;\n      swapchain1.As(&framebuffer->swapchain);')
+  p.write_text(text)
+ # The implementation is deliberately named HWMGL.dll to avoid impersonating
+ # the native system OpenGL provider during the unchanged platform audit.
+ p=source/'src/gallium/frontends/wgl/stw_ext_context.c';text=p.read_text().replace('GetModuleHandleA("opengl32.dll")','GetModuleHandleA("HWMGL.dll")');p.write_text(text)
  # UWP validator loading uses only an explicit packaged public DXIL library.
  # Do not search the current directory or select any GDK compiler binary.
  p=source/'src/microsoft/compiler/dxil_validator.cpp';text=p.read_text();begin=text.index('   /* First, try to load DXIL.dll');end=text.index('\n}\n',begin)

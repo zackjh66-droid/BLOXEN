@@ -69,6 +69,12 @@ jobs:
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           powershell -NoProfile -File hollowwake\native-client-0.5.0\mesa\Build-Mesa.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa"
           if not exist "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa\mesa-build.json" exit /b 1
+      - name: Exercise actual WGL candidate inside owned UWP package
+        id: mesa_behavior
+        if: ${{ steps.mesa_candidate.outcome == 'success' && steps.public_build.outcome == 'success' }}
+        continue-on-error: true
+        shell: powershell
+        run: ./hollowwake/native-client-0.5.0/mesa/Test-WglPackage.ps1 -ProviderDirectory artifacts/native-client-050/mesa -OutputDirectory artifacts/native-client-050
       - name: Preserve licensed provider candidates and corresponding source
         if: ${{ always() && (steps.audio_candidate.outcome == 'success' || steps.mesa_candidate.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -152,7 +158,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force artifacts/native-client-050|Out-Null
-          @{audioBehavior='${{ steps.audio_behavior.outcome }}';audioProvider='${{ steps.audio_candidate.outcome }}';mesaProvider='${{ steps.mesa_candidate.outcome }}';fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
+          @{mesaBehavior='${{ steps.mesa_behavior.outcome }}';audioBehavior='${{ steps.audio_behavior.outcome }}';audioProvider='${{ steps.audio_candidate.outcome }}';mesaProvider='${{ steps.mesa_candidate.outcome }}';fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -165,6 +171,6 @@ jobs:
             artifacts/native-client-050/native-imports-unresolved.txt
           retention-days: 3
       - name: Reject requested provider compilation failures
-        if: ${{ always() && ((contains(github.event.head_commit.message, '[audio-uwp]') && steps.audio_candidate.outcome != 'success') || (contains(github.event.head_commit.message, '[mesa-uwp]') && steps.mesa_candidate.outcome != 'success') || steps.audio_behavior.outcome == 'failure') }}
+        if: ${{ always() && ((contains(github.event.head_commit.message, '[audio-uwp]') && steps.audio_candidate.outcome != 'success') || (contains(github.event.head_commit.message, '[mesa-uwp]') && steps.mesa_candidate.outcome != 'success') || steps.audio_behavior.outcome == 'failure' || steps.mesa_behavior.outcome == 'failure') }}
         shell: powershell
         run: throw 'Requested provider candidate did not compile. Inspect per-provider outcome and logs; no compatibility success is claimed.'

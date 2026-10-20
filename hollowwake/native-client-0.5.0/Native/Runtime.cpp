@@ -34,6 +34,7 @@
 #include "PlatformAudit.h"
 #include "StartupPlatform.h"
 #include "DesktopCapabilities.h"
+#include "WglProvider.h"
 #include "ProviderAudit.h"
 #include <utility>
 #include "PlatformImports.generated.h"
@@ -79,6 +80,7 @@ extern "C" void __cdecl HWConfigurePointer(BOOL(__cdecl*)(int,int),BOOL(__cdecl*
 extern "C" void __cdecl HWConfigureCursor(BOOL(__cdecl*)(UINT,int));
 static bool explicitCursor=false;
 static Platform::Agile<Windows::UI::Core::CoreCursor> savedPointer;
+extern "C" __declspec(dllexport) HRESULT __cdecl HWAttachMesaSwapChain(IUnknown* value){if(!value)return E_POINTER;Microsoft::WRL::ComPtr<IDXGISwapChain> chain;auto hr=value->QueryInterface(IID_PPV_ARGS(&chain));return FAILED(hr)?hr:AttachComposition(chain.Get());}
 static Platform::Agile<Windows::UI::Core::CoreWindow> pointerCore;
 static HRESULT PointerOnUi(int operation,int x,int y){
  auto core=pointerCore.Get();
@@ -171,6 +173,7 @@ static void* PackagedRoute(const char* dll,const char* name){
   return ResolveNativeWindowImport(dll,name);
  }
  if(!_stricmp(dll,"dxgi.dll")||!_stricmp(dll,"d3d11.dll"))return ResolveNativePresentationImport(dll,name);
+ if(auto p=ResolveWglProviderImport(dll,name))return p;
  if(auto p=ResolveReadOnlyPlatformImport(dll,name))return p;
  if(auto p=Hollowwake::ResolveGraphicsImport(dll,name))return p;
  if(auto p=ResolveWindowImport(dll,name))return p;
@@ -183,6 +186,7 @@ extern "C" __declspec(dllexport) int __cdecl HWBindWindow(const wchar_t* path){
  HWViewport((int)w->Bounds.Width,(int)w->Bounds.Height);
  auto frame=dynamic_cast<Windows::UI::Xaml::Controls::Frame^>(Windows::UI::Xaml::Window::Current->Content);auto page=frame?dynamic_cast<Windows::UI::Xaml::FrameworkElement^>(frame->Content):nullptr;auto panel=page?dynamic_cast<Windows::UI::Xaml::Controls::SwapChainPanel^>(page->FindName(L"GameSurface")):nullptr;
  if(!panel)return E_NOINTERFACE;auto hr=reinterpret_cast<IUnknown*>(panel)->QueryInterface(IID_PPV_ARGS(&gamePanel));if(FAILED(hr))return hr;gameDispatcher=panel->Dispatcher;pointerCore=w;HWConfigurePointer(&WarpHostPointer,&ShowHostPointer);HWConfigureCursor(&SelectHostCursor);boundCoreWindow=reinterpret_cast<IUnknown*>(w);Hollowwake::SetCompositionAttachment(&AttachComposition);Hollowwake::SetChainViewportProvider(&HWReadViewport);Hollowwake::ConfigureNativeFactoryBridge(boundCoreWindow.Get(),reinterpret_cast<BOOL(WINAPI*)(HWND)>(ResolveWindowImport("user32.dll","IsWindow")));
+ ConfigureWglProvider(boundCoreWindow.Get(),[](LONG* width,LONG* height)->BOOL{UINT w=0,h=0;auto result=HWReadViewport(&w,&h);if(FAILED(result))return FALSE;*width=(LONG)w;*height=(LONG)h;return TRUE;});
  return Hollowwake::BindGraphicsWindow(boundCoreWindow.Get());
 }
 extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){

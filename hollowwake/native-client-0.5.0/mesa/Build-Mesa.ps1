@@ -40,12 +40,12 @@ if($LASTEXITCODE){throw 'Mesa UWP configuration failed'}
 if($LASTEXITCODE){throw 'Mesa UWP compilation failed'}
 $files=@(Get-ChildItem $build -Recurse -File -Filter '*.dll')
 if(!($files|Where-Object Name -eq 'opengl32.dll')-or !($files|Where-Object Name -eq 'libgallium_wgl.dll')){throw 'Required actual WGL libraries were not produced'}
-foreach($f in $files){Copy-Item $f.FullName (Join-Path $OutputDirectory $f.Name);& dumpbin.exe /nologo /imports $f.FullName 2>&1|Tee-Object (Join-Path $OutputDirectory ($f.Name+'-imports.log'))}
+foreach($f in $files){$outputName=if($f.Name-eq 'opengl32.dll'){'HWMGL.dll'}else{$f.Name};Copy-Item $f.FullName (Join-Path $OutputDirectory $outputName);& dumpbin.exe /nologo /imports $f.FullName 2>&1|Tee-Object (Join-Path $OutputDirectory ($f.Name+'-imports.log'))}
 python -m pip install --disable-pip-version-check pefile==2024.8.26
 if($LASTEXITCODE){throw 'Pinned provider PE reader unavailable'}
-$providerNames=@($files|ForEach-Object {$_.Name})
+$providerNames=@($files|ForEach-Object {if($_.Name-eq 'opengl32.dll'){'HWMGL.dll'}else{$_.Name}})
 python (Join-Path (Split-Path $PSScriptRoot -Parent) 'tests/ProviderInventory.py') $OutputDirectory (Join-Path $OutputDirectory 'provider-imports.json') @providerNames
 if($LASTEXITCODE){throw 'Actual additional Mesa provider inventory failed'}
 Copy-Item (Join-Path $source 'mesa-source.tar.gz') $OutputDirectory;Copy-Item (Join-Path $source 'directx-headers-source.tar.gz') $OutputDirectory
 Copy-Item (Join-Path $PSScriptRoot 'prepare_mesa.py') $OutputDirectory;Copy-Item (Join-Path $PSScriptRoot 'CoreWindowGdi.cpp') $OutputDirectory;Copy-Item (Join-Path $PSScriptRoot 'Build-Mesa.ps1') $OutputDirectory
-@{scope='Mesa UWP candidate compilation only, not game/Xbox or API behavior';files=@($files|ForEach-Object {@{name=$_.Name;sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}});xboxTested=$false;gameExecuted=$false}|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'mesa-build.json')
+@{scope='Mesa UWP candidate compilation only, not game/Xbox or API behavior';files=@($files|ForEach-Object {@{name=$(if($_.Name-eq 'opengl32.dll'){'HWMGL.dll'}else{$_.Name});sha256=(Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}});xboxTested=$false;gameExecuted=$false}|ConvertTo-Json -Depth 5|Set-Content (Join-Path $OutputDirectory 'mesa-build.json')

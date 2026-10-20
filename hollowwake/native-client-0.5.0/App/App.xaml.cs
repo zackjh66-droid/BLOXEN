@@ -9,11 +9,13 @@ namespace Hollowwake
         internal static bool UnsupportedSelfTest;
         internal static bool NativePreflight;
         internal static bool AudioPreflight;
+        internal static bool WglPreflight;
         public App() { InitializeComponent(); Suspending += OnSuspending; Resuming += OnResuming; }
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             NativePreflight=e.Arguments=="--native-preflight";
             AudioPreflight=e.Arguments=="--audio-preflight";
+            WglPreflight=e.Arguments=="--wgl-preflight";
             UnsupportedSelfTest=e.Arguments=="hollowwake-selftest-unsupported";
             var frame = Window.Current.Content as Frame;
             if (frame == null) { frame = new Frame(); Window.Current.Content = frame; }
