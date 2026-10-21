@@ -6,6 +6,7 @@
 #include <bcrypt.h>
 #include <tlhelp32.h>
 #include <winternl.h>
+#include <dbghelp.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -43,14 +44,28 @@ ULONG_PTR ImageBase(DWORD process){
  MODULEENTRY32W module={};module.dwSize=sizeof(module);return Module32FirstW(snapshot.value,&module)?reinterpret_cast<ULONG_PTR>(module.modBaseAddr):0;
 }
 void Event(std::ofstream& out,const char* name,DWORD error){out<<"{\"event\":\""<<name<<"\",\"error\":"<<error<<"}\n";out.flush();}
-void Locate(std::ofstream& out,DWORD process,ULONG_PTR address){
+void Locate(std::ofstream& out,DWORD process,ULONG_PTR address,const char* eventName="fault_module"){
  Handle snapshot;snapshot.value=CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,process);if(snapshot.value==INVALID_HANDLE_VALUE)return;
  MODULEENTRY32W module={};module.dwSize=sizeof(module);
  for(BOOL ok=Module32FirstW(snapshot.value,&module);ok;ok=Module32NextW(snapshot.value,&module)){
   auto base=reinterpret_cast<ULONG_PTR>(module.modBaseAddr);if(address<base||address-base>=module.modBaseSize)continue;
   std::string name;for(auto p=module.szModule;*p&&name.size()<96;++p){auto c=*p;name+=((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'_'||c==L'-')?static_cast<char>(c):'_';}
-  out<<"{\"event\":\"fault_module\",\"name\":\""<<name<<"\",\"rva\":\""<<address-base<<"\"}\n";out.flush();return;
+  out<<"{\"event\":\""<<eventName<<"\",\"name\":\""<<name<<"\",\"rva\":\""<<address-base<<"\"}\n";out.flush();return;
  }
+}
+void WaitFrames(std::ofstream& out,HANDLE process,HANDLE thread,DWORD processId){
+ CONTEXT context={};context.ContextFlags=CONTEXT_FULL;if(!GetThreadContext(thread,&context)){Event(out,"wait_frames_context_failed",GetLastError());return;}
+ // Empty explicit search path and ignored ambient NT symbol path: no symbol
+ // server or PDB acquisition. Only module/RVA control frames are emitted.
+ SymSetOptions(SYMOPT_DEFERRED_LOADS|SYMOPT_FAIL_CRITICAL_ERRORS|SYMOPT_NO_PROMPTS|SYMOPT_IGNORE_NT_SYMPATH);
+ if(!SymInitialize(process,"",TRUE)){Event(out,"wait_frames_init_failed",GetLastError());return;}
+ STACKFRAME64 frame={};frame.AddrPC.Offset=context.Rip;frame.AddrPC.Mode=AddrModeFlat;frame.AddrFrame.Offset=context.Rbp;frame.AddrFrame.Mode=AddrModeFlat;frame.AddrStack.Offset=context.Rsp;frame.AddrStack.Mode=AddrModeFlat;
+ Locate(out,processId,context.Rip,"wait_frame");DWORD64 prior=0;
+ for(unsigned i=0;i<20;++i){
+  if(!StackWalk64(IMAGE_FILE_MACHINE_AMD64,process,thread,&frame,&context,nullptr,SymFunctionTableAccess64,SymGetModuleBase64,nullptr)||!frame.AddrPC.Offset||frame.AddrPC.Offset==prior)break;
+  prior=frame.AddrPC.Offset;Locate(out,processId,static_cast<ULONG_PTR>(frame.AddrPC.Offset),"wait_frame");
+ }
+ SymCleanup(process);
 }
 bool Watch(HANDLE thread,ULONG_PTR base,bool owned){
  if(owned)return true;CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
@@ -217,7 +232,7 @@ int wmain(int argc,wchar_t** argv){
  }
  if(!exited){
   auto sampled=entryThread.value?entryThread.value:firstThread.value;
-  if(!owned&&imageBase&&SuspendThread(sampled)!=static_cast<DWORD>(-1)){Snapshot(out,process.value,sampled,imageBase,"bounded_stop_control_state");ResumeThread(sampled);}
+  if(!owned&&imageBase&&SuspendThread(sampled)!=static_cast<DWORD>(-1)){Snapshot(out,process.value,sampled,imageBase,"bounded_stop_control_state");WaitFrames(out,process.value,sampled,pi.dwProcessId);ResumeThread(sampled);}
   Event(out,"bounded_stop",WAIT_TIMEOUT);TerminateJobObject(job.value,WAIT_TIMEOUT);
   // A debugged process cannot complete teardown while its exit debug event is
   // left pending. Drain events instead of waiting on a still-debug-stopped

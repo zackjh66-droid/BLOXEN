@@ -5,7 +5,7 @@ $repo=Split-Path (Split-Path $source -Parent) -Parent
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
 if(Test-Path $CaptureDirectory){throw 'Fresh private capture directory required'}
-& cl.exe /nologo /std:c++17 /EHsc /MD /W4 (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\capture-probe-build.log"
+& cl.exe /nologo /std:c++17 /EHsc /MD /W4 (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\capture-probe-build.log"
 if($LASTEXITCODE){throw 'Native capture probe compilation failed'}
 $inputs=Join-Path $env:RUNNER_TEMP 'HollowwakeCaptureInputs'
 $rule='Hollowwake-Capture-'+[Guid]::NewGuid().ToString('N')
