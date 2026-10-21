@@ -205,6 +205,7 @@ jobs:
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
           foreach($name in @('launcher-startup-results.json','launcher-startup.log','launcher-native-imports.log','signature.log','package-results.json')){$file=Join-Path $env:RUNNER_TEMP ('HollowwakePrivatePackage/'+$name);if(Test-Path $file){Copy-Item $file ('artifacts/native-client-050/private-'+$name)}}
+          $captures=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/WindowsScreenshots';if(Test-Path $captures){Copy-Item $captures artifacts/native-client-050/WindowsScreenshots -Recurse}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -213,6 +214,7 @@ jobs:
             artifacts/native-client-050/**/*.json
             artifacts/native-client-050/**/*.log
             artifacts/native-client-050/native-imports-unresolved.txt
+            artifacts/native-client-050/WindowsScreenshots/*.png
           retention-days: 3
       - name: Reject requested provider compilation failures
         if: ${{ always() && ((contains(github.event.head_commit.message, '[audio-uwp]') && steps.audio_candidate.outcome != 'success') || (contains(github.event.head_commit.message, '[mesa-uwp]') && steps.mesa_candidate.outcome != 'success') || steps.audio_behavior.outcome == 'failure' || steps.mesa_behavior.outcome == 'failure') }}
