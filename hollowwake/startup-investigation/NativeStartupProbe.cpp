@@ -205,7 +205,21 @@ int wmain(int argc,wchar_t** argv){
  if(!exited){
   auto sampled=entryThread.value?entryThread.value:firstThread.value;
   if(!owned&&imageBase&&SuspendThread(sampled)!=static_cast<DWORD>(-1)){Snapshot(out,process.value,sampled,imageBase,"bounded_stop_control_state");ResumeThread(sampled);}
-  Event(out,"bounded_stop",WAIT_TIMEOUT);TerminateJobObject(job.value,WAIT_TIMEOUT);WaitForSingleObject(process.value,5000);
+  Event(out,"bounded_stop",WAIT_TIMEOUT);TerminateJobObject(job.value,WAIT_TIMEOUT);
+  // A debugged process cannot complete teardown while its exit debug event is
+  // left pending. Drain events instead of waiting on a still-debug-stopped
+  // process and returning with its executable mapping held open.
+  if(!plain){
+   auto cleanupDeadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+   while(std::chrono::steady_clock::now()<cleanupDeadline){
+    DEBUG_EVENT tail={};if(!WaitForDebugEvent(&tail,100)){if(WaitForSingleObject(process.value,0)==WAIT_OBJECT_0)break;continue;}
+    if(tail.dwDebugEventCode==LOAD_DLL_DEBUG_EVENT&&tail.u.LoadDll.hFile)CloseHandle(tail.u.LoadDll.hFile);
+    if(tail.dwDebugEventCode==CREATE_THREAD_DEBUG_EVENT)CloseHandle(tail.u.CreateThread.hThread);
+    bool ended=tail.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT;
+    ContinueDebugEvent(tail.dwProcessId,tail.dwThreadId,DBG_CONTINUE);if(ended)break;
+   }
+  }
+  if(WaitForSingleObject(process.value,5000)!=WAIT_OBJECT_0){Event(out,"child_teardown_failed",GetLastError());return 5;}
  }
  out<<"{\"event\":\"scope\",\"nativeWindowsExecution\":true,\"debuggerAttached\":"<<(plain?"false":"true")<<",\"xboxTested\":false,\"lobbyDemonstrated\":false}\n";return 0;
 }

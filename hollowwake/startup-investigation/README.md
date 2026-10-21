@@ -101,3 +101,12 @@ Archive acquisition still verifies all selected file hashes and does not run
 archive scripts or third-party launchers. Private inputs and executable probes
 are not uploaded. Only numeric evidence, build logs and bounded acquisition
 status are retained. No signed package or website deployment is produced.
+
+Run 39661179987: direct OS CreateThread startup preserves the original measured
+RAX/RDX and RCX/R8 state, but both baseline and production self-identity cases
+still fault at original RVA 0x5FA3A7B. No initialized boundary is reached. Do not
+adopt the thread handoff alone as a crash fix. The next MainMetadataOnly profile
+retains the original OS entry RVA and exact original section bytes, comparing
+certificate/checksum metadata only against all existing conversion metadata.
+Each candidate is SHA-pinned for its own bounded native execution. This profile
+is a main-process Windows experiment, not an Xbox application launch method.
