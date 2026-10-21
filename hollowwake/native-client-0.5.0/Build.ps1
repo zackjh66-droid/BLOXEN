@@ -12,6 +12,10 @@ if($LASTEXITCODE){throw 'Bundled staging/hash behavior failed'}
 python (Join-Path $source 'tests\FullContentMappingTest.py') 2>&1|Tee-Object (Join-Path $OutputDirectory 'full-mapping-test.log')
 if($LASTEXITCODE){throw 'Full content mapping/audit behavior failed'}
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe';$vs=& $vswhere -latest -products '*' -property installationPath;$msbuild=Join-Path $vs 'MSBuild\Current\Bin\MSBuild.exe'
+if($PrivatePreparedDirectory){
+ python (Join-Path $source 'private-package\write_prepared_header.py') $PrivatePreparedDirectory (Join-Path $source 'Native\PreparedClient.generated.h') 2>&1|Tee-Object (Join-Path $OutputDirectory 'initialized-client-pins.log')
+ if($LASTEXITCODE){throw 'Exact normally initialized private client pins rejected'}
+}
 & $msbuild (Join-Path $source 'Native\Native.vcxproj') /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-build.log')
 if($LASTEXITCODE){throw 'Native client integration compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'tests\CrashLocationTest.cpp') kernel32.lib /Fe:"$OutputDirectory\CrashLocationTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'crash-location-build.log')
@@ -59,12 +63,12 @@ if($LASTEXITCODE){throw 'Performance marker production compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\NativeClientThread.cpp') (Join-Path $source 'tests\NativeClientThreadTest.cpp') kernel32.lib ole32.lib /Fe:"$OutputDirectory\NativeClientThreadTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-build.log')
 if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
 & "$OutputDirectory\NativeClientThreadTest.exe" (Join-Path $OutputDirectory 'native-thread-results.json') 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-test.log');if($LASTEXITCODE){throw 'Native entry-thread behavior failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'tests\ClientImageStartupTest.cpp') kernel32.lib /Fe:"$OutputDirectory\ClientImageStartupTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'image-startup-build.log')
+if($LASTEXITCODE){throw 'Production image startup state compilation failed'}
+& "$OutputDirectory\ClientImageStartupTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'image-startup-test.log');if($LASTEXITCODE){throw 'Actual image page transition or bounds/provider validation failed'}
 # Focused production window/network checks; no game code or repeated graphics demos.
-python (Join-Path $source 'tests\return_frame_fixture.py') --header (Join-Path $OutputDirectory 'StackAddressRepairFixture.generated.h')
-if($LASTEXITCODE){throw 'Production-generated complete frame fixture failed'}
-& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX /I"$OutputDirectory" (Join-Path $source 'tests\StackAddressRepairTest.cpp') kernel32.lib /Fe:"$OutputDirectory\StackAddressRepairTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-address-repair-build.log')
-if($LASTEXITCODE){throw 'Stack pointer repair owned fixture compilation failed'}
-& "$OutputDirectory\StackAddressRepairTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-address-repair-test.log');if($LASTEXITCODE){throw 'Stack pointer repair owned fixture behavior failed'}
+# The historical return-address repair is not used by the initialized route.
+# Do not accept its constructed-frame fixture as original-client startup proof.
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib user32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
 if($LASTEXITCODE){throw 'Window state test build failed'}
 & "$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test.log');if($LASTEXITCODE){throw 'Window state behavior failed'}
@@ -129,7 +133,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.3.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.4.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')

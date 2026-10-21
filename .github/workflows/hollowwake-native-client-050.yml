@@ -176,7 +176,9 @@ jobs:
           python -m pip install --disable-pip-version-check pefile==2024.8.26
           python -u hollowwake\native-client-0.5.0\private-package\fetch_inputs.py hollowwake\native-client-0.5.0\App\boot-inputs.json "%RUNNER_TEMP%\HollowwakePrivateInputs"
           if errorlevel 1 exit /b 1
-          python hollowwake\native-client-0.5.0\private-package\prepare.py "%RUNNER_TEMP%\HollowwakePrivateInputs\6.21" "%RUNNER_TEMP%\HollowwakePrivatePrepared"
+          powershell -NoProfile -File hollowwake\startup-investigation\Run-InitializedCapture.ps1 -ExistingInputDirectory "%RUNNER_TEMP%\HollowwakePrivateInputs" -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\initialized-capture" -CaptureDirectory "%RUNNER_TEMP%\HollowwakePrivateInitialized"
+          if errorlevel 1 exit /b 1
+          python hollowwake\native-client-0.5.0\private-package\prepare.py "%RUNNER_TEMP%\HollowwakePrivateInputs\6.21" "%RUNNER_TEMP%\HollowwakePrivatePrepared" --initialized-capture "%RUNNER_TEMP%\HollowwakePrivateInitialized"
           if errorlevel 1 exit /b 1
           set "HW_MESA_ARGUMENT="
           if exist "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa\mesa-build.json" set HW_MESA_ARGUMENT=-PrivateMesaDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa"

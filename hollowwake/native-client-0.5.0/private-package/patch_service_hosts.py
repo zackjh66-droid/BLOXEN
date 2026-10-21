@@ -6,9 +6,9 @@ import hashlib,json,re
 import pefile
 INPUT_SHA256='95196e6a0e5ab1e23a15dabfe60c0948825adf1b93cb58d87b10655efb037f92'
 TARGET='hollowwake.jihnjohn10.chatgpt.site'
-def patch(path):
+def patch(path,expected_sha256=INPUT_SHA256):
  path=Path(path);data=path.read_bytes()
- if hashlib.sha256(data).hexdigest()!=INPUT_SHA256:raise ValueError('Unexpected exact converted client; no host patch applied')
+ if hashlib.sha256(data).hexdigest()!=expected_sha256:raise ValueError('Unexpected exact converted client; no host patch applied')
  pe=pefile.PE(data=data,fast_load=True);out=bytearray(data);changes=[]
  # Only standalone account/Fortnite service hostname literals. Presence and
  # unrelated services are intentionally untouched; they need their own transport.
@@ -24,7 +24,7 @@ def patch(path):
  pe.close()
  if len(changes)!=27 or sum(c['host'].startswith('account-') for c in changes)!=2:raise ValueError('Exact-build service literal inventory changed')
  path.write_bytes(out)
- return {'inputSha256':INPUT_SHA256,'outputSha256':hashlib.sha256(out).hexdigest(),'targetOrigin':'https://'+TARGET,'changes':changes,'instructionsChanged':False,'tlsValidationDisabled':False,'executed':False,'nativeClientLoginTested':False,'scope':'Literal host changes only; assembled URLs and acceptance require execution evidence'}
+ return {'inputSha256':expected_sha256,'outputSha256':hashlib.sha256(out).hexdigest(),'targetOrigin':'https://'+TARGET,'changes':changes,'instructionsChanged':False,'tlsValidationDisabled':False,'executed':False,'nativeClientLoginTested':False,'scope':'Literal host changes only; assembled URLs and acceptance require execution evidence'}
 if __name__=='__main__':
  import argparse
  p=argparse.ArgumentParser();p.add_argument('image');p.add_argument('report');a=p.parse_args();r=patch(a.image);Path(a.report).write_text(json.dumps(r,indent=2));print(json.dumps({'patchedLiterals':len(r['changes']),'sha256':r['outputSha256'],'executed':False}))

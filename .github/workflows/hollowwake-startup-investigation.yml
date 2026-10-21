@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   investigate:
-    if: ${{ !contains(github.event.head_commit.message, '[capture-only]') }}
+    if: ${{ !contains(github.event.head_commit.message, '[capture-only]') && !contains(github.event.head_commit.message, '[startup-integrated]') }}
     runs-on: windows-2022
     timeout-minutes: 22
     steps:

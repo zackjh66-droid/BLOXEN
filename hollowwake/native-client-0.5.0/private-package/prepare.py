@@ -21,7 +21,7 @@ def metadata(path):
  for attr in ['DIRECTORY_ENTRY_IMPORT','DIRECTORY_ENTRY_DELAY_IMPORT']:
   for d in getattr(p,attr,[]):deps.append(d.dll.decode('ascii').lower())
  p.close();return sorted(set(deps))
-def prepare(source,out):
+def prepare(source,out,initialized_capture=None):
  source=Path(source).resolve();out=Path(out).resolve()
  if out.exists() or out==source or source in out.parents:raise ValueError('Use a new staging directory outside original inputs')
  main=source/'FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
@@ -56,17 +56,33 @@ def prepare(source,out):
     if len(candidates)>1:duplicates[name]={'identicalCopies':[str(q.relative_to(source)) for q in candidates]}
    queue.append(selected)
  out.mkdir(parents=True);stage=out/'GamePayload';stage.mkdir();reports=out/'reports';reports.mkdir();proxies={};records=[]
+ initialized=None;normalized=None
+ if initialized_capture:
+  sys.path.insert(0,str(ROOT.parent/'startup-investigation'))
+  from prepare_initialized_image import prepare as normalize_initialized
+  normalized=out/'InitializedMain.private.exe'
+  initialized=normalize_initialized(main,initialized_capture,normalized,reports/'initialized-preparation.json')
+  captured=json.loads((Path(initialized_capture)/'capture.json').read_text())
+  regions=captured.get('protections',[]);previous=0
+  if not regions or len(regions)>4096:raise ValueError('Measured original image protections required')
+  for region in regions:
+   rva,n,protect=(region[k] for k in ('rva','bytes','protect'))
+   if rva<previous or rva%4096 or n<=0 or n%4096 or rva>=0x6314000 or n>0x6314000-rva or protect not in (1,2,4,8,16,32,64,128):raise ValueError('Invalid measured image protection')
+   previous=rva+n
+  initialized['protections']=regions;initialized['originalImageBytes']=0x6314000
+  initialized['historicalStackRepairApplied']=False
+
  for i,p in enumerate(images):
   rel=p.relative_to(source).as_posix();original=sha(p)
   if p==main:
-   intermediate=out/'ConvertedMain.private.dll';convert(p,intermediate,PIN)
+   intermediate=out/'ConvertedMain.private.dll';conversion_source=normalized if initialized else p;convert(conversion_source,intermediate,sha(conversion_source))
    dest=stage/'6.21/FortniteGame/Binaries/Win64/Fortnite621.imports.private.dll';dest.parent.mkdir(parents=True)
   else:intermediate=p;dest=stage/p.name
   result=redirect(intermediate,dest,sha(intermediate))
   if p==main:
-   hostPatch=patch_service_hosts(dest);result['serviceHostPatch']=hostPatch
+   hostPatch=patch_service_hosts(dest,sha(dest)) if initialized else patch_service_hosts(dest);result['serviceHostPatch']=hostPatch
    (reports/'service-host-patch.json').write_text(json.dumps(hostPatch,indent=2))
-   stackPatch=patch_stack_address(dest);result['stackAddressRepair']=stackPatch
+   stackPatch=None if initialized else patch_stack_address(dest);result['stackAddressRepair']=stackPatch
    result['outputSha256']=sha(dest);result['outputBytes']=dest.stat().st_size
    (reports/'stack-address-repair.json').write_text(json.dumps(stackPatch,indent=2))
   (reports/(str(i)+'.json')).write_text(json.dumps(result,indent=2))
@@ -82,7 +98,7 @@ def prepare(source,out):
   # PE forwarder preserves the provider's actual object address and CRT ownership.
   if item['sourceDll'].lower()=='msvcrt.dll' and '_iob' in item['symbols']:item['dataSymbols']=['_iob']
   emit(item,proxyRoot/item['proxyDll'])
- manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'stackAddressRepair':stackPatch}
+ manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'stackAddressRepair':stackPatch,'initializedClient':initialized}
  (stage/'native-package-manifest.json').write_text(json.dumps(manifest,indent=2));(out/'plan.json').write_text(json.dumps(manifest,indent=2));return manifest
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('output');a=p.parse_args();m=prepare(a.source,a.output);print(json.dumps({'images':len(m['files']),'proxies':len(m['proxyDlls']),'externalPlatformDependencies':len(m['externalPlatformDependencies']),'executed':False}))
+ p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('output');p.add_argument('--initialized-capture');a=p.parse_args();m=prepare(a.source,a.output,a.initialized_capture);print(json.dumps({'images':len(m['files']),'proxies':len(m['proxyDlls']),'externalPlatformDependencies':len(m['externalPlatformDependencies']),'executed':False}))

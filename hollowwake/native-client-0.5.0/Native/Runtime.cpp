@@ -33,6 +33,7 @@
 #include "DataFiles.h"
 #include "StartupImport.h"
 #include "NativeClientThread.h"
+#include "PreparedClient.generated.h"
 #include "PlatformAudit.h"
 #include "StartupPlatform.h"
 #include "DesktopCapabilities.h"
@@ -227,14 +228,15 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.3.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.4.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
   std::wstring file=std::wstring(location->Data())+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
-  auto size=in.tellg();if(size!=100733952){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
-  static const BYTE expected[32]={0x54,0xdd,0xa1,0x8b,0x07,0xc1,0x67,0x2e,0x9a,0x20,0x72,0xf6,0x72,0x6f,0x1e,0x3f,0x9a,0x26,0xc7,0x46,0x8f,0x9d,0x93,0x3f,0xf0,0x49,0x8a,0xf5,0x58,0xb9,0x2d,0x47};
+  if(!kPreparedClientAvailable){Log("NATIVE_LOAD_BLOCKED runtime has no verified initialized client preparation");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
+  auto size=in.tellg();if(size!=kPreparedClientBytes){Log("NATIVE_LOAD_BLOCKED private client size mismatch");return E_INVALIDARG;}in.seekg(0);std::vector<BYTE> bytes(static_cast<SIZE_T>(size));if(!in.read(reinterpret_cast<char*>(bytes.data()),size))return E_FAIL;
+  const BYTE* expected=kPreparedClientSha;
   if(!HashPinned(bytes,expected)){Log("NATIVE_LOAD_BLOCKED converted client SHA256 mismatch");return E_INVALIDARG;}auto clientDos=reinterpret_cast<const IMAGE_DOS_HEADER*>(bytes.data());
   if(clientDos->e_magic!=IMAGE_DOS_SIGNATURE||clientDos->e_lfanew<64||!Range(clientDos->e_lfanew,sizeof(IMAGE_NT_HEADERS64),bytes.size()))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
   auto clientHeaders=reinterpret_cast<const IMAGE_NT_HEADERS64*>(bytes.data()+clientDos->e_lfanew);
@@ -257,6 +259,10 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   if(!Hollowwake::RegisterPackagedDependency(L"dsound.dll",L"HWAUD.dll",L"6.21/FortniteGame/Binaries/Win64/dsound.dll"))return E_INVALIDARG;
   for(auto pair: {std::make_pair(L"imm32.dll",L"HWIM.dll"),std::make_pair(L"opengl32.dll",L"HWGL.dll"),std::make_pair(L"dwmapi.dll",L"HWDWM.dll"),std::make_pair(L"d3d9.dll",L"HWD9.dll")}){auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+pair.first;if(!Hollowwake::RegisterPackagedDependency(pair.first,pair.second,logical.c_str()))return E_INVALIDARG;}
   auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
+  auto queryImage=reinterpret_cast<ClientImageQuery>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualQuery"));
+  auto protectImage=reinterpret_cast<ClientImageProtect>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualProtect"));
+  auto initialized=ApplyClientImageStartup(module,kPreparedOriginalImageBytes,kPreparedClientProtections,kPreparedClientProtectionCount,queryImage,protectImage,Log);
+  if(FAILED(initialized)){Log("NATIVE_IMAGE_STARTUP_FAILED HRESULT="+std::to_string(static_cast<unsigned long>(initialized)));return initialized;}
   if(!BindWinMainCommandImport(module,"api-ms-win-crt-runtime-l1-1-0.dll",reinterpret_cast<void*>(&Hollowwake::PackagedWinMainTail))){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED _get_narrow_winmain_command_line binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   Log("NATIVE_STARTUP_BOUND image-local WinMain command import; host CRT globals unchanged");
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}

@@ -29,10 +29,10 @@ int main(int argc,char** argv){
  auto initialized=CoInitializeEx(nullptr,COINIT_MULTITHREADED);if(FAILED(initialized))return 11;
  callerSta=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);if(callerSta!=RPC_E_CHANGED_MODE)return 13;
  int result=-1;auto hr=RunNativeClientThread(Entry,1048576,&result,Log);
- int earlyResult=123;bool early=RunNativeClientThread(EarlyExit,1048576,&earlyResult,Log)==HRESULT_FROM_WIN32(ERROR_PROCESS_ABORTED)&&earlyResult==123;
+ int earlyResult=123;bool early=SUCCEEDED(RunNativeClientThread(EarlyExit,1048576,&earlyResult,Log))&&earlyResult==77;
  bool invalid=RunNativeClientThread(Entry,1,&result,nullptr)==E_INVALIDARG;
  CoUninitialize();
  bool passed=SUCCEEDED(hr)&&result==621&&localValue==99&&invalid&&early;
- std::ofstream out(argv[1]);out<<"{\"scope\":\"Original native entry-thread fixture, no Fortnite or Xbox execution\",\"passed\":"<<(passed?"true":"false")<<",\"hresult\":"<<(unsigned long)hr<<",\"entryResult\":"<<result<<",\"initialComResult\":"<<(unsigned long)initial<<",\"initialApartment\":"<<(int)apartment<<",\"initialQualifier\":"<<(int)qualifier<<",\"callerStaResult\":"<<(unsigned long)callerSta<<",\"staResult\":"<<(unsigned long)sta<<",\"reservedStackBytes\":"<<reserved<<",\"tlsThreadNotifications\":"<<notifications.load()<<",\"separateTlsValue\":"<<(tls&&localValue==99?"true":"false")<<",\"earlyThreadExitRejected\":"<<(early?"true":"false")<<",\"invalidReservationRejected\":"<<(invalid?"true":"false")<<"}";
+ std::ofstream out(argv[1]);out<<"{\"scope\":\"Original native entry-thread fixture, no Fortnite or Xbox execution\",\"passed\":"<<(passed?"true":"false")<<",\"hresult\":"<<(unsigned long)hr<<",\"entryResult\":"<<result<<",\"initialComResult\":"<<(unsigned long)initial<<",\"initialApartment\":"<<(int)apartment<<",\"initialQualifier\":"<<(int)qualifier<<",\"callerStaResult\":"<<(unsigned long)callerSta<<",\"staResult\":"<<(unsigned long)sta<<",\"reservedStackBytes\":"<<reserved<<",\"tlsThreadNotifications\":"<<notifications.load()<<",\"separateTlsValue\":"<<(tls&&localValue==99?"true":"false")<<",\"explicitThreadExitCodePreserved\":"<<(early?"true":"false")<<",\"invalidReservationRejected\":"<<(invalid?"true":"false")<<"}";
  return passed?0:12;
 }
