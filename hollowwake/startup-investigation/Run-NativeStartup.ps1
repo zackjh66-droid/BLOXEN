@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly)
 $ErrorActionPreference='Stop'
 $source=$PSScriptRoot
 $repo=Split-Path (Split-Path $source -Parent) -Parent
@@ -27,10 +27,12 @@ $rule='Hollowwake-Startup-'+[Guid]::NewGuid().ToString('N')
 $hostRule=$rule+'-host'
 try {
  New-NetFirewallRule -DisplayName $rule -Direction Outbound -Program $exe -Action Block -Profile Any|Out-Null
- & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-native.jsonl" 30
- if($LASTEXITCODE){throw 'Native startup probe could not establish bounded execution'}
- & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-plain.jsonl" 30 --plain
- if($LASTEXITCODE){throw 'Native startup without debugger could not establish bounded execution'}
+ if(!$ConvertedOnly){
+  & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-native.jsonl" 30
+  if($LASTEXITCODE){throw 'Native startup probe could not establish bounded execution'}
+  & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-plain.jsonl" 30 --plain
+  if($LASTEXITCODE){throw 'Native startup without debugger could not establish bounded execution'}
+ }
  # Reuse the exact existing conversion implementation, with NO import rewrite,
  # service-address changes, pointer repair or substitute APIs. Real desktop OS
  # dependencies isolate whether the conversion itself changes initial startup.
@@ -45,16 +47,21 @@ try {
  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-native.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Converted native baseline could not establish bounded execution'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-context-build.log"
+ if($LASTEXITCODE){throw 'Measured native-entry-context host compilation failed'}
+ & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-context.jsonl" 30 --converted
+ if($LASTEXITCODE){throw 'Measured native-entry-context startup could not establish bounded execution'}
  $native=Join-Path $repo 'hollowwake/native-client-0.5.0/Native'
  $route=Join-Path $repo 'hollowwake/runtime-native-route'
  & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUSE_PRODUCTION_IDENTITY /I"$OutputDirectory" /I"$native" (Join-Path $source 'ConvertedStartupHost.cpp') (Join-Path $native 'PackagedNamespace.cpp') (Join-Path $native 'StartupImport.cpp') (Join-Path $route 'NativeSystem.cpp') (Join-Path $route 'NativeProxyDispatch.cpp') bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-identity-build.log"
  if($LASTEXITCODE){throw 'Production identity baseline host compilation failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-identity.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Production identity startup baseline could not establish bounded execution'}
- $rows=@(Get-Content "$OutputDirectory\original-client-native.jsonl"|ForEach-Object {$_|ConvertFrom-Json})
+ $checkFile=if($ConvertedOnly){'converted-client-native.jsonl'}else{'original-client-native.jsonl'}
+ $rows=@(Get-Content (Join-Path $OutputDirectory $checkFile)|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'input_verified'})-or !($rows|Where-Object {$_.event-eq 'process_created'})){throw 'Real original process was not created'}
  @{
-  inputSha256=$pin;originalExecutableUnmodified=$true;executableConverted=$false
+  inputSha256=$pin;originalExecutableUnmodified=$true;originalExecutedThisRun=(!$ConvertedOnly)
   debuggerAttached=$true;hardwareExecutionBreakpoints=$true;softwarePatches=$false
   nativeWindowsExecution=$true;childEnvironmentInherited=$false;outboundNetworkBlocked=$true
   separateConvertedBaselineAttempted=$true;integratedXboxLauncherExecuted=$false

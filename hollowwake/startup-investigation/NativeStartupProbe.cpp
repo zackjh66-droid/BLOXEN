@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <bcrypt.h>
 #include <tlhelp32.h>
+#include <winternl.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -49,6 +50,10 @@ void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,con
  bool c=Read(process,static_cast<ULONG_PTR>(context.Rbp+0x88),slot);
  bool d=Read(process,static_cast<ULONG_PTR>(context.Rbp+0x68),frameBase);
  bool checks=Read(process,base+0xb1d80a,checkLeft)&&Read(process,base+0x39c8da,checkRight);
+ PROCESS_BASIC_INFORMATION basic={};ULONG returned=0;ULONG_PTR peb=0,pebImage=0;
+ using Query=NTSTATUS(WINAPI*)(HANDLE,PROCESSINFOCLASS,PVOID,ULONG,PULONG);
+ auto query=reinterpret_cast<Query>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtQueryInformationProcess"));
+ if(query&&query(process,ProcessBasicInformation,&basic,sizeof(basic),&returned)>=0){peb=reinterpret_cast<ULONG_PTR>(basic.PebBaseAddress);Read(process,peb+0x10,pebImage);}
  // Numeric control-flow state only. No strings, credentials, command lines,
  // arbitrary memory dump, file contents or process environment are retained.
  out<<"{\"event\":\""<<phase<<"\",\"imageBase\":\""<<base<<"\",\"rip\":\""<<context.Rip
@@ -57,7 +62,8 @@ void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,con
     <<"\",\"baseReadable\":"<<(b?"true":"false")<<",\"sourceBase64\":\""<<storedBase
     <<"\",\"slotReadable\":"<<(c?"true":"false")<<",\"frameSlot\":\""<<slot
     <<"\",\"rcx\":\""<<context.Rcx<<"\",\"frameBaseReadable\":"<<(d?"true":"false")<<",\"frameBase\":\""<<frameBase
-    <<"\",\"comparisonReadable\":"<<(checks?"true":"false")<<",\"comparisonEqual\":"<<(checks&&checkLeft==checkRight?"true":"false")<<"}\n";out.flush();
+    <<"\",\"comparisonReadable\":"<<(checks?"true":"false")<<",\"comparisonEqual\":"<<(checks&&checkLeft==checkRight?"true":"false")
+    <<",\"processPeb\":\""<<peb<<"\",\"pebImage\":\""<<pebImage<<"\",\"rcxMatchesPeb\":"<<(peb&&context.Rcx==peb?"true":"false")<<"}\n";out.flush();
 }
 }
 #ifndef STARTUP_PROBE_LIBRARY
@@ -114,6 +120,13 @@ int wmain(int argc,wchar_t** argv){
     }
    }
    if(event.u.LoadDll.hFile)CloseHandle(event.u.LoadDll.hFile);
+  }else if(event.dwDebugEventCode==OUTPUT_DEBUG_STRING_EVENT){
+   auto info=event.u.DebugString;
+   if(converted&&info.fUnicode&&info.nDebugStringLength>0&&info.nDebugStringLength<64){wchar_t text[64]={};SIZE_T read=0;
+    if(ReadProcessMemory(process.value,info.lpDebugStringData,text,info.nDebugStringLength*sizeof(wchar_t),&read)&&read==info.nDebugStringLength*sizeof(wchar_t)&&!wcsncmp(text,L"HW_STARTUP_HOST stage=",22)){
+     auto phase=_wtoi(text+22);if(phase>=1&&phase<=20){out<<"{\"event\":\"owned_host_stage\",\"stage\":"<<phase<<"}\n";out.flush();}
+    }
+   }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;ULONG_PTR address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
    if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&(address==imageBase+kEntry||address==imageBase+kDispatch||address==imageBase+kGuard)){

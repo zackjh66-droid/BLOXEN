@@ -21,6 +21,13 @@ all native adapters. Native code and startup checks remain intact. A hardware
 watch at the helper entry captures its argument and whether its observed
 comparison operands agree; later snapshots also retain the computed frame base.
 
+The entry-context experiment passes the real current process PEB pointer as
+the first argument, instead of leaving RCX equal to the thread's function-pointer
+argument. This is motivated by measured original-process entry register state;
+the probe checks it against NtQueryInformationProcess. It never changes the PEB
+or constructs fake process metadata. This experiment alone does not establish
+the full entry ABI or make the host's main-image identity equal the client DLL.
+
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch
 helper. It records numeric control-flow state and two bounded image fields.

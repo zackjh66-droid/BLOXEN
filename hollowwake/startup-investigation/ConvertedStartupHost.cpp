@@ -3,6 +3,8 @@
 #define STARTUP_PROBE_LIBRARY
 #include "NativeStartupProbe.cpp"
 #include "BaselinePin.generated.h"
+#include <intrin.h>
+void Stage(unsigned phase){wchar_t text[64]={};swprintf_s(text,L"HW_STARTUP_HOST stage=%u",phase);OutputDebugStringW(text);}
 #ifdef USE_PRODUCTION_IDENTITY
 #include "../native-client-0.5.0/Native/PackagedNamespace.h"
 #include "../native-client-0.5.0/Native/StartupImport.h"
@@ -32,16 +34,27 @@ bool BindIdentity(HMODULE module){
 }
 }
 #endif
-DWORD WINAPI Enter(void* address){return reinterpret_cast<DWORD(__cdecl*)()>(address)();}
+DWORD WINAPI Enter(void* address){
+ Stage(6);
+#ifdef USE_NATIVE_ENTRY_CONTEXT
+ return reinterpret_cast<DWORD(WINAPI*)(void*)>(address)(reinterpret_cast<void*>(__readgsqword(0x60)));
+#else
+ return reinterpret_cast<DWORD(__cdecl*)()>(address)();
+#endif
+}
 int wmain(){
+ Stage(1);
  wchar_t module[32768]={};DWORD n=GetModuleFileNameW(nullptr,module,32768);if(!n||n>=32768)return 2;
  std::wstring directory(module,n);directory=directory.substr(0,directory.find_last_of(L"/\\"));
  auto image=directory+L"\\Fortnite621.baseline.private.dll";std::string hash;
  if(!Hash(image.c_str(),hash)||hash!=kBaselinePin)return 3;
+ Stage(2);
  auto loaded=LoadLibraryExW(image.c_str(),nullptr,LOAD_WITH_ALTERED_SEARCH_PATH);if(!loaded)return static_cast<int>(GetLastError());
+ Stage(3);
 #ifdef USE_PRODUCTION_IDENTITY
  client=loaded;
- if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.baseline.private.dll",L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX=640 -ResY=360")||!Hollowwake::ConfigurePackagedRoot(directory.c_str())||!Hollowwake::RegisterPackagedMainIdentity(L"FortniteClient-Win64-Shipping.exe")||!BindIdentity(loaded))return 6;
+ if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.baseline.private.dll",L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX=640 -ResY=360")||!Hollowwake::ConfigurePackagedRoot(directory.c_str())||!Hollowwake::RegisterPackagedMainIdentity(L"FortniteClient-Win64-Shipping.exe"))return 6;
+ Stage(4);if(!BindIdentity(loaded))return 6;Stage(5);
 #endif
  auto entry=GetProcAddress(loaded,"StartHollowwakeClient");if(!entry)return ERROR_PROC_NOT_FOUND;
  Handle thread;thread.value=CreateThread(nullptr,1048576,Enter,reinterpret_cast<void*>(entry),STACK_SIZE_PARAM_IS_A_RESERVATION,nullptr);
