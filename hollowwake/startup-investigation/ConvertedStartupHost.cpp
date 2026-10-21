@@ -51,6 +51,18 @@ DWORD WINAPI Enter(void* address){
  return reinterpret_cast<DWORD(__cdecl*)()>(address)();
 #endif
 }
+#ifdef USE_CAPTURED_PROTECTIONS
+#include "CapturedProtections.generated.h"
+bool ApplyCapturedProtections(HMODULE module){
+ auto base=reinterpret_cast<BYTE*>(module);
+ for(const auto& region:kCapturedProtections){
+  if(!region.bytes||region.rva>=0x6314000||region.bytes>0x6314000-region.rva)return false;
+  MEMORY_BASIC_INFORMATION actual={};if(!VirtualQuery(base+region.rva,&actual,sizeof(actual))||actual.AllocationBase!=module||actual.State!=MEM_COMMIT||actual.Type!=MEM_IMAGE)return false;
+  DWORD before=0;if(!VirtualProtect(base+region.rva,region.bytes,region.protect,&before))return false;
+ }
+ return true;
+}
+#endif
 int wmain(){
  Stage(1);
  wchar_t module[32768]={};DWORD n=GetModuleFileNameW(nullptr,module,32768);if(!n||n>=32768)return 2;
@@ -60,6 +72,10 @@ int wmain(){
  Stage(2);
  auto loaded=LoadLibraryExW(image.c_str(),nullptr,LOAD_WITH_ALTERED_SEARCH_PATH);if(!loaded)return static_cast<int>(GetLastError());
  startupModule=loaded;
+#ifdef USE_CAPTURED_PROTECTIONS
+ if(!ApplyCapturedProtections(loaded))return static_cast<int>(GetLastError()?GetLastError():ERROR_INVALID_DATA);
+ Stage(8);
+#endif
  Stage(3);
 #ifdef USE_PRODUCTION_IDENTITY
  client=loaded;

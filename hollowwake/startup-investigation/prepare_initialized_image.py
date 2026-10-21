@@ -69,8 +69,12 @@ def prepare(source,capture,destination,report):
   for n in range(0,s.SizeOfRawData-7,8):
    rva=s.VirtualAddress+n;v=struct.unpack_from('<Q',data,s.PointerToRawData+n)[0]
    if base<=v<base+p.OPTIONAL_HEADER.SizeOfImage and rva not in relocations:raise ValueError(f'Unrecorded runtime image pointer {rva:x}')
- # Changed code cannot retain the original Authenticode claim. Preserve its
- # overlay bytes, but clear the invalid certificate directory and checksum.
+ # Changed code cannot retain the original Authenticode claim. Remove only
+ # the exact bounded certificate overlay and clear its directory/checksum.
+ # Retaining orphan overlay bytes would correctly fail the existing converter.
+ cert=p.OPTIONAL_HEADER.DATA_DIRECTORY[4];end=max(s.PointerToRawData+s.SizeOfRawData for s in p.sections)
+ if cert.VirtualAddress!=end or cert.VirtualAddress+cert.Size!=len(raw):raise ValueError('Unexpected source certificate overlay')
+ del data[end:]
  opt=p.DOS_HEADER.e_lfanew+24;struct.pack_into('<I',data,opt+64,0);struct.pack_into('<II',data,opt+112+4*8,0,0)
  if struct.unpack_from('<I',data,opt+16)[0]!=p.OPTIONAL_HEADER.AddressOfEntryPoint:raise AssertionError('Entry changed')
  destination.write_bytes(data)

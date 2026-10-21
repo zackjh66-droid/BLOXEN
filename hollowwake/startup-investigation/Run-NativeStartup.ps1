@@ -48,6 +48,14 @@ try {
   Remove-Item $mainExe -Force
   python (Join-Path $source 'prepare_initialized_image.py') $exe $capture $mainExe "$OutputDirectory\initialized-preparation.json"
   if($LASTEXITCODE){throw 'Private initialized-image normalization rejected'}
+  $permissionReceipt=Get-Content (Join-Path $capture 'capture.json') -Raw|ConvertFrom-Json
+  if(!$permissionReceipt.protections-or !$permissionReceipt.protections.Count){throw 'Measured original page permissions absent'}
+  $permissionLines=@('struct CapturedProtection {DWORD rva;SIZE_T bytes;DWORD protect;};','static constexpr CapturedProtection kCapturedProtections[]={')
+  foreach($region in $permissionReceipt.protections){
+   if(!$region.bytes-or $region.rva-ge 0x6314000-or $region.bytes-gt (0x6314000-$region.rva)-or $region.protect-notin @(1,2,4,8,16,32,64,128)){throw 'Unsupported measured image page permission'}
+   $permissionLines+=('{'+$region.rva+','+$region.bytes+','+$region.protect+'},')
+  }
+  $permissionLines+='};';$permissionLines|Set-Content -Encoding ASCII "$OutputDirectory\CapturedProtections.generated.h"
   $preparedSha=(Get-FileHash $mainExe -Algorithm SHA256).Hash.ToLowerInvariant()
   ('constexpr char kMainImageSha[]="'+$preparedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\MainPin.generated.h"
   & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\initialized-probe-build.log"
@@ -66,6 +74,7 @@ try {
   $route=Join-Path $repo 'hollowwake/runtime-native-route'
   foreach($identity in @($false,$true)){
    $flags=@('/nologo','/std:c++17','/EHsc','/MD','/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR','/DUSE_OS_ENTRY_THREAD',('/I'+$OutputDirectory))
+   $flags+='/DUSE_CAPTURED_PROTECTIONS'
    $sources=@((Join-Path $source 'ConvertedStartupHost.cpp'));$label='initialized-dll'
    if($identity){
     $label='initialized-dll-identity';$flags+=@('/DWIN32_LEAN_AND_MEAN','/DNOMINMAX','/DUSE_PRODUCTION_IDENTITY',('/I'+$native))

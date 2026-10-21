@@ -104,6 +104,19 @@ bool CaptureInitializedImage(HANDLE process,ULONG_PTR base,const wchar_t* source
   wchar_t name[32]={};swprintf_s(name,L"section-%02u.bin",i);if(!write(name,base+section.VirtualAddress,section.SizeOfRawData))return false;
   if(i)receipt<<',';receipt<<"{\"index\":"<<i<<",\"rva\":"<<section.VirtualAddress<<",\"rawOffset\":"<<section.PointerToRawData<<",\"rawBytes\":"<<section.SizeOfRawData<<",\"virtualBytes\":"<<section.Misc.VirtualSize<<",\"characteristics\":"<<section.Characteristics<<"}";
  }
+ receipt<<"],\"protections\":[";bool firstRegion=true;ULONG_PTR cursor=base,end=base+nt->OptionalHeader.SizeOfImage;
+ while(cursor<end){
+  MEMORY_BASIC_INFORMATION region={};if(VirtualQueryEx(process,reinterpret_cast<void*>(cursor),&region,sizeof(region))!=sizeof(region)){SetLastError(ERROR_INVALID_DATA);return false;}
+  auto start=reinterpret_cast<ULONG_PTR>(region.BaseAddress),limit=start+region.RegionSize;
+  if(limit<=cursor||start>cursor){SetLastError(ERROR_INVALID_DATA);return false;}
+  auto boundedEnd=limit<end?limit:end;
+  if(region.State==MEM_COMMIT){
+   if(region.Type!=MEM_IMAGE||region.AllocationBase!=reinterpret_cast<void*>(base)){SetLastError(ERROR_INVALID_DATA);return false;}
+   if(!firstRegion)receipt<<',';firstRegion=false;
+   receipt<<"{\"rva\":"<<cursor-base<<",\"bytes\":"<<boundedEnd-cursor<<",\"protect\":"<<region.Protect<<"}";
+  }
+  cursor=boundedEnd;
+ }
  receipt<<"],\"captureComplete\":true,\"normalOriginalInitializationExecuted\":true,\"clientChecksPatched\":false,\"xboxTested\":false,\"lobbyDemonstrated\":false}";receipt.flush();return receipt.good();
 }
 #endif
@@ -215,8 +228,8 @@ int wmain(int argc,wchar_t** argv){
     DEBUG_EVENT tail={};if(!WaitForDebugEvent(&tail,100)){if(WaitForSingleObject(process.value,0)==WAIT_OBJECT_0)break;continue;}
     if(tail.dwDebugEventCode==LOAD_DLL_DEBUG_EVENT&&tail.u.LoadDll.hFile)CloseHandle(tail.u.LoadDll.hFile);
     if(tail.dwDebugEventCode==CREATE_THREAD_DEBUG_EVENT)CloseHandle(tail.u.CreateThread.hThread);
-    bool ended=tail.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT;
-    ContinueDebugEvent(tail.dwProcessId,tail.dwThreadId,DBG_CONTINUE);if(ended)break;
+    bool childEnded=tail.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT;
+    ContinueDebugEvent(tail.dwProcessId,tail.dwThreadId,DBG_CONTINUE);if(childEnded)break;
    }
   }
   if(WaitForSingleObject(process.value,5000)!=WAIT_OBJECT_0){Event(out,"child_teardown_failed",GetLastError());return 5;}
