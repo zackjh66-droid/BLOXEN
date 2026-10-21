@@ -2,8 +2,9 @@ using System;using System.IO;using Hollowwake.Services;
 public static class LauncherRecoveryTest {
  static void Check(bool value,string message){if(!value)throw new Exception(message);}
  public static void Main(){var root=Path.Combine(Path.GetTempPath(),"HollowwakeRecovery-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);try{
-  var r=new LauncherRecovery(root);Check(!r.BeginBoot(),"Clean install unexpectedly enters recovery");r.CompleteBoot();
-  Check(!new LauncherRecovery(root).BeginBoot(),"Completed boot was treated as a crash");r.CompleteBoot();r.BeginVerification();
+  var r=new LauncherRecovery(root);Check(!r.BeginBoot()&&!r.PreviousBootWasInterrupted,"Clean install/current boot was misreported as an interrupted prior boot");r.CompleteBoot();
+  var normal=new LauncherRecovery(root);Check(!normal.BeginBoot()&&!normal.PreviousBootWasInterrupted,"Completed boot was treated as a crash");
+  var interrupted=new LauncherRecovery(root);Check(interrupted.BeginBoot()&&interrupted.PreviousBootWasInterrupted,"Actual prior interrupted boot was not distinguished from the current start");interrupted.CompleteBoot();interrupted.EndVerification(true);r.BeginVerification();
   Check(new LauncherRecovery(root).BeginBoot(),"Interrupted verification did not enter recovery");r.CompleteBoot();Check(File.Exists(Path.Combine(root,"content-verification.pending")),"Recovery silently cleared incomplete verification");
   r.EndVerification(true);Check(!new LauncherRecovery(root).BeginBoot(),"Explicit successful verification did not release recovery");r.CompleteBoot();
   r.BeginNativeStartup();Check(new LauncherRecovery(root).BeginBoot(),"Interrupted binding did not enter recovery");r.EndNativeStartup();r.CompleteBoot();r.EndVerification(true);

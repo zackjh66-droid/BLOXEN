@@ -6,6 +6,7 @@ namespace Hollowwake
 {
     sealed partial class App : Application
     {
+        internal static bool PreviousLauncherBootInterrupted;
         internal static string ExecutionStage="launcher";
         internal static bool UnsupportedSelfTest;
         internal static bool NativePreflight;

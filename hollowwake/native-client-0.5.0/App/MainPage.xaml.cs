@@ -66,7 +66,7 @@ namespace Hollowwake
         public MainPage()
         {
             InitializeComponent();
-            recovery=new LauncherRecovery(ApplicationData.Current.LocalFolder.Path);recoveryMode=recovery.BeginBoot();
+            recovery=new LauncherRecovery(ApplicationData.Current.LocalFolder.Path);recoveryMode=recovery.BeginBoot();App.PreviousLauncherBootInterrupted=recovery.PreviousBootWasInterrupted;
             var core=CoreWindow.GetForCurrentThread();core.PointerCursor=null;core.SizeChanged+=(s,e)=>{if(policyReady)HWViewport((int)e.Size.Width,(int)e.Size.Height);};core.Activated+=(s,e)=>{if(!policyReady)return;HWHostActivation(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);HWSetControllerFocus(core.ActivationMode==CoreWindowActivationMode.ActivatedInForeground?1:0);};core.KeyDown+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,1,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.KeyUp+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,0,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWCharacterDetails(e.KeyCode,e.KeyStatus.ScanCode);};
             core.PointerMoved += ForwardPointer; core.PointerPressed += (s,e)=>ForwardPointer(s,e,2); core.PointerReleased += (s,e)=>ForwardPointer(s,e,4); core.PointerWheelChanged += ForwardPointer;
             // Relative motion comes from the real host mouse device, never inferred from a warped cursor.
