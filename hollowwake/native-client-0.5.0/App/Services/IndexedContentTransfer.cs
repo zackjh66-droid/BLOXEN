@@ -45,7 +45,16 @@ namespace Hollowwake.Services {
      foreach(var file in plan.Files){
       if(ready.Contains(file.Path))continue;await authorize();state.FileName=Path.GetFileName(file.Path);state.CurrentBytes=0;state.CurrentFileBytes=file.Bytes;
       var message=new InlineStringProgress(text=>{progress.Report(text);publish(false);});
-      await DownloadIndexedFile(http,plan.ArchiveUrl,plan.ArchiveBytes,Destination(content,file.Path),file,authorize,message,token,n=>{state.NetworkBytes+=n;state.BytesPerSecond=state.NetworkBytes/Math.Max(.001,clock.Elapsed.TotalSeconds);publish(false);},n=>{state.CurrentBytes=n;state.OnDiskBytes=existing+n;publish(false);});
+      try{await DownloadIndexedFile(http,plan.ArchiveUrl,plan.ArchiveBytes,Destination(content,file.Path),file,authorize,message,token,n=>{state.NetworkBytes+=n;state.BytesPerSecond=state.NetworkBytes/Math.Max(.001,clock.Elapsed.TotalSeconds);publish(false);},n=>{state.CurrentBytes=n;state.OnDiskBytes=existing+n;publish(false);});}
+      catch(ArchiveRangeIgnoredException){
+       state.Phase="Downloading sequential stream";state.DownloadBytes=checked(state.NetworkBytes+plan.ArchiveBytes);progress.Report("Archive host requires a sequential download. Streaming and verifying game data; no full ZIP will be stored.");publish(true);
+       await DownloadSequentialArchive(http,plan.ArchiveUrl,plan.ArchiveBytes,plan.ArchiveSha256,content,plan.Files,ready,authorize,token,
+        n=>{state.NetworkBytes+=n;state.BytesPerSecond=state.NetworkBytes/Math.Max(.001,clock.Elapsed.TotalSeconds);publish(false);},
+        selected=>{state.FileName=Path.GetFileName(selected.Path);state.CurrentBytes=0;state.CurrentFileBytes=selected.Bytes;publish(true);},
+        n=>{state.CurrentBytes=n;state.OnDiskBytes=existing+n;publish(false);},
+        selected=>{existing+=selected.Bytes;state.VerifiedFiles++;state.VerifiedBytes+=selected.Bytes;state.CurrentBytes=0;state.OnDiskBytes=MeasureSelected(content,plan.Files);SaveDataAudit(root,state);publish(true);});
+       break;
+      }
       ready.Add(file.Path);existing+=file.Bytes;state.VerifiedFiles++;state.VerifiedBytes+=file.Bytes;state.OnDiskBytes=MeasureSelected(content,plan.Files);SaveDataAudit(root,state);publish(true);
      }
     }
@@ -76,10 +85,11 @@ namespace Hollowwake.Services {
    async Task OpenChunk(CancellationToken token){
     CloseChunk();long offset=start+consumed;long length=Math.Min(16L*1024*1024,Remaining);
     using(var request=new HttpRequestMessage(HttpMethod.Get,url)){
-     request.Headers.Range=new RangeHeaderValue(offset,offset+length-1);
+     request.Headers.Range=new RangeHeaderValue(offset,offset+length-1);request.Headers.UserAgent.ParseAdd("Hollowwake/0.5.8");
      // A separate unauthenticated HTTP client is used: no project bearer/cookie.
      response=await http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,token);var range=response.Content.Headers.ContentRange;
-     if(response.StatusCode!=HttpStatusCode.PartialContent||range==null||range.Unit!="bytes"||range.From!=offset||range.To!=offset+length-1||range.Length!=archiveBytes||response.Content.Headers.ContentLength.HasValue&&response.Content.Headers.ContentLength.Value!=length){CloseChunk();throw new InvalidDataException("Archive host refused the exact content range; no full-archive fallback was started.");}
+     if(response.StatusCode==HttpStatusCode.OK){CloseChunk();throw new ArchiveRangeIgnoredException();}
+     if(response.StatusCode!=HttpStatusCode.PartialContent||range==null||range.Unit!="bytes"||range.From!=offset||range.To!=offset+length-1||range.Length!=archiveBytes||response.Content.Headers.ContentLength.HasValue&&response.Content.Headers.ContentLength.Value!=length){CloseChunk();throw new InvalidDataException("Archive host refused the pinned content range/status. No game data was marked ready.");}
      string current=response.Headers.ETag==null?null:response.Headers.ETag.ToString();if(etag!=null&&etag!=current){CloseChunk();throw new InvalidDataException("Archive identity changed during download.");}if(etag==null)etag=current;
      input=await response.Content.ReadAsStreamAsync();chunkRemaining=length;
     }
@@ -89,7 +99,7 @@ namespace Hollowwake.Services {
     while(true){token.ThrowIfCancellationRequested();try{
      if(input==null||chunkRemaining==0)await OpenChunk(token);
      int read=await input.ReadAsync(b,o,(int)Math.Min(n,chunkRemaining),token);if(read==0)throw new IOException("Content range ended early.");consumed+=read;chunkRemaining-=read;received?.Invoke(read);return read;
-    }catch(InvalidDataException){throw;}catch(Exception ex)when(ex is IOException||ex is HttpRequestException){CloseChunk();if(++interruptions>8)throw new IOException("Content connection failed repeatedly; verified files are retained. Retry to restart the current file.");await Task.Delay(1000,token);}}
+    }catch(ArchiveRangeIgnoredException){throw;}catch(InvalidDataException){throw;}catch(Exception ex)when(ex is IOException||ex is HttpRequestException){CloseChunk();if(++interruptions>8)throw new IOException("Content connection failed repeatedly; verified files are retained. Retry to restart the current file.");await Task.Delay(1000,token);}}
    }
    public override int Read(byte[] b,int o,int n){return ReadAsync(b,o,n,CancellationToken.None).GetAwaiter().GetResult();}
    public override bool CanRead{get{return true;}}public override bool CanSeek{get{return false;}}public override bool CanWrite{get{return false;}}public override long Length{get{return total;}}public override long Position{get{return consumed;}set{throw new NotSupportedException();}}

@@ -7,6 +7,10 @@ Hollowwake endpoint changes. Original pinned assets download separately; they
 are not substituted for the modified program. No third-party launcher runs.
 
 Changes:
+- Handle HTTP 200 from a source which ignores ranges: stream the pinned original
+  ZIP forward, extract only selected data, verify every file and the full archive
+  SHA-256. No full ZIP is stored. A named Hollowwake user agent identifies requests.
+  Hosted probes reproduced HTTP 200 where the old installer requires HTTP 206.
 - Require an independent Windows Storage API open/size/read check for every
   selected data file after streamed SHA-256 verification, before marking ready.
 - Keep the progress display pending until that second API agrees. Fail closed
@@ -39,7 +43,7 @@ Xbox check, only after installing this integrated package:
 2. Restore/link the same Hollowwake account; let content verification run.
 3. Open Show launch log -> Full log. Its first page gives the actual LocalState
    path. Compare that location with Device Portal's DefaultAccount view.
-4. Missing data must cause a measured transfer (about 12.36 GB compressed,
+4. Missing data must cause a measured transfer (about 12.36 GB with ranges or 12.53 GB sequentially,
    26.45 GB expanded), or a clear storage/network error. No manifest-only ready.
 5. After both checks succeed, Launch attempts the packaged real client once.
    If it closes, reopen while signed in to upload the crash report automatically.
@@ -49,3 +53,8 @@ Xbox check, only after installing this integrated package:
 
 No game was executed in hosted checks. Owned Windows/UWP checks must be listed
 separately from physical Xbox observations. Do not describe this as a finished port.
+
+Sequential-source retry limitation: verified files remain installed, but a source
+without byte ranges must resend earlier compressed bytes before the next missing
+file. Received-byte progress includes those bytes; it does not claim they were
+newly installed. Wrong/truncated streams never mark the installation ready.

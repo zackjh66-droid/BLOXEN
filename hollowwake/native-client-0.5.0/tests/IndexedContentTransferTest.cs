@@ -5,9 +5,9 @@ public class IndexedContentTransferTest {
  sealed class Server:IDisposable {
   readonly HttpListener listener=new HttpListener();readonly byte[] bytes;readonly string mode;readonly Task serving;public string Url;public int Requests;public bool SawCredentials;public List<long> Starts=new List<long>();
   public Server(byte[] data,string behavior){bytes=data;mode=behavior;var socket=new TcpListener(IPAddress.Loopback,0);socket.Start();int port=((IPEndPoint)socket.LocalEndpoint).Port;socket.Stop();Url="http://127.0.0.1:"+port+"/fixture.zip";listener.Prefixes.Add("http://127.0.0.1:"+port+"/");listener.Start();serving=Task.Run(async()=>{while(listener.IsListening){HttpListenerContext context;try{context=await listener.GetContextAsync();}catch{break;}try{
-   Requests++;SawCredentials|=context.Request.Headers["Authorization"]!=null||context.Request.Headers["Cookie"]!=null;var range=context.Request.Headers["Range"];Check(range!=null&&range.StartsWith("bytes="),"No bounded range");var bounds=range.Substring(6).Split('-');long start=Int64.Parse(bounds[0]),end=Int64.Parse(bounds[1]);Starts.Add(start);Check(start>=0&&end<bytes.Length&&end>=start,"Range outside actual fixture");context.Response.StatusCode=mode=="ignored"?200:206;context.Response.Headers["Content-Range"]="bytes "+start+"-"+end+"/"+bytes.Length;context.Response.Headers["ETag"]="\"owned-content-fixture\"";context.Response.ContentLength64=end-start+1;
-   if(mode=="cut"&&Requests==1){await context.Response.OutputStream.WriteAsync(bytes,(int)start,12345);context.Response.Abort();continue;}
-   var block=new byte[65536];for(long position=start;position<=end;){int n=(int)Math.Min(block.Length,end-position+1);Buffer.BlockCopy(bytes,(int)position,block,0,n);if(mode=="corrupt"&&position==start)block[0]^=1;await context.Response.OutputStream.WriteAsync(block,0,n);position+=n;}context.Response.Close();
+   Requests++;SawCredentials|=context.Request.Headers["Authorization"]!=null||context.Request.Headers["Cookie"]!=null;var range=context.Request.Headers["Range"];bool streaming=mode.StartsWith("stream",StringComparison.Ordinal);Check(streaming||range!=null&&range.StartsWith("bytes="),"No bounded range");var bounds=streaming?new[]{"0",(bytes.Length-1).ToString()}:range.Substring(6).Split('-');long start=Int64.Parse(bounds[0]),end=Int64.Parse(bounds[1]);Starts.Add(start);Check(start>=0&&end<bytes.Length&&end>=start,"Range outside actual fixture");context.Response.StatusCode=mode=="ignored"||streaming?200:206;context.Response.Headers["Content-Range"]="bytes "+start+"-"+end+"/"+bytes.Length;context.Response.Headers["ETag"]="\"owned-content-fixture\"";context.Response.ContentLength64=end-start+1;
+   if((mode=="cut"||mode=="stream-cut")&&Requests==1){await context.Response.OutputStream.WriteAsync(bytes,(int)start,12345);context.Response.Abort();continue;}
+   var block=new byte[65536];for(long position=start;position<=end;){int n=(int)Math.Min(block.Length,end-position+1);Buffer.BlockCopy(bytes,(int)position,block,0,n);if((mode=="corrupt"||mode=="stream-corrupt")&&position==start)block[0]^=1;await context.Response.OutputStream.WriteAsync(block,0,n);position+=n;}context.Response.Close();
   }catch{try{context.Response.Abort();}catch{}}}});}
   public void Dispose(){listener.Stop();listener.Close();serving.GetAwaiter().GetResult();}
  }
@@ -21,6 +21,33 @@ public class IndexedContentTransferTest {
   foreach(var mode in new[]{"normal","cut"})using(var server=new Server(bytes,mode))using(var http=new HttpClient(new HttpClientHandler{UseCookies=false,AllowAutoRedirect=false})){
    var target=Path.Combine(folder,mode,"fixture.txt");await ContentTransfer.DownloadIndexedFile(http,server.Url,bytes.Length,target,file,allow,progress,CancellationToken.None);Check(await ContentTransfer.Matches(target,file.Bytes,file.Sha256,CancellationToken.None),"Actual resumed bytes differ");Check(server.Requests>=(mode=="cut"?3:2),"Actual ranged chunking/resume did not occur");Check(!server.SawCredentials,"Credentials leaked to data host");Check(!File.Exists(target+".download.part"),"Temporary file left after verification");
   }
+  // Exercise the actual fallback transport and decompressor with an HTTP
+  // server which ignores Range and returns the complete original fixture ZIP.
+  using(var server=new Server(bytes,"stream"))using(var http=new HttpClient(new HttpClientHandler{UseCookies=false,AllowAutoRedirect=false})){
+   var content=Path.Combine(folder,"streamed");long received=0;int commits=0;var ready=new HashSet<string>();bool ignored=false;
+   try{await ContentTransfer.DownloadIndexedFile(http,server.Url,bytes.Length,Path.Combine(folder,"range-refused","file"),file,allow,progress,CancellationToken.None);}catch(ArchiveRangeIgnoredException){ignored=true;}
+   Check(ignored&&server.Requests==1,"Ignored ranges did not select the explicit streaming fallback");
+   await ContentTransfer.DownloadSequentialArchive(http,server.Url,bytes.Length,Hash(bytes),content,new[]{file},ready,allow,CancellationToken.None,n=>received+=n,null,null,f=>commits++);
+   var target=Path.Combine(content,name.Replace('/',Path.DirectorySeparatorChar));
+   Check(received==bytes.Length&&commits==1&&ready.Contains(name)&&await ContentTransfer.Matches(target,file.Bytes,file.Sha256,CancellationToken.None),"Sequential installation did not write/hash the actual selected file");
+   Check(!server.SawCredentials&&Directory.GetFiles(content,"*.zip",SearchOption.AllDirectories).Length==0,"Sequential fallback leaked credentials or stored a full archive");
+  }
+  foreach(var mode in new[]{"stream-corrupt","stream-cut"})using(var server=new Server(bytes,mode))using(var http=new HttpClient()){
+   var content=Path.Combine(folder,mode);bool rejected=false;
+   try{await ContentTransfer.DownloadSequentialArchive(http,server.Url,bytes.Length,Hash(bytes),content,new[]{file},new HashSet<string>(),allow,CancellationToken.None,null,null,null,null);}catch(IOException){rejected=true;}catch(HttpRequestException){rejected=true;}
+   Check(rejected&&(!Directory.Exists(content)||Directory.GetFiles(content,"*.download.part",SearchOption.AllDirectories).Length==0),"Changed/truncated full stream was accepted or left unverified temporary data");
+  }
+  using(var server=new Server(bytes,"stream"))using(var http=new HttpClient()){
+   var content=Path.Combine(folder,"stream-cancel");var cancel=new CancellationTokenSource();bool rejected=false;
+   try{await ContentTransfer.DownloadSequentialArchive(http,server.Url,bytes.Length,Hash(bytes),content,new[]{file},new HashSet<string>(),allow,cancel.Token,n=>cancel.Cancel(),null,null,null);}catch(OperationCanceledException){rejected=true;}
+   Check(rejected&&(!Directory.Exists(content)||Directory.GetFiles(content,"*.download.part",SearchOption.AllDirectories).Length==0),"Sequential cancellation did not stop real reads/clean temporary data");
+  }
+  using(var server=new Server(bytes,"stream"))using(var http=new HttpClient()){
+   var content=Path.Combine(folder,"stream-revoked");int checks=0;bool rejected=false;
+   try{await ContentTransfer.DownloadSequentialArchive(http,server.Url,bytes.Length,Hash(bytes),content,new[]{file},new HashSet<string>(),()=>{if(++checks>1)throw new UnauthorizedAccessException();return Task.CompletedTask;},CancellationToken.None,null,null,null,null);}catch(UnauthorizedAccessException){rejected=true;}
+   Check(rejected&&!File.Exists(Path.Combine(content,name.Replace('/',Path.DirectorySeparatorChar))),"Revoked sequential transfer committed game data");
+  }
+  Console.WriteLine("PASS real HTTP 200 sequential fallback: actual selected-file decompression/writes/SHA-256, full original archive SHA-256, corruption/truncation rejection, cancellation/revocation cleanup, no ZIP stored and no account credentials sent.");
   var reuse=Path.Combine(folder,"reuse");var existing=Path.Combine(reuse,"GameClean",name.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(existing));File.Copy(Path.Combine(folder,"normal","fixture.txt"),existing);
   var plan=new ContentPlan{Build="6.21-CL-4526925",Id=Hash(new byte[]{6,2,1}),ArchiveUrl="https://public-build-archives-bucket.erafn.dev/6.21.zip",ArchiveBytes=12528679454L,ArchiveSha256="bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5"};plan.Files.Add(file);
   var captured=new Capture();File.WriteAllText(Path.Combine(reuse,"content-ready.txt"),"old writable marker");

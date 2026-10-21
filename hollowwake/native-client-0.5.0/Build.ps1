@@ -144,7 +144,7 @@ if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
 if($LASTEXITCODE){throw 'Shared content-transfer behavior failed'}
 & (Join-Path $source 'tests\Test-StartupImport.ps1') -OutputDirectory $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'startup-import-test.log')
 if($LASTEXITCODE){throw 'Startup import test failed'}
-& $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'IndexedContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'App\Services\IndexedContentTransfer.cs') (Join-Path $source 'tests\IndexedContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'indexed-content-test-build.log')
+& $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'IndexedContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'App\Services\IndexedContentTransfer.cs') (Join-Path $source 'App\Services\SequentialContentTransfer.cs') (Join-Path $source 'tests\IndexedContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'indexed-content-test-build.log')
 if($LASTEXITCODE){throw 'Indexed content transfer compilation failed'}
 & (Join-Path $OutputDirectory 'IndexedContentTransferTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'indexed-content-test.log')
 if($LASTEXITCODE){throw 'Actual range/decompression/resume/integrity tests failed'}
