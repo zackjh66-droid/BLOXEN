@@ -1,5 +1,4 @@
 import {put,get,head,del,issueSignedToken,presignUrl} from '@vercel/blob';
-import {handleUploadPresigned} from '@vercel/blob/client';
 import {BUILD,SHA,BYTES,ARCHIVE,MARKER,PROBE,PROBE_DATA,digest,uploadAuthorized,leaseAuthorized} from '../policy.mjs';
 export const config={maxDuration:60};
 const storeId=process.env.BLOB_STORE_ID;
@@ -16,11 +15,16 @@ export default async function handler(req,res){
   if(body.type==='blob.generate-presigned-url'){
    if(!owner||body.payload?.pathname!==ARCHIVE||body.payload?.multipart!==true)return send(res,403,{error:'upload_scope_denied'});
    if(await ready())return send(res,409,{error:'release_sealed'});
-   const result=await handleUploadPresigned({body,request:req,getSignedToken:async pathname=>{
-    const validUntil=Date.now()+2*60*60*1000;
-    const token=await issueSignedToken({storeId,pathname,operations:['put'],validUntil,maximumSizeInBytes:BYTES,allowedContentTypes:['application/zip']});
-    return {token,urlOptions:{validUntil,maximumSizeInBytes:BYTES,allowedContentTypes:['application/zip'],addRandomSuffix:false,allowOverwrite:false,cacheControlMaxAge:60}};
-   }});return send(res,200,result);
+   const validUntil=Date.now()+2*60*60*1000;
+   const token=await issueSignedToken({storeId,pathname:ARCHIVE,operations:['put'],validUntil,maximumSizeInBytes:BYTES,allowedContentTypes:['application/zip']});
+   // No webhook is registered. Produce the SDK 2.8.2 client wire payload from
+   // its official presignUrl result, preserving every signed query field.
+   const signed=await presignUrl(token,{operation:'put',pathname:ARCHIVE,access:'private',validUntil,maximumSizeInBytes:BYTES,allowedContentTypes:['application/zip'],addRandomSuffix:false,allowOverwrite:false,cacheControlMaxAge:60});
+   const query=new URL(signed.presignedUrl).searchParams;
+   const delegationToken=query.get('vercel-blob-delegation'),signature=query.get('vercel-blob-signature');
+   query.delete('pathname');query.delete('vercel-blob-delegation');query.delete('vercel-blob-signature');
+   if(!delegationToken||!signature)throw new Error('Invalid SDK signed upload payload');
+   return send(res,200,{type:body.type,presignedUrlPayload:{delegationToken,signature,params:Object.fromEntries(query)}});
   }
   if(owner&&body.op==='probe'){
    try{await head(PROBE,{storeId});}catch{await put(PROBE,PROBE_DATA,{storeId,access:'private',addRandomSuffix:false,allowOverwrite:false,contentType:'text/plain'});}
