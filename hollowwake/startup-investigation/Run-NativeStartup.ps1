@@ -24,20 +24,39 @@ if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 
 # no account/password/ticket, and a kill-on-close, one-process, 2GiB job.
 # Do not fall back to allowing networking if this operation is unavailable.
 $rule='Hollowwake-Startup-'+[Guid]::NewGuid().ToString('N')
+$hostRule=$rule+'-host'
 try {
  New-NetFirewallRule -DisplayName $rule -Direction Outbound -Program $exe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-native.jsonl" 30
  if($LASTEXITCODE){throw 'Native startup probe could not establish bounded execution'}
+ & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-plain.jsonl" 30 --plain
+ if($LASTEXITCODE){throw 'Native startup without debugger could not establish bounded execution'}
+ # Reuse the exact existing conversion implementation, with NO import rewrite,
+ # service-address changes, pointer repair or substitute APIs. Real desktop OS
+ # dependencies isolate whether the conversion itself changes initial startup.
+ $converted=Join-Path (Split-Path $exe -Parent) 'Fortnite621.baseline.private.dll'
+ python (Join-Path $repo 'hollowwake/runtime-native-route/native-image/convert_image.py') $exe $converted --expected-sha256 $pin --report "$OutputDirectory\baseline-conversion.json"
+ if($LASTEXITCODE){throw 'Exact private baseline conversion failed'}
+ $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
+ ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
+ $hostExe=Join-Path (Split-Path $exe -Parent) 'ConvertedStartupHost.exe'
+ & cl.exe /nologo /std:c++17 /EHsc /MD /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-host-build.log"
+ if($LASTEXITCODE){throw 'Converted private baseline host compilation failed'}
+ New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
+ & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-native.jsonl" 30 --converted
+ if($LASTEXITCODE){throw 'Converted native baseline could not establish bounded execution'}
  $rows=@(Get-Content "$OutputDirectory\original-client-native.jsonl"|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'input_verified'})-or !($rows|Where-Object {$_.event-eq 'process_created'})){throw 'Real original process was not created'}
  @{
   inputSha256=$pin;originalExecutableUnmodified=$true;executableConverted=$false
   debuggerAttached=$true;hardwareExecutionBreakpoints=$true;softwarePatches=$false
   nativeWindowsExecution=$true;childEnvironmentInherited=$false;outboundNetworkBlocked=$true
+  separateConvertedBaselineAttempted=$true;integratedXboxLauncherExecuted=$false
   fullGameAssetsStaged=$false;accountCredentialsSupplied=$false;originalLoadingScreenProven=$false
   xboxTested=$false;lobbyDemonstrated=$false;existingSignedPackagesChanged=$false
  }|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\scope.json"
 } finally {
  Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
+ Remove-NetFirewallRule -DisplayName $hostRule -ErrorAction SilentlyContinue
  Remove-Item $inputs -Recurse -Force -ErrorAction SilentlyContinue
 }

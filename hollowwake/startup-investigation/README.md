@@ -1,6 +1,17 @@
 This bounded native Windows investigation runs the exact preserved Season 6
 executable in a separate process before changing its DLL conversion again.
 It is not an Xbox package and does not establish loading-screen or lobby success.
+Both debugger-attached and plain process runs are bounded. CPU time and one
+numeric main-thread snapshot at the time bound distinguish a CPU loop from a
+wait. Plain mode does not claim an entry breakpoint or install hardware watches.
+
+A separate converted baseline reuses the existing converter, original desktop
+imports and original dependencies. Its tiny owned host verifies the generated
+DLL hash and invokes the preserved export on a one-MiB thread. It uses neither
+the Xbox compatibility adapters nor the later pointer/endpoint modifications.
+This distinguishes conversion semantics from those additional changes. It is
+not the integrated launcher, has no login ticket or complete asset set, and
+cannot validate the Xbox route or lobby.
 
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch

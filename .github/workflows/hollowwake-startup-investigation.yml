@@ -27,6 +27,7 @@ jobs:
           path: |
             artifacts/startup-investigation/*.jsonl
             artifacts/startup-investigation/scope.json
+            artifacts/startup-investigation/baseline-conversion.json
             artifacts/startup-investigation/*build.log
             artifacts/startup-investigation/input-acquisition.log
           if-no-files-found: error
