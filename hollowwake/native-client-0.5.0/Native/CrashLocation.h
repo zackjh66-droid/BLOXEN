@@ -9,7 +9,10 @@ using CrashModuleFilename=DWORD(WINAPI*)(HMODULE,LPWSTR,DWORD);
 inline std::string DescribeCrash(EXCEPTION_RECORD const& record,CrashModuleLookup lookup,CrashModuleFilename filename){
  std::string text="NATIVE_CRASH code="+std::to_string(record.ExceptionCode)+" address="+std::to_string(reinterpret_cast<ULONG_PTR>(record.ExceptionAddress));
  HMODULE module=nullptr;wchar_t path[512]={};
- if(lookup&&filename&&lookup(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,reinterpret_cast<LPCWSTR>(record.ExceptionAddress),&module)){
+ // These SDK constants are desktop-gated; the optional real OS provider is
+ // resolved before loading. 0x4=FROM_ADDRESS, 0x2=UNCHANGED_REFCOUNT.
+ constexpr DWORD fromAddressWithoutRefcount=0x4|0x2;
+ if(lookup&&filename&&lookup(fromAddressWithoutRefcount,reinterpret_cast<LPCWSTR>(record.ExceptionAddress),&module)){
   DWORD length=filename(module,path,512);
   if(length&&length<512){
    DWORD start=0;for(DWORD i=0;i<length;++i)if(path[i]==L'\\'||path[i]==L'/')start=i+1;
