@@ -12,6 +12,10 @@ namespace Hollowwake
         internal static bool NativePreflight;
         internal static bool AudioPreflight;
         internal static bool WglPreflight;
+        internal static void StartupStage(string stage){
+            ExecutionStage=stage;
+            try{System.IO.File.AppendAllText(System.IO.Path.Combine(Windows.Storage.ApplicationData.Current.LocalFolder.Path,"launcher-startup.log"),System.DateTimeOffset.UtcNow.ToString("o")+" version="+Services.ClientDiagnostics.Version()+" stage="+stage+"\n");}catch{}
+        }
         public App() { RequiresPointerMode=ApplicationRequiresPointerMode.WhenRequested; UnhandledException += OnUnhandledException; InitializeComponent(); Suspending += OnSuspending; Resuming += OnResuming; }
         private void OnUnhandledException(object sender,UnhandledExceptionEventArgs e){
             // Preserve the failure; do not mark the exception handled or fake recovery.
@@ -19,6 +23,7 @@ namespace Hollowwake
         }
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
+            StartupStage("app-activation");
             NativePreflight=e.Arguments=="--native-preflight";
             AudioPreflight=e.Arguments=="--audio-preflight";
             WglPreflight=e.Arguments=="--wgl-preflight";
@@ -27,6 +32,7 @@ namespace Hollowwake
             if (frame == null) { frame = new Frame(); Window.Current.Content = frame; }
             if (frame.Content == null) frame.Navigate(typeof(MainPage));
             Window.Current.Activate();
+            StartupStage("window-activated");
         }
         private void OnSuspending(object sender, SuspendingEventArgs e) { ((Window.Current.Content as Frame)?.Content as MainPage)?.Pause(); }
         private void OnResuming(object sender, object e) { ((Window.Current.Content as Frame)?.Content as MainPage)?.Resume(); }

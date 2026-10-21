@@ -204,6 +204,7 @@ jobs:
           @{mesaBehavior='${{ steps.mesa_behavior.outcome }}';audioBehavior='${{ steps.audio_behavior.outcome }}';audioProvider='${{ steps.audio_candidate.outcome }}';mesaProvider='${{ steps.mesa_candidate.outcome }}';fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
+          foreach($name in @('launcher-startup-results.json','launcher-startup.log','launcher-native-imports.log','signature.log','package-results.json')){$file=Join-Path $env:RUNNER_TEMP ('HollowwakePrivatePackage/'+$name);if(Test-Path $file){Copy-Item $file ('artifacts/native-client-050/private-'+$name)}}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

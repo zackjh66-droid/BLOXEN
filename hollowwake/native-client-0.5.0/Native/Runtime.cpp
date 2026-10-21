@@ -228,7 +228,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.4.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.5.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
@@ -266,7 +266,8 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   if(!BindWinMainCommandImport(module,"api-ms-win-crt-runtime-l1-1-0.dll",reinterpret_cast<void*>(&Hollowwake::PackagedWinMainTail))){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED _get_narrow_winmain_command_line binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   Log("NATIVE_STARTUP_BOUND image-local WinMain command import; host CRT globals unchanged");
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
-  int result=0;auto started=RunNativeClientThread(entry,static_cast<SIZE_T>(stackReserve),&result,Log);if(FAILED(started)){Log("NATIVE_THREAD_FAILED HRESULT="+std::to_string((unsigned long)started));return started;}return result;
+  auto queryExit=reinterpret_cast<NativeThreadExitCode>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetExitCodeThread"));
+  int result=0;auto started=RunNativeClientThread(entry,static_cast<SIZE_T>(stackReserve),&result,Log,queryExit);if(FAILED(started)){Log("NATIVE_THREAD_FAILED HRESULT="+std::to_string((unsigned long)started));return started;}return result;
  }catch(Platform::Exception^ e){Log("NATIVE_LOAD_EXCEPTION HRESULT="+std::to_string(e->HResult));return e->HResult;}
  catch(const std::exception& e){Log(std::string("NATIVE_LOAD_EXCEPTION ")+e.what());return E_FAIL;}
 }

@@ -65,7 +65,9 @@ namespace Hollowwake
         private bool recoveryMode;
         public MainPage()
         {
+            App.StartupStage("page-construction");
             InitializeComponent();
+            App.StartupStage("xaml-created");
             recovery=new LauncherRecovery(ApplicationData.Current.LocalFolder.Path);recoveryMode=recovery.BeginBoot();App.PreviousLauncherBootInterrupted=recovery.PreviousBootWasInterrupted;
             var core=CoreWindow.GetForCurrentThread();core.PointerCursor=null;core.SizeChanged+=(s,e)=>{if(policyReady)HWViewport((int)e.Size.Width,(int)e.Size.Height);};core.Activated+=(s,e)=>{if(!policyReady)return;HWHostActivation(e.WindowActivationState!=CoreWindowActivationState.Deactivated?1:0);HWSetControllerFocus(core.ActivationMode==CoreWindowActivationMode.ActivatedInForeground?1:0);};core.KeyDown+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,1,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.KeyUp+=(s,e)=>{if(policyReady)HWKeyDetails((uint)e.VirtualKey,e.KeyStatus.ScanCode,0,Math.Max(1,(int)e.KeyStatus.RepeatCount),e.KeyStatus.IsExtendedKey?1:0,e.KeyStatus.IsMenuKeyDown?1:0,e.KeyStatus.WasKeyDown?1:0);};core.CharacterReceived+=(s,e)=>{if(policyReady)HWCharacterDetails(e.KeyCode,e.KeyStatus.ScanCode);};
             core.PointerMoved += ForwardPointer; core.PointerPressed += (s,e)=>ForwardPointer(s,e,2); core.PointerReleased += (s,e)=>ForwardPointer(s,e,4); core.PointerWheelChanged += ForwardPointer;
@@ -73,7 +75,7 @@ namespace Hollowwake
             var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
             if(mouse != null) mouse.MouseMoved += (s,e) => { if(policyReady) HWMouseDelta(e.MouseDelta.X,e.MouseDelta.Y); };
             Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
-            Loaded += async (s, e) => { if (!ready) { ready = true; await InitializeAsync(); recovery.CompleteBoot(); } };
+            Loaded += async (s, e) => { if (!ready) { ready = true; App.StartupStage("page-loaded"); await InitializeAsync(); recovery.CompleteBoot(); App.StartupStage("launcher-ready"); } };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; if(!loadBusy)await CancelLinkAsync(); };
         }

@@ -85,7 +85,7 @@ int wmain(){
  auto entry=GetProcAddress(loaded,"StartHollowwakeClient");if(!entry)return ERROR_PROC_NOT_FOUND;
 #endif
 #ifdef USE_PRODUCTION_THREAD
- Stage(7);int threadResult=0;auto started=RunNativeClientThread(reinterpret_cast<NativeClientEntry>(entry),1048576,&threadResult,nullptr);return FAILED(started)?static_cast<int>(started):threadResult;
+ Stage(7);int threadResult=0;auto started=RunNativeClientThread(reinterpret_cast<NativeClientEntry>(entry),1048576,&threadResult,nullptr,&GetExitCodeThread);return FAILED(started)?static_cast<int>(started):threadResult;
 #endif
  Handle thread;
 #ifdef USE_OS_ENTRY_THREAD

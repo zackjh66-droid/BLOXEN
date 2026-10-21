@@ -23,6 +23,9 @@ if($LASTEXITCODE){throw 'Crash location production metadata compilation failed'}
 & "$OutputDirectory\CrashLocationTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'crash-location-test.log');if($LASTEXITCODE){throw 'Actual owned-code fault did not identify module/RVA and operation'}
 $native=Join-Path $source 'App';New-Item -ItemType Directory -Force $native|Out-Null
 Copy-Item (Join-Path $source 'Native\bin\x64\Release\HollowwakeClientRuntime.dll') $native
+& dumpbin.exe /nologo /imports (Join-Path $native 'HollowwakeClientRuntime.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'launcher-native-imports.log')
+if($LASTEXITCODE){throw 'Launcher mandatory import inspection failed'}
+if(Select-String -Path (Join-Path $OutputDirectory 'launcher-native-imports.log') -SimpleMatch 'GetExitCodeThread' -Quiet){throw 'Client exit query must not be an eager API-set dependency of launcher activation'}
 & dumpbin.exe /nologo /exports (Join-Path $env:SystemRoot 'System32\wldap32.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'windows-wldap-ordinal-reference.log')
 if($LASTEXITCODE){throw 'OS ordinal reference read failed'}
 & ml64.exe /nologo /c ("/Fo"+(Join-Path $OutputDirectory 'StackProbeFixture.obj')) (Join-Path $source 'tests\StackProbeFixture.asm')
@@ -133,7 +136,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.4.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.5.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
@@ -210,5 +213,9 @@ if(!$PrivatePreparedDirectory){
  & (Join-Path $source 'Test-NativePreflight.ps1') -PackagePath $appx.FullName -OutputDirectory $OutputDirectory
  python (Join-Path $source 'tests\compare_imports.py') $OutputDirectory 2>&1|Tee-Object (Join-Path $OutputDirectory 'import-comparison.log')
  if($LASTEXITCODE){throw 'Fixed inventory comparison failed'}
+}else{
+ # Exercise the deliverable's ordinary opening path, including reopen, rather
+ # than accepting only a different public helper package's preflight result.
+ & (Join-Path $source 'tests\Test-LauncherStartup.ps1') -PackagePath $appx.FullName -OutputDirectory $OutputDirectory
 }
 Get-FileHash $appx.FullName -Algorithm SHA256|Select-Object Path,Hash|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'package-hash.json')

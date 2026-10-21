@@ -1,7 +1,10 @@
 #include "NativeClientThread.h"
 #include <intrin.h>
-HRESULT RunNativeClientThread(NativeClientEntry entry,SIZE_T reserve,int* result,NativeClientLogger log){
+HRESULT RunNativeClientThread(NativeClientEntry entry,SIZE_T reserve,int* result,NativeClientLogger log,NativeThreadExitCode queryExit){
  if(!entry||!result)return E_POINTER;
+ // This operation must not become a mandatory API-set import of the launcher.
+ // Require the actual OS provider before starting game code; no fabricated exit.
+ if(!queryExit){if(log)log("NATIVE_THREAD_BLOCKED missing kernel32.dll!GetExitCodeThread error=127");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
  SYSTEM_INFO info={};GetNativeSystemInfo(&info);
  if(!reserve||reserve>256*1024*1024||!info.dwAllocationGranularity||reserve%info.dwAllocationGranularity)return E_INVALIDARG;
  // The exact original EXE's OS entry was measured with RAX/RDX=entry and
@@ -12,7 +15,7 @@ HRESULT RunNativeClientThread(NativeClientEntry entry,SIZE_T reserve,int* result
  if(!thread)return HRESULT_FROM_WIN32(GetLastError());
  if(log)log("NATIVE_THREAD original entry is OS start address id="+std::to_string(id)+" stackReserve="+std::to_string(reserve)+"; no host COM initialization; lobby not confirmed");
  auto wait=WaitForSingleObjectEx(thread,INFINITE,FALSE);DWORD error=wait==WAIT_FAILED?GetLastError():ERROR_SUCCESS,exitCode=0;
- if(wait==WAIT_OBJECT_0&&!GetExitCodeThread(thread,&exitCode))error=GetLastError();
+ if(wait==WAIT_OBJECT_0&&!queryExit(thread,&exitCode))error=GetLastError();
  CloseHandle(thread);
  if(wait!=WAIT_OBJECT_0||error)return HRESULT_FROM_WIN32(error?error:ERROR_GEN_FAILURE);
  // The OS reports thread completion, which can be a return or ExitThread.
