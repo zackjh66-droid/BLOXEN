@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry,[switch]$OsEntryOnly,[switch]$MainMetadataOnly)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry,[switch]$OsEntryOnly,[switch]$MainMetadataOnly,[switch]$InitializedOnly)
 $ErrorActionPreference='Stop'
 $source=$PSScriptRoot
 $repo=Split-Path (Split-Path $source -Parent) -Parent
@@ -34,6 +34,50 @@ try {
   if($LASTEXITCODE){throw 'Native startup probe could not establish bounded execution'}
   & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-plain.jsonl" 30 --plain
   if($LASTEXITCODE){throw 'Native startup without debugger could not establish bounded execution'}
+ }
+ if($InitializedOnly){
+  python -m pip install --disable-pip-version-check pefile==2024.8.26
+  if($LASTEXITCODE){throw 'Pinned PE dependency unavailable'}
+  $capture=Join-Path $inputs 'initialized-private'
+  & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\normal-original-capture.jsonl" 30 --capture $capture
+  if($LASTEXITCODE){throw 'Normal original initialization capture failed'}
+  Copy-Item $inputs $mainRoot -Recurse
+  # Remove the copied capture immediately; no derived runtime image is public.
+  Remove-Item (Join-Path $mainRoot 'initialized-private') -Recurse -Force
+  $mainExe=Join-Path $mainRoot '6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
+  Remove-Item $mainExe -Force
+  python (Join-Path $source 'prepare_initialized_image.py') $exe $capture $mainExe "$OutputDirectory\initialized-preparation.json"
+  if($LASTEXITCODE){throw 'Private initialized-image normalization rejected'}
+  $preparedSha=(Get-FileHash $mainExe -Algorithm SHA256).Hash.ToLowerInvariant()
+  ('constexpr char kMainImageSha[]="'+$preparedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\MainPin.generated.h"
+  & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\initialized-probe-build.log"
+  if($LASTEXITCODE){throw 'Private initialized-image probe build failed'}
+  New-NetFirewallRule -DisplayName $mainRule -Direction Outbound -Program $mainExe -Action Block -Profile Any|Out-Null
+  & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\initialized-main.jsonl" 30 --main-image
+  if($LASTEXITCODE){throw 'Private initialized main image execution not established'}
+  $converted=Join-Path (Split-Path $mainExe -Parent) 'Fortnite621.baseline.private.dll'
+  python (Join-Path $repo 'hollowwake/runtime-native-route/native-image/convert_image.py') $mainExe $converted --expected-sha256 $preparedSha --report "$OutputDirectory\initialized-conversion.json"
+  if($LASTEXITCODE){throw 'Initialized-image existing converter rejected input'}
+  $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
+  ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
+  $hostExe=Join-Path (Split-Path $mainExe -Parent) 'ConvertedStartupHost.exe'
+  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
+  $native=Join-Path $repo 'hollowwake/native-client-0.5.0/Native'
+  $route=Join-Path $repo 'hollowwake/runtime-native-route'
+  foreach($identity in @($false,$true)){
+   $flags=@('/nologo','/std:c++17','/EHsc','/MD','/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR','/DUSE_OS_ENTRY_THREAD',('/I'+$OutputDirectory))
+   $sources=@((Join-Path $source 'ConvertedStartupHost.cpp'));$label='initialized-dll'
+   if($identity){
+    $label='initialized-dll-identity';$flags+=@('/DWIN32_LEAN_AND_MEAN','/DNOMINMAX','/DUSE_PRODUCTION_IDENTITY',('/I'+$native))
+    $sources+=@((Join-Path $native 'PackagedNamespace.cpp'),(Join-Path $native 'StartupImport.cpp'),(Join-Path $route 'NativeSystem.cpp'),(Join-Path $route 'NativeProxyDispatch.cpp'))
+   }
+   & cl.exe @flags @sources bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\$label-build.log"
+   if($LASTEXITCODE){throw ('Initialized host build failed: '+$label)}
+   & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\$label.jsonl" 30 --converted
+   if($LASTEXITCODE){throw ('Initialized DLL execution not established: '+$label)}
+  }
+  @{nativeWindowsExecution=$true;normalOriginalInitializationCaptured=$true;entryCallRetained=$true;checksPatched=$false;uncapturedBss=$true;fullGameAssetsStaged=$false;accountCredentialsSupplied=$false;xboxTested=$false;lobbyDemonstrated=$false;existingSignedPackagesChanged=$false}|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\scope.json"
+  return
  }
  if($MainMetadataOnly){
   Copy-Item $inputs $mainRoot -Recurse
