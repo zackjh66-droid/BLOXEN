@@ -26,16 +26,16 @@ namespace Hollowwake.Services {
    string text="CONTENT_INVENTORY bytes="+state.OnDiskBytes+" total="+state.TotalFiles+" registered="+state.VerifiedFiles+" missing="+Math.Max(0,state.TotalFiles-state.VerifiedFiles)+"\nCONTENT_TRANSFER bytes="+state.NetworkBytes+" total="+state.DownloadBytes+"\n"+(state.Complete?"CONTENT_DATA_READY":"CONTENT_DATA_PENDING")+" bytes="+state.VerifiedBytes+" total="+state.RequiredBytes+"\n";
    var target=Path.Combine(root,"content-data-audit.txt");File.WriteAllText(target,text);
   }
-  public static async Task EnsureIndexed(ContentPlan plan,string root,Func<Task> authorize,Func<long,Task> requireSpace,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null,Func<Task<string>> source=null){
+  public static async Task EnsureIndexed(ContentPlan plan,string root,Func<Task> authorize,Func<long,Task> requireSpace,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null,Func<Task<string>> source=null,System.Collections.Generic.ISet<string> windowsExisting=null){
    long expected=plan.Validate();string content=Path.Combine(root,"GameClean"),marker=Path.Combine(root,"content-ready.txt");
    if(File.Exists(marker))File.Delete(marker);
-   var state=new ContentProgress{RequiredBytes=expected,TotalFiles=plan.Files.Count};var ready=new System.Collections.Generic.HashSet<string>();long missing=0,existing=0;int inspected=0;DateTime last=DateTime.MinValue;var clock=new System.Diagnostics.Stopwatch();
-   Action<bool> publish=force=>{if(!force&&(DateTime.UtcNow-last).TotalMilliseconds<500)return;last=DateTime.UtcNow;details?.Report(state.Copy());};
+   var state=new ContentProgress{RequiredBytes=expected,TotalFiles=plan.Files.Count};var ready=new System.Collections.Generic.HashSet<string>();long missing=0,existing=0;int inspected=0;DateTime last=DateTime.MinValue,lastAudit=DateTime.MinValue;var clock=new System.Diagnostics.Stopwatch();
+   Action<bool> publish=force=>{if(!force&&(DateTime.UtcNow-last).TotalMilliseconds<500)return;last=DateTime.UtcNow;if(force||(last-lastAudit).TotalSeconds>=5){SaveDataAudit(root,state);lastAudit=last;}details?.Report(state.Copy());};
    try{
-    await authorize();state.OnDiskBytes=MeasureSelected(content,plan.Files);SaveDataAudit(root,state);publish(true);
+    await authorize();state.OnDiskBytes=windowsExisting==null?MeasureSelected(content,plan.Files):0;SaveDataAudit(root,state);publish(true);
     foreach(var file in plan.Files){
      token.ThrowIfCancellationRequested();state.FileName=Path.GetFileName(file.Path);progress.Report("Checking installed data "+(++inspected)+" / "+plan.Files.Count);
-     if(await Matches(Destination(content,file.Path),file.Bytes,file.Sha256,token)){ready.Add(file.Path);existing+=file.Bytes;state.VerifiedBytes+=file.Bytes;state.VerifiedFiles++;}
+     if((windowsExisting==null||windowsExisting.Contains(file.Path))&&await Matches(Destination(content,file.Path),file.Bytes,file.Sha256,token)){ready.Add(file.Path);existing+=file.Bytes;state.OnDiskBytes=existing;state.VerifiedBytes+=file.Bytes;state.VerifiedFiles++;}
      else{missing=checked(missing+file.Bytes);state.DownloadBytes=checked(state.DownloadBytes+file.Compressed);}
      publish(true);
     }

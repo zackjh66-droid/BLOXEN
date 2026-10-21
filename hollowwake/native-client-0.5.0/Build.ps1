@@ -124,7 +124,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.5.9.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.0.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
@@ -138,6 +138,10 @@ $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
 & $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe')) (Join-Path $source 'App\Services\DiagnosticSanitizer.cs') (Join-Path $source 'tests\DiagnosticSanitizerTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-build.log')
 if($LASTEXITCODE){throw 'Diagnostic sanitizer compilation failed'}
 & (Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-test.log');if($LASTEXITCODE){throw 'Diagnostic secret/field boundary tests failed'}
+& $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'LauncherRecoveryTest.exe')) (Join-Path $source 'App\Services\LauncherRecovery.cs') (Join-Path $source 'tests\LauncherRecoveryTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'launcher-recovery-build.log')
+if($LASTEXITCODE){throw 'Launcher recovery production compilation failed'}
+& (Join-Path $OutputDirectory 'LauncherRecoveryTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'launcher-recovery-test.log')
+if($LASTEXITCODE){throw 'Interrupted launcher operations did not enter recovery or preserve files'}
 & $csc /nologo /langversion:7.3 /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ("/out:"+(Join-Path $OutputDirectory 'ContentTransferTest.exe')) (Join-Path $source 'App\Services\ContentTransfer.cs') (Join-Path $source 'tests\ContentTransferTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test-build.log')
 if($LASTEXITCODE){throw 'Shared content-transfer test compilation failed'}
 & (Join-Path $OutputDirectory 'ContentTransferTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'content-test.log')

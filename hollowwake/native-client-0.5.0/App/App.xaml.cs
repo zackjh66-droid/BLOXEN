@@ -6,11 +6,16 @@ namespace Hollowwake
 {
     sealed partial class App : Application
     {
+        internal static string ExecutionStage="launcher";
         internal static bool UnsupportedSelfTest;
         internal static bool NativePreflight;
         internal static bool AudioPreflight;
         internal static bool WglPreflight;
-        public App() { InitializeComponent(); Suspending += OnSuspending; Resuming += OnResuming; }
+        public App() { RequiresPointerMode=ApplicationRequiresPointerMode.WhenRequested; UnhandledException += OnUnhandledException; InitializeComponent(); Suspending += OnSuspending; Resuming += OnResuming; }
+        private void OnUnhandledException(object sender,UnhandledExceptionEventArgs e){
+            // Preserve the failure; do not mark the exception handled or fake recovery.
+            try{var root=Windows.Storage.ApplicationData.Current.LocalFolder.Path;System.IO.File.AppendAllText(System.IO.Path.Combine(root,"managed-launch.log"),System.DateTimeOffset.UtcNow.ToString("o")+" CONTENT_FAILED HRESULT="+e.Exception.HResult.ToString("X8")+" code="+(ExecutionStage=="content-verification"?2:ExecutionStage=="windows-storage-verification"?3:ExecutionStage=="native-window-binding"?4:ExecutionStage=="native-client-entry"?5:1)+" stage="+ExecutionStage+" type="+e.Exception.GetType().FullName+"\n");}catch{}
+        }
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             NativePreflight=e.Arguments=="--native-preflight";

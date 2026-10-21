@@ -56,6 +56,9 @@ public class IndexedContentTransferTest {
   Console.WriteLine("PASS real HTTP 200 sequential fallback: actual selected-file decompression/writes/SHA-256, full original archive SHA-256, corruption/truncation rejection, cancellation/revocation cleanup, no ZIP stored and no account credentials sent.");
   var reuse=Path.Combine(folder,"reuse");var existing=Path.Combine(reuse,"GameClean",name.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(existing));File.Copy(Path.Combine(folder,"normal","fixture.txt"),existing);
   var plan=new ContentPlan{Build="6.21-CL-4526925",Id=Hash(new byte[]{6,2,1}),ArchiveUrl="https://public-build-archives-bucket.erafn.dev/6.21.zip",ArchiveBytes=12528679454L,ArchiveSha256="bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5"};plan.Files.Add(file);
+  bool independentMissing=false;
+  try{await ContentTransfer.EnsureIndexed(plan,reuse,allow,n=>{independentMissing=true;throw new IOException("Owned missing Windows-storage inventory fixture");},progress,CancellationToken.None,null,null,new HashSet<string>());}catch(IOException){}
+  Check(independentMissing&&File.Exists(existing)&&!File.Exists(Path.Combine(reuse,"content-ready.txt")),"Missing independent Windows inventory was replaced by System.IO claims or existing data was removed");
   var captured=new Capture();File.WriteAllText(Path.Combine(reuse,"content-ready.txt"),"old writable marker");
   await ContentTransfer.EnsureIndexed(plan,reuse,allow,n=>{throw new Exception("Valid files must not require new storage");},progress,CancellationToken.None,captured);
   Check(captured.Last.Complete&&captured.Last.NetworkBytes==0&&captured.Last.VerifiedFiles==1&&captured.Last.OnDiskBytes==payload.Length,"Existing data was not independently measured and verified");
