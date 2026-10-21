@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry,[switch]$OsEntryOnly)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry,[switch]$OsEntryOnly,[switch]$MainMetadataOnly)
 $ErrorActionPreference='Stop'
 $source=$PSScriptRoot
 $repo=Split-Path (Split-Path $source -Parent) -Parent
@@ -34,6 +34,24 @@ try {
   if($LASTEXITCODE){throw 'Native startup probe could not establish bounded execution'}
   & "$OutputDirectory\NativeStartupProbe.exe" $exe "$OutputDirectory\original-client-plain.jsonl" 30 --plain
   if($LASTEXITCODE){throw 'Native startup without debugger could not establish bounded execution'}
+ }
+ if($MainMetadataOnly){
+  Copy-Item $inputs $mainRoot -Recurse
+  $mainExe=Join-Path $mainRoot '6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
+  New-NetFirewallRule -DisplayName $mainRule -Direction Outbound -Program $mainExe -Action Block -Profile Any|Out-Null
+  foreach($variant in @('certificate','converted-original-entry')){
+   Remove-Item $mainExe -Force
+   python (Join-Path $source 'prepare_metadata_comparison.py') $exe $mainExe "$OutputDirectory\$variant-preparation.json" --variant $variant
+   if($LASTEXITCODE){throw ('Metadata comparison rejected: '+$variant)}
+   $sha=(Get-FileHash $mainExe -Algorithm SHA256).Hash.ToLowerInvariant()
+   ('constexpr char kMainImageSha[]="'+$sha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\MainPin.generated.h"
+   & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\$variant-probe-build.log"
+   if($LASTEXITCODE){throw 'Pinned metadata probe compilation failed'}
+   & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\main-$variant.jsonl" 30 --main-image
+   if($LASTEXITCODE){throw ('Metadata comparison execution not established: '+$variant)}
+  }
+  @{nativeWindowsExecution=$true;originalOsEntryRetained=$true;originalSectionBytesUnchanged=$true;checksPatched=$false;xboxTested=$false;lobbyDemonstrated=$false;existingSignedPackagesChanged=$false}|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\scope.json"
+  return
  }
  # Reuse the exact existing conversion implementation, with NO import rewrite,
  # service-address changes, pointer repair or substitute APIs. Real desktop OS

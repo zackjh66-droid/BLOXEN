@@ -16,7 +16,11 @@
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
+#ifdef MAIN_PIN_GENERATED
+#include "MainPin.generated.h"
+#else
 constexpr char kMainImageSha[]="bf6a36ebfb80f2499f655b70b0c595ae505c8066d2add994564aba2532cbe5c0";
+#endif
 constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
 constexpr ULONG_PTR kInitializedBoundary=kEntry+9;
 bool captureRequested=false;
