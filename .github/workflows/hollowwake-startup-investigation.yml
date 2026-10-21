@@ -1,0 +1,33 @@
+name: Hollowwake native startup investigation
+on:
+  push:
+    branches: ['hollowwake/native-system-route']
+    paths: ['hollowwake/startup-investigation/**', '.github/workflows/hollowwake-startup-investigation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  investigate:
+    runs-on: windows-2022
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Bounded original executable startup and owned probe validation
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
+          powershell -NoProfile -File hollowwake\startup-investigation\Run-NativeStartup.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\startup-investigation"
+      - name: Preserve numeric startup evidence only
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-original-native-startup-evidence
+          path: |
+            artifacts/startup-investigation/*.jsonl
+            artifacts/startup-investigation/scope.json
+            artifacts/startup-investigation/*build.log
+            artifacts/startup-investigation/input-acquisition.log
+          if-no-files-found: error
+          retention-days: 3
