@@ -1,0 +1,37 @@
+{
+  "build": "6.21-CL-4526925",
+  "archiveBytes": 12528679454,
+  "archiveSha256": "bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5",
+  "gameExecuted": false,
+  "proprietaryBytesPublic": false,
+  "privateFixtureVerified": true,
+  "anonymousFixtureDenied": 403,
+  "anonymousArchiveDenied": 403,
+  "completeMirrorReadVerified": true,
+  "ranges": [
+    {
+      "start": 0,
+      "bytes": 32,
+      "sha256": "e34c16cd0e52f4b0363631bc436f98b547c281a1ea06b44d77269e1a5a8570f3"
+    },
+    {
+      "start": 65536,
+      "bytes": 32,
+      "sha256": "bae74c69cd4037fa497ef8079b4c300d74644d3a616c9d3edb5bec2cf16d33b1"
+    },
+    {
+      "start": 5000000000,
+      "bytes": 32,
+      "sha256": "65f3735a509cc7ef01bcd9c8976b7ad3acef7f0e20127a33242a028a08028778"
+    },
+    {
+      "start": 12528679422,
+      "bytes": 32,
+      "sha256": "c1eaa180a6a1074d0c69dbd07c7a7c3c6158fefab7e85522072b340eea2b8ecf"
+    }
+  ],
+  "sealed": true,
+  "pathname": "client621/bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5/6.21.zip",
+  "blobHost": "ricswvi50gagbcuh.private.blob.vercel-storage.com",
+  "verifiedAt": "2026-10-21T06:42:05.208Z"
+}

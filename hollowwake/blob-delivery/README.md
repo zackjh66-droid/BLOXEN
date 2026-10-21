@@ -32,10 +32,12 @@ no long-lived storage token is requested from the user. Use upload.mjs with the
 preserved archive and hidden operator configuration. It checks its complete
 original SHA-256, uploads, checks anonymous denial, reads the complete stored
 object back, compares its SHA-256 and four actual ranges, then marks it ready.
-Remove the temporary upload credential after sealing and redeploy. Keep the
+Revoke the temporary upload credential after sealing and redeploy. Keep the
 permanent gateway and protection credentials server-side in Sites.
 
 A successful mirror does not establish Fortnite startup or a working lobby.
 Client integration must request short-lived private leases through linked
 Hollowwake authentication; changing a website link does not change an installed
 0.5.8 client, whose transport still uses the previous CDN. Matchmaking remains off.
+
+The no-webhook upload route uses official presignUrl and losslessly adapts its signed query fields to the pinned SDK multipart payload. Operator upload uses bounded 32 MiB manual parts; the automatic stream upload terminated before completion and is not used. Native integration and observed live scope are documented in README-LIVE.md.
