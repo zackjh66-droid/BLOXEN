@@ -14,7 +14,7 @@
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
-constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kValue=0x15bc7d8,kBase=0x159d368;
+constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
 struct Handle {HANDLE value=nullptr;~Handle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);} };
 bool Hash(const wchar_t* path,std::string& result){
  BCRYPT_ALG_HANDLE alg=nullptr;BCRYPT_HASH_HANDLE hash=nullptr;
@@ -37,23 +37,27 @@ void Event(std::ofstream& out,const char* name,DWORD error){out<<"{\"event\":\""
 bool Watch(HANDLE thread,ULONG_PTR base,bool owned){
  if(owned)return true;CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
  if(!GetThreadContext(thread,&state))return false;
- if(state.Dr0||state.Dr1||(state.Dr7&15)){SetLastError(ERROR_ALREADY_EXISTS);return false;}
- state.Dr0=base+kEntry;state.Dr1=base+kDispatch;state.Dr7=(state.Dr7&~0xff000fULL)|5;
+ if(state.Dr0||state.Dr1||state.Dr2||(state.Dr7&63)){SetLastError(ERROR_ALREADY_EXISTS);return false;}
+ state.Dr0=base+kEntry;state.Dr1=base+kDispatch;state.Dr2=base+kGuard;state.Dr7=(state.Dr7&~0xfff003fULL)|21;
  return SetThreadContext(thread,&state)!=FALSE;
 }
 void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,const char* phase){
  CONTEXT context={};context.ContextFlags=CONTEXT_CONTROL|CONTEXT_INTEGER|CONTEXT_DEBUG_REGISTERS;
  if(!GetThreadContext(thread,&context)){Event(out,"context_unavailable",GetLastError());return;}
- DWORD value=0;ULONGLONG storedBase=0,slot=0;
+ DWORD value=0,checkLeft=0,checkRight=0;ULONGLONG storedBase=0,slot=0,frameBase=0;
  bool a=Read(process,base+kValue,value),b=Read(process,base+kBase,storedBase);
  bool c=Read(process,static_cast<ULONG_PTR>(context.Rbp+0x88),slot);
+ bool d=Read(process,static_cast<ULONG_PTR>(context.Rbp+0x68),frameBase);
+ bool checks=Read(process,base+0xb1d80a,checkLeft)&&Read(process,base+0x39c8da,checkRight);
  // Numeric control-flow state only. No strings, credentials, command lines,
  // arbitrary memory dump, file contents or process environment are retained.
  out<<"{\"event\":\""<<phase<<"\",\"imageBase\":\""<<base<<"\",\"rip\":\""<<context.Rip
     <<"\",\"rsp\":\""<<context.Rsp<<"\",\"rbp\":\""<<context.Rbp<<"\",\"rax\":\""<<context.Rax
     <<"\",\"valueReadable\":"<<(a?"true":"false")<<",\"sourceLow32\":\""<<value
     <<"\",\"baseReadable\":"<<(b?"true":"false")<<",\"sourceBase64\":\""<<storedBase
-    <<"\",\"slotReadable\":"<<(c?"true":"false")<<",\"frameSlot\":\""<<slot<<"\"}\n";out.flush();
+    <<"\",\"slotReadable\":"<<(c?"true":"false")<<",\"frameSlot\":\""<<slot
+    <<"\",\"rcx\":\""<<context.Rcx<<"\",\"frameBaseReadable\":"<<(d?"true":"false")<<",\"frameBase\":\""<<frameBase
+    <<"\",\"comparisonReadable\":"<<(checks?"true":"false")<<",\"comparisonEqual\":"<<(checks&&checkLeft==checkRight?"true":"false")<<"}\n";out.flush();
 }
 }
 #ifndef STARTUP_PROBE_LIBRARY
@@ -112,11 +116,11 @@ int wmain(int argc,wchar_t** argv){
    if(event.u.LoadDll.hFile)CloseHandle(event.u.LoadDll.hFile);
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;ULONG_PTR address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
-   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&(address==imageBase+kEntry||address==imageBase+kDispatch)){
+   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&(address==imageBase+kEntry||address==imageBase+kDispatch||address==imageBase+kGuard)){
     Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);
     if(address==imageBase+kEntry&&!entryThread.value)entryThread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SUSPEND_RESUME,FALSE,event.dwThreadId);
-    if(thread.value){Snapshot(out,process.value,thread.value,imageBase,address==imageBase+kEntry?"original_entry":"dispatch_before_calculation");CONTEXT state={};state.ContextFlags=CONTEXT_CONTROL|CONTEXT_DEBUG_REGISTERS;
-     if(GetThreadContext(thread.value,&state)){state.EFlags|=0x10000;state.Dr6=0;state.Dr7&=address==imageBase+kEntry?~1ULL:~4ULL;SetThreadContext(thread.value,&state);}}
+    if(thread.value){Snapshot(out,process.value,thread.value,imageBase,address==imageBase+kEntry?"original_entry":address==imageBase+kGuard?"helper_entry":"dispatch_before_calculation");CONTEXT state={};state.ContextFlags=CONTEXT_CONTROL|CONTEXT_DEBUG_REGISTERS;
+     if(GetThreadContext(thread.value,&state)){state.EFlags|=0x10000;state.Dr6=0;state.Dr7&=address==imageBase+kEntry?~1ULL:address==imageBase+kGuard?~16ULL:~4ULL;SetThreadContext(thread.value,&state);}}
     if(++hits>16){Event(out,"hardware_watch_limit",0);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;}
    }else if(record.ExceptionCode==EXCEPTION_BREAKPOINT&&initialBreakpoint){initialBreakpoint=false;
    }else{

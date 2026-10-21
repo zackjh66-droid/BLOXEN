@@ -13,6 +13,14 @@ This distinguishes conversion semantics from those additional changes. It is
 not the integrated launcher, has no login ticket or complete asset set, and
 cannot validate the Xbox route or lobby.
 
+The identity comparison then reuses the production namespace for self-module,
+logical original filename and command-line imports, and the production WinMain
+tail binding. Other modules still use actual desktop APIs. This deliberately
+tests the identified self-identity subset, not the complete Xbox namespace or
+all native adapters. Native code and startup checks remain intact. A hardware
+watch at the helper entry captures its argument and whether its observed
+comparison operands agree; later snapshots also retain the computed frame base.
+
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch
 helper. It records numeric control-flow state and two bounded image fields.

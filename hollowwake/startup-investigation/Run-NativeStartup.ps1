@@ -45,6 +45,12 @@ try {
  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-native.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Converted native baseline could not establish bounded execution'}
+ $native=Join-Path $repo 'hollowwake/native-client-0.5.0/Native'
+ $route=Join-Path $repo 'hollowwake/runtime-native-route'
+ & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUSE_PRODUCTION_IDENTITY /I"$OutputDirectory" /I"$native" (Join-Path $source 'ConvertedStartupHost.cpp') (Join-Path $native 'PackagedNamespace.cpp') (Join-Path $native 'StartupImport.cpp') (Join-Path $route 'NativeSystem.cpp') (Join-Path $route 'NativeProxyDispatch.cpp') bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-identity-build.log"
+ if($LASTEXITCODE){throw 'Production identity baseline host compilation failed'}
+ & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-identity.jsonl" 30 --converted
+ if($LASTEXITCODE){throw 'Production identity startup baseline could not establish bounded execution'}
  $rows=@(Get-Content "$OutputDirectory\original-client-native.jsonl"|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'input_verified'})-or !($rows|Where-Object {$_.event-eq 'process_created'})){throw 'Real original process was not created'}
  @{
