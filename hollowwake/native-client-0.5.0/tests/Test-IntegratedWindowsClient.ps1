@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[Parameter(Mandatory=$true)][string]$PrivateInputLeasePath)
 $ErrorActionPreference='Stop'
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
@@ -10,7 +10,7 @@ Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
 Add-Type -AssemblyName System.Drawing
 function Control($id){$e=[Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::AutomationIdProperty,$id));if($e-and !$e.Current.IsOffscreen){return $e};return $null}
-function InvokeControl($id){$e=Control $id;if(!$e-or !$e.Current.IsEnabled){throw "Actual UI control unavailable: $id"};$e.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()}
+function InvokeControl($id){$until=[DateTime]::UtcNow.AddSeconds(30);do{$e=Control $id;if($e-and $e.Current.IsEnabled){$e.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke();return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt $until);throw "Actual UI control unavailable: $id"}
 function Screenshot($name){$bounds=[Windows.Automation.AutomationElement]::RootElement.Current.BoundingRectangle;$bitmap=[Drawing.Bitmap]::new([int]$bounds.Width,[int]$bounds.Height);$g=[Drawing.Graphics]::FromImage($bitmap);try{$g.CopyFromScreen([int]$bounds.Left,[int]$bounds.Top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $OutputDirectory ($name+'.png')),[Drawing.Imaging.ImageFormat]::Png)}finally{$g.Dispose();$bitmap.Dispose()}}
 try{
  $package=Get-AppxPackage -Name 'Hollowwake.NativeClientExperiment';if(!$package){throw 'Actual signed private package is not installed'}
@@ -21,7 +21,7 @@ try{
  $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe';$services=Join-Path $PSScriptRoot '../App/Services';$stager=Join-Path $env:RUNNER_TEMP 'HollowwakeStageGameData.exe'
  & $csc /nologo /target:exe /langversion:latest /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll "/out:$stager" (Join-Path $PSScriptRoot 'Stage-WindowsGameData.cs') (Join-Path $services 'ContentTransfer.cs') (Join-Path $services 'IndexedContentTransfer.cs') (Join-Path $services 'SequentialContentTransfer.cs')
  if($LASTEXITCODE-ne 0){throw 'Production transfer input stager did not compile'}
- & $stager (Join-Path $PSScriptRoot '../App/ContentPlan621.json') (Join-Path $PSScriptRoot '../App/ContentIndex621.json') (Join-Path $data 'GameClean') (Join-Path $OutputDirectory 'integrated-windows-data.json')
+ & $stager (Join-Path $PSScriptRoot '../App/ContentPlan621.json') (Join-Path $PSScriptRoot '../App/ContentIndex621.json') (Join-Path $data 'GameClean') (Join-Path $OutputDirectory 'integrated-windows-data.json') $PrivateInputLeasePath
  if($LASTEXITCODE-ne 0){throw 'Pinned full game-data acquisition failed; no runtime result inferred'}
  $result.stage='create-temporary-normal-account';SaveResult
  $origin='https://hollowwake.jihnjohn10.chatgpt.site';$browser=[Microsoft.PowerShell.Commands.WebRequestSession]::new()
@@ -61,7 +61,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   if($nativeText-match 'NATIVE_THREAD original entry is OS start address'){$result.nativeThreadCreated=$true}
   if($tick-in @(3,9,24,36)-or !$alive){Screenshot ('Windows-actual-client-after-launch-'+$tick)}
   $dialogs=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
-  $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$titles+=$title}}
+  $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$texts=$dialog.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Text));$body=@();foreach($textControl in $texts){if($textControl.Current.Name.Length-lt 1000){$body+=$textControl.Current.Name}};$titles+=@{title=$title;text=$body}}}
   $observations+=@{seconds=$tick*5;alive=$alive;windowTitles=$titles}
   if(!$alive){$result.stage='actual-client-process-exited';break}
  }while([DateTime]::UtcNow-lt $deadline)
@@ -73,6 +73,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  $result.failure=$_.Exception.Message;Write-Host ('INTEGRATED FAILURE stage='+$result.stage+' reason='+$result.failure)
  if($applicationPid){try{Screenshot 'Windows-actual-test-failure'}catch{}}
 }finally{
+ Remove-Item $PrivateInputLeasePath -ErrorAction SilentlyContinue
  if($data){foreach($name in @('native-launch.log','managed-launch.log','launcher-startup.log','content-data-audit.txt','client-missing-imports.txt')){$path=Join-Path $data $name;if(Test-Path $path){$text=Get-Content $path -Raw;$text=$text-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]';$text|Set-Content (Join-Path $OutputDirectory ('integrated-'+$name))}}}
  # Revoke only this temporary account's linked sessions, never another user's.
  if($browser-and $result.testAccount){try{$devices=Invoke-RestMethod -Uri ($origin+'/api/devices') -WebSession $browser -TimeoutSec 30;foreach($device in $devices.devices){$null=Post '/api/devices/revoke' @{id=$device.id}};$null=Post '/api/auth/sign-out' @{}}catch{Write-Host 'Temporary test-session cleanup could not complete; no credential was exported'}}
