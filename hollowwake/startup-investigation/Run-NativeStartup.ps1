@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry)
 $ErrorActionPreference='Stop'
 $source=$PSScriptRoot
 $repo=Split-Path (Split-Path $source -Parent) -Parent
@@ -71,14 +71,15 @@ try {
  New-NetFirewallRule -DisplayName $mainRule -Direction Outbound -Program $mainExe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\client-main-image.jsonl" 30 --main-image
  if($LASTEXITCODE){throw 'Main-image comparison failed to establish bounded execution'}
+ python -m pip install --disable-pip-version-check pefile==2024.8.26
+ if($LASTEXITCODE){throw 'Pinned PE analysis dependency unavailable'}
+ if($EvaluateNoEntry){
  & cl.exe /nologo /std:c++17 /EHsc /MD /LD (Join-Path $source 'OwnedNoEntryTls.cpp') /link /NOENTRY /OUT:"$OutputDirectory\OwnedNoEntryTls.dll" 2>&1|Tee-Object "$OutputDirectory\noentry-tls-build.log"
  if($LASTEXITCODE){throw 'Owned no-entry static TLS build failed'}
  & cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'OwnedNoEntryTlsTest.cpp') kernel32.lib /Fe:"$OutputDirectory\OwnedNoEntryTlsTest.exe" 2>&1|Tee-Object "$OutputDirectory\noentry-host-build.log"
  if($LASTEXITCODE){throw 'Owned no-entry TLS host build failed'}
  & "$OutputDirectory\OwnedNoEntryTlsTest.exe" "$OutputDirectory\OwnedNoEntryTls.dll" 2>&1|Tee-Object "$OutputDirectory\noentry-tls-test.log"
- if($LASTEXITCODE){throw 'OS no-entry DLL static TLS behavior failed'}
- python -m pip install --disable-pip-version-check pefile==2024.8.26
- if($LASTEXITCODE){throw 'Pinned PE analysis dependency unavailable'}
+ if($LASTEXITCODE){throw ('OS no-entry DLL static TLS behavior failed, exit='+$LASTEXITCODE)}
  Remove-Item $converted -Force
  python (Join-Path $source 'prepare_noentry.py') $exe $converted "$OutputDirectory\noentry-preparation.json"
  if($LASTEXITCODE){throw 'Section-preserving no-entry preparation failed'}
@@ -88,6 +89,22 @@ try {
  if($LASTEXITCODE){throw 'No-entry client host build failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-noentry.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'No-entry client startup did not establish bounded execution'}
+ }
+ # No-entry was rejected by the owned TLS test in run 39655659302. The selected
+ # comparison retains a real DLL entry and all original section extents.
+ Remove-Item $converted -Force
+ python (Join-Path $source 'prepare_new_section.py') $exe $converted "$OutputDirectory\new-section-preparation.json"
+ if($LASTEXITCODE){throw 'Section-preserving real-entry conversion failed'}
+ $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
+ ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\new-section-client-host-build.log"
+ if($LASTEXITCODE){throw 'Section-preserving client host build failed'}
+ & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-new-section.jsonl" 30 --converted
+ if($LASTEXITCODE){throw 'Section-preserving client did not establish bounded execution'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUSE_PRODUCTION_IDENTITY /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" /I"$native" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" (Join-Path $native 'PackagedNamespace.cpp') (Join-Path $native 'StartupImport.cpp') (Join-Path $route 'NativeSystem.cpp') (Join-Path $route 'NativeProxyDispatch.cpp') bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\new-section-identity-build.log"
+ if($LASTEXITCODE){throw 'Section-preserving identity host compilation failed'}
+ & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-new-section-identity.jsonl" 30 --converted
+ if($LASTEXITCODE){throw 'Section-preserving identity did not establish bounded execution'}
  $checkFile=if($ConvertedOnly){'converted-client-native.jsonl'}else{'original-client-native.jsonl'}
  $rows=@(Get-Content (Join-Path $OutputDirectory $checkFile)|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'input_verified'})-or !($rows|Where-Object {$_.event-eq 'process_created'})){throw 'Real original process was not created'}
@@ -96,6 +113,7 @@ try {
   debuggerAttached=$true;hardwareExecutionBreakpoints=$true;softwarePatches=$false
   nativeWindowsExecution=$true;childEnvironmentInherited=$false;outboundNetworkBlocked=$true
   separateConvertedBaselineAttempted=$true;integratedXboxLauncherExecuted=$false
+  noEntryRouteSelected=[bool]$EvaluateNoEntry;sectionPreservingRealEntryAttempted=$true
   fullGameAssetsStaged=$false;accountCredentialsSupplied=$false;originalLoadingScreenProven=$false
   xboxTested=$false;lobbyDemonstrated=$false;existingSignedPackagesChanged=$false
  }|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\scope.json"

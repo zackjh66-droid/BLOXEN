@@ -52,6 +52,20 @@ thread isolation. The original game EXE entry is then called by pinned RVA with
 the measured entry handoff; no original code or checks are changed. This is a
 controlled comparison until its actual native result is reviewed.
 
+The owned no-entry TLS test failed in run 39655659302, so that route is rejected
+and is not selected by default. `-EvaluateNoEntry` retains its failing gate; it
+has not been changed into a passing check. It is not a packaging option.
+
+The selected new-section comparison retains a real owned DLL entry and preserves
+all nine original section headers/contents. It moves the NT header/table back
+40 bytes within the DOS stub to create a real additional header slot, preserving
+the opaque original bytes at 0x440..0x600. The final client code section is not
+extended. The DOS/Rich tail is changed and the original input remains unchanged.
+All original export slots and key directories are checked after conversion.
+This is a genuine layout comparison, not a restoration/spoof of runtime headers
+or a bypass of any client check. Native execution results determine whether it
+is usable; static checks alone do not establish startup.
+
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch
 helper. It records numeric control-flow state and two bounded image fields.

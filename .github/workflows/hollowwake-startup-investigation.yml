@@ -30,6 +30,7 @@ jobs:
             artifacts/startup-investigation/baseline-conversion.json
             artifacts/startup-investigation/main-image-preparation.json
             artifacts/startup-investigation/noentry-preparation.json
+            artifacts/startup-investigation/new-section-preparation.json
             artifacts/startup-investigation/noentry-tls-test.log
             artifacts/startup-investigation/*build.log
             artifacts/startup-investigation/input-acquisition.log
