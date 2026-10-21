@@ -123,9 +123,18 @@ namespace Hollowwake.Services {
      var state=new ContentProgress{Phase="Verified",Complete=true,TotalFiles=plan.Files.Count,VerifiedFiles=plan.Files.Count,RequiredBytes=plan.Validate(),VerifiedBytes=bytes,OnDiskBytes=bytes};
      File.WriteAllText(Path.Combine(root,"content-data-audit.txt"),"CONTENT_INVENTORY bytes="+bytes+" total="+plan.Files.Count+" registered="+plan.Files.Count+" missing=0\nCONTENT_TRANSFER bytes=0 total=0\nCONTENT_DATA_READY bytes="+bytes+" total="+plan.Validate()+"\n");await ConfirmWindowsStorage(installed,plan,root,token);details?.Report(state);return state;
     }
+    string leaseUrl=null;long leaseExpires=0;
+    Func<Task<string>> contentSource=async()=>{
+     long now=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+     if(leaseUrl!=null&&now<leaseExpires-120000)return leaseUrl;
+     var lease=await api.SendAsync("/api/device/content-lease",new JsonObject(),projectToken,token);
+     var candidate=lease.GetNamedString("archiveUrl");long expires=(long)lease.GetNamedNumber("expiresAt");Uri uri;
+     if(lease.GetNamedString("build")!=plan.Build||lease.GetNamedString("archiveSha256")!=plan.ArchiveSha256||lease.GetNamedNumber("archiveBytes")!=plan.ArchiveBytes||!lease.GetNamedBoolean("private")||expires<now+60000||expires>now+16*60000||!Uri.TryCreate(candidate,UriKind.Absolute,out uri)||uri.Scheme!="https"||uri.Host!="ricswvi50gagbcuh.private.blob.vercel-storage.com"||!uri.IsDefaultPort||uri.UserInfo.Length!=0||uri.Fragment.Length!=0||uri.AbsolutePath!="/client621/"+plan.ArchiveSha256+"/6.21.zip"||uri.Query.Length>8192||!uri.Query.Contains("vercel-blob-signature=")||!uri.Query.Contains("vercel-blob-delegation="))throw new IOException("Private content lease differs from the pinned Hollowwake release.");
+     leaseUrl=candidate;leaseExpires=expires;return leaseUrl;
+    };
     progress.Report("Preparing the automatic game-data download.");
     Func<long,Task> space=async required=>{if(await FreeBytes()<required)throw new IOException("Insufficient Xbox app storage. Required free bytes: "+required);};
-    await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,root,authorize,space,progress,token,capture));
+    await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,root,authorize,space,progress,token,capture,contentSource));
     await api.SendAsync("/api/device/profile",null,projectToken,token);
     if(capture.Last==null||!capture.Last.Complete||capture.Last.VerifiedFiles!=139||capture.Last.VerifiedBytes!=26449827840L||capture.Last.OnDiskBytes!=26449827840L)throw new IOException("Final data audit is incomplete.");
     await ConfirmWindowsStorage(Path.Combine(root,"GameClean"),plan,root,token);

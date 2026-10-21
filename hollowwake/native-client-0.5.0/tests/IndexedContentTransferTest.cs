@@ -21,6 +21,12 @@ public class IndexedContentTransferTest {
   foreach(var mode in new[]{"normal","cut"})using(var server=new Server(bytes,mode))using(var http=new HttpClient(new HttpClientHandler{UseCookies=false,AllowAutoRedirect=false})){
    var target=Path.Combine(folder,mode,"fixture.txt");await ContentTransfer.DownloadIndexedFile(http,server.Url,bytes.Length,target,file,allow,progress,CancellationToken.None);Check(await ContentTransfer.Matches(target,file.Bytes,file.Sha256,CancellationToken.None),"Actual resumed bytes differ");Check(server.Requests>=(mode=="cut"?3:2),"Actual ranged chunking/resume did not occur");Check(!server.SawCredentials,"Credentials leaked to data host");Check(!File.Exists(target+".download.part"),"Temporary file left after verification");
   }
+  using(var server=new Server(bytes,"normal"))using(var http=new HttpClient(new HttpClientHandler{UseCookies=false,AllowAutoRedirect=false})){
+   int leases=0;var target=Path.Combine(folder,"lease-renewal","fixture.txt");
+   await ContentTransfer.DownloadIndexedFile(http,"https://unused.invalid/archive",bytes.Length,target,file,allow,progress,CancellationToken.None,null,null,()=>{leases++;return Task.FromResult(server.Url+"?lease="+leases);});
+   Check(leases==server.Requests&&leases>=2&&await ContentTransfer.Matches(target,file.Bytes,file.Sha256,CancellationToken.None),"Range requests did not reacquire the current lease or verify actual bytes");
+   Check(!server.SawCredentials,"Account credentials leaked during lease refresh");
+  }
   // Exercise the actual fallback transport and decompressor with an HTTP
   // server which ignores Range and returns the complete original fixture ZIP.
   using(var server=new Server(bytes,"stream"))using(var http=new HttpClient(new HttpClientHandler{UseCookies=false,AllowAutoRedirect=false})){

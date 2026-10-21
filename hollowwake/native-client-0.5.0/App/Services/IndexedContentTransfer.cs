@@ -1,11 +1,11 @@
 using System;using System.IO;using System.IO.Compression;using System.Net;using System.Net.Http;using System.Net.Http.Headers;using System.Security.Cryptography;using System.Threading;using System.Threading.Tasks;
 namespace Hollowwake.Services {
  public static partial class ContentTransfer {
-  public static async Task DownloadIndexedFile(HttpClient http,string url,long archiveBytes,string target,ContentFile file,Func<Task> authorize,IProgress<string> progress,CancellationToken token,Action<long> received=null,Action<long> writtenProgress=null){
+  public static async Task DownloadIndexedFile(HttpClient http,string url,long archiveBytes,string target,ContentFile file,Func<Task> authorize,IProgress<string> progress,CancellationToken token,Action<long> received=null,Action<long> writtenProgress=null,Func<Task<string>> source=null){
    if(!ContentPlan.Safe(file.Path)||!ContentPlan.Hash(file.Sha256)||file.Bytes<0||file.Offset<=0||(file.Compressed<0||(file.Compressed==0&&(file.Bytes!=0||file.Method!=0)))||file.Offset>archiveBytes-file.Compressed||(file.Method!=0&&file.Method!=8))throw new IOException("Invalid signed ZIP data extent.");
    await authorize();var temporary=target+".download.part";Directory.CreateDirectory(Path.GetDirectoryName(target));
    try{
-    using(var input=new RemoteExtent(http,url,archiveBytes,file.Offset,file.Compressed,received))using(var decoded=file.Method==8?(Stream)new DeflateStream(input,CompressionMode.Decompress,true):input)using(var output=new FileStream(temporary,FileMode.Create,FileAccess.Write,FileShare.None,1048576,true))using(var sha=SHA256.Create()){
+    using(var input=new RemoteExtent(http,url,archiveBytes,file.Offset,file.Compressed,received,source))using(var decoded=file.Method==8?(Stream)new DeflateStream(input,CompressionMode.Decompress,true):input)using(var output=new FileStream(temporary,FileMode.Create,FileAccess.Write,FileShare.None,1048576,true))using(var sha=SHA256.Create()){
      var buffer=new byte[1048576];long written=0;var check=DateTime.UtcNow;var display=DateTime.MinValue;int read;
      while((read=await decoded.ReadAsync(buffer,0,buffer.Length,token))>0){
       written+=read;if(written>file.Bytes)throw new IOException("Expanded content exceeded its pinned size.");await output.WriteAsync(buffer,0,read,token);writtenProgress?.Invoke(written);sha.TransformBlock(buffer,0,read,buffer,0);
@@ -26,7 +26,7 @@ namespace Hollowwake.Services {
    string text="CONTENT_INVENTORY bytes="+state.OnDiskBytes+" total="+state.TotalFiles+" registered="+state.VerifiedFiles+" missing="+Math.Max(0,state.TotalFiles-state.VerifiedFiles)+"\nCONTENT_TRANSFER bytes="+state.NetworkBytes+" total="+state.DownloadBytes+"\n"+(state.Complete?"CONTENT_DATA_READY":"CONTENT_DATA_PENDING")+" bytes="+state.VerifiedBytes+" total="+state.RequiredBytes+"\n";
    var target=Path.Combine(root,"content-data-audit.txt");File.WriteAllText(target,text);
   }
-  public static async Task EnsureIndexed(ContentPlan plan,string root,Func<Task> authorize,Func<long,Task> requireSpace,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null){
+  public static async Task EnsureIndexed(ContentPlan plan,string root,Func<Task> authorize,Func<long,Task> requireSpace,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null,Func<Task<string>> source=null){
    long expected=plan.Validate();string content=Path.Combine(root,"GameClean"),marker=Path.Combine(root,"content-ready.txt");
    if(File.Exists(marker))File.Delete(marker);
    var state=new ContentProgress{RequiredBytes=expected,TotalFiles=plan.Files.Count};var ready=new System.Collections.Generic.HashSet<string>();long missing=0,existing=0;int inspected=0;DateTime last=DateTime.MinValue;var clock=new System.Diagnostics.Stopwatch();
@@ -45,10 +45,10 @@ namespace Hollowwake.Services {
      foreach(var file in plan.Files){
       if(ready.Contains(file.Path))continue;await authorize();state.FileName=Path.GetFileName(file.Path);state.CurrentBytes=0;state.CurrentFileBytes=file.Bytes;
       var message=new InlineStringProgress(text=>{progress.Report(text);publish(false);});
-      try{await DownloadIndexedFile(http,plan.ArchiveUrl,plan.ArchiveBytes,Destination(content,file.Path),file,authorize,message,token,n=>{state.NetworkBytes+=n;state.BytesPerSecond=state.NetworkBytes/Math.Max(.001,clock.Elapsed.TotalSeconds);publish(false);},n=>{state.CurrentBytes=n;state.OnDiskBytes=existing+n;publish(false);});}
+      try{await DownloadIndexedFile(http,plan.ArchiveUrl,plan.ArchiveBytes,Destination(content,file.Path),file,authorize,message,token,n=>{state.NetworkBytes+=n;state.BytesPerSecond=state.NetworkBytes/Math.Max(.001,clock.Elapsed.TotalSeconds);publish(false);},n=>{state.CurrentBytes=n;state.OnDiskBytes=existing+n;publish(false);},source);}
       catch(ArchiveRangeIgnoredException){
        state.Phase="Downloading sequential stream";state.DownloadBytes=checked(state.NetworkBytes+plan.ArchiveBytes);progress.Report("Archive host requires a sequential download. Streaming and verifying game data; no full ZIP will be stored.");publish(true);
-       await DownloadSequentialArchive(http,plan.ArchiveUrl,plan.ArchiveBytes,plan.ArchiveSha256,content,plan.Files,ready,authorize,token,
+       await DownloadSequentialArchive(http,source==null?plan.ArchiveUrl:await source(),plan.ArchiveBytes,plan.ArchiveSha256,content,plan.Files,ready,authorize,token,
         n=>{state.NetworkBytes+=n;state.BytesPerSecond=state.NetworkBytes/Math.Max(.001,clock.Elapsed.TotalSeconds);publish(false);},
         selected=>{state.FileName=Path.GetFileName(selected.Path);state.CurrentBytes=0;state.CurrentFileBytes=selected.Bytes;publish(true);},
         n=>{state.CurrentBytes=n;state.OnDiskBytes=existing+n;publish(false);},
@@ -78,14 +78,14 @@ namespace Hollowwake.Services {
   }
   sealed class InlineStringProgress:IProgress<string>{readonly Action<string> send;public InlineStringProgress(Action<string> action){send=action;}public void Report(string text){send(text);}}
   sealed class RemoteExtent:Stream {
-   readonly HttpClient http;readonly string url;readonly long archiveBytes,start,total;readonly Action<long> received;long consumed,chunkRemaining;int interruptions;HttpResponseMessage response;Stream input;string etag;
-   public RemoteExtent(HttpClient client,string source,long archiveSize,long offset,long bytes,Action<long> progress){http=client;url=source;archiveBytes=archiveSize;start=offset;total=bytes;received=progress;}
+   readonly Func<Task<string>> source;readonly HttpClient http;readonly string url;readonly long archiveBytes,start,total;readonly Action<long> received;long consumed,chunkRemaining;int interruptions;HttpResponseMessage response;Stream input;string etag;
+   public RemoteExtent(HttpClient client,string source,long archiveSize,long offset,long bytes,Action<long> progress,Func<Task<string>> lease){this.source=lease;http=client;url=source;archiveBytes=archiveSize;start=offset;total=bytes;received=progress;}
    public long Remaining{get{return total-consumed;}}
    void CloseChunk(){if(input!=null){input.Dispose();input=null;}if(response!=null){response.Dispose();response=null;}chunkRemaining=0;}
    async Task OpenChunk(CancellationToken token){
     CloseChunk();long offset=start+consumed;long length=Math.Min(16L*1024*1024,Remaining);
-    using(var request=new HttpRequestMessage(HttpMethod.Get,url)){
-     request.Headers.Range=new RangeHeaderValue(offset,offset+length-1);request.Headers.UserAgent.ParseAdd("Hollowwake/0.5.8");
+    using(var request=new HttpRequestMessage(HttpMethod.Get,source==null?url:await source())){
+     request.Headers.Range=new RangeHeaderValue(offset,offset+length-1);request.Headers.UserAgent.ParseAdd("Hollowwake/0.5.9");
      // A separate unauthenticated HTTP client is used: no project bearer/cookie.
      response=await http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,token);var range=response.Content.Headers.ContentRange;
      if(response.StatusCode==HttpStatusCode.OK){CloseChunk();throw new ArchiveRangeIgnoredException();}
