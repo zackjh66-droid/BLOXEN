@@ -17,6 +17,7 @@ int main(){
  // A real private allocation is not a signed module image and must be refused.
  auto privateMemory=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!privateMemory)return 4;
  ClientImageProtection privateRule={0,4096,PAGE_READWRITE};auto rejected=ApplyClientImageStartup(reinterpret_cast<HMODULE>(privateMemory),4096,&privateRule,1,&VirtualQuery,&VirtualProtect,nullptr);VirtualFree(privateMemory,0,MEM_RELEASE);
+ std::cout<<"imageHr="<<static_cast<unsigned long>(result)<<" observed="<<observed<<" observedProtect="<<after.Protect<<" value="<<value<<" restored="<<restored<<" bounds="<<bounds<<" missing="<<missing<<" privateHr="<<static_cast<unsigned long>(rejected)<<" expectedPrivateHr="<<static_cast<unsigned long>(HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS))<<"\n";
  bool passed=SUCCEEDED(result)&&observed&&value==621&&restored&&bounds&&missing&&rejected==HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
  std::cout<<(passed?"PASS":"FAIL")<<" actual owned image page transition/execution/restoration, malformed range/provider and non-image rejection; no Fortnite or Xbox proof\n";return passed?0:5;
 }
