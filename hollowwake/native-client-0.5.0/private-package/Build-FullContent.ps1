@@ -13,7 +13,9 @@ if($LASTEXITCODE){throw 'FULL_CONTENT_BLOCKED: complete source/content preparati
 Copy-Item (Join-Path $work 'full-input-audit.json') $EvidenceDirectory
 python -m pip install --disable-pip-version-check pefile==2024.8.26
 if($LASTEXITCODE){throw 'Maintained PE metadata dependency unavailable'}
-python (Join-Path $PSScriptRoot 'prepare.py') (Join-Path $work 'OriginalCode\6.21') (Join-Path $work 'PreparedClient')
+& (Join-Path (Split-Path $source -Parent) 'startup-investigation\Run-InitializedCapture.ps1') -ExistingInputDirectory (Join-Path $work 'OriginalCode') -OutputDirectory (Join-Path $EvidenceDirectory 'initialized-capture') -CaptureDirectory (Join-Path $work 'InitializedCapture')
+if($LASTEXITCODE){throw 'Normal original initialization capture failed'}
+python (Join-Path $PSScriptRoot 'prepare.py') (Join-Path $work 'OriginalCode\6.21') (Join-Path $work 'PreparedClient') --initialized-capture (Join-Path $work 'InitializedCapture')
 if($LASTEXITCODE){throw 'Pinned real-client dependency preparation failed'}
 & (Join-Path $source 'Build.ps1') -OutputDirectory (Join-Path $work 'CodePackage') -PrivatePreparedDirectory (Join-Path $work 'PreparedClient') -PrivateAudioDirectory $PrivateAudioDirectory
 if($LASTEXITCODE){throw 'Real-client native/code package compilation or signing failed'}
