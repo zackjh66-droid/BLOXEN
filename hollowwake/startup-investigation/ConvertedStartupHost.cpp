@@ -59,7 +59,11 @@ int wmain(){
  if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.baseline.private.dll",L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX=640 -ResY=360")||!Hollowwake::ConfigurePackagedRoot(directory.c_str())||!Hollowwake::RegisterPackagedMainIdentity(L"FortniteClient-Win64-Shipping.exe"))return 6;
  Stage(4);if(!BindIdentity(loaded))return 6;Stage(5);
 #endif
+#ifdef NO_ENTRY_CASE
+ auto entry=reinterpret_cast<FARPROC>(reinterpret_cast<BYTE*>(loaded)+0x369e098);
+#else
  auto entry=GetProcAddress(loaded,"StartHollowwakeClient");if(!entry)return ERROR_PROC_NOT_FOUND;
+#endif
  Handle thread;thread.value=CreateThread(nullptr,1048576,Enter,reinterpret_cast<void*>(entry),STACK_SIZE_PARAM_IS_A_RESERVATION,nullptr);
  if(!thread.value)return static_cast<int>(GetLastError());WaitForSingleObject(thread.value,INFINITE);DWORD result=0;GetExitCodeThread(thread.value,&result);return static_cast<int>(result);
 }

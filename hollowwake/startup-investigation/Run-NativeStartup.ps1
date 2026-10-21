@@ -71,6 +71,23 @@ try {
  New-NetFirewallRule -DisplayName $mainRule -Direction Outbound -Program $mainExe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\client-main-image.jsonl" 30 --main-image
  if($LASTEXITCODE){throw 'Main-image comparison failed to establish bounded execution'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD /LD (Join-Path $source 'OwnedNoEntryTls.cpp') /link /NOENTRY /OUT:"$OutputDirectory\OwnedNoEntryTls.dll" 2>&1|Tee-Object "$OutputDirectory\noentry-tls-build.log"
+ if($LASTEXITCODE){throw 'Owned no-entry static TLS build failed'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'OwnedNoEntryTlsTest.cpp') kernel32.lib /Fe:"$OutputDirectory\OwnedNoEntryTlsTest.exe" 2>&1|Tee-Object "$OutputDirectory\noentry-host-build.log"
+ if($LASTEXITCODE){throw 'Owned no-entry TLS host build failed'}
+ & "$OutputDirectory\OwnedNoEntryTlsTest.exe" "$OutputDirectory\OwnedNoEntryTls.dll" 2>&1|Tee-Object "$OutputDirectory\noentry-tls-test.log"
+ if($LASTEXITCODE){throw 'OS no-entry DLL static TLS behavior failed'}
+ python -m pip install --disable-pip-version-check pefile==2024.8.26
+ if($LASTEXITCODE){throw 'Pinned PE analysis dependency unavailable'}
+ Remove-Item $converted -Force
+ python (Join-Path $source 'prepare_noentry.py') $exe $converted "$OutputDirectory\noentry-preparation.json"
+ if($LASTEXITCODE){throw 'Section-preserving no-entry preparation failed'}
+ $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
+ ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /DNO_ENTRY_CASE /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\noentry-client-host-build.log"
+ if($LASTEXITCODE){throw 'No-entry client host build failed'}
+ & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-noentry.jsonl" 30 --converted
+ if($LASTEXITCODE){throw 'No-entry client startup did not establish bounded execution'}
  $checkFile=if($ConvertedOnly){'converted-client-native.jsonl'}else{'original-client-native.jsonl'}
  $rows=@(Get-Content (Join-Path $OutputDirectory $checkFile)|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'input_verified'})-or !($rows|Where-Object {$_.event-eq 'process_created'})){throw 'Real original process was not created'}

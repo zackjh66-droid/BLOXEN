@@ -43,6 +43,15 @@ STL headers. A prior identity-host run faulted in MSVCP140 before guest entry.
 This compatibility setting addresses that test-host runtime mismatch; it is not
 claimed to fix the Xbox game crash or change the preserved runtime dependency.
 
+The no-entry comparison changes only the DLL characteristic, PE entry RVA,
+checksum and invalidated certificate directory. It preserves all section
+headers/bytes, exports, import metadata, TLS, unwind and relocations. It requires
+the exact original SHA and verifies the original TLS callback list is null.
+An owned `/NOENTRY` DLL test first validates OS static TLS initialization and
+thread isolation. The original game EXE entry is then called by pinned RVA with
+the measured entry handoff; no original code or checks are changed. This is a
+controlled comparison until its actual native result is reviewed.
+
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch
 helper. It records numeric control-flow state and two bounded image fields.
