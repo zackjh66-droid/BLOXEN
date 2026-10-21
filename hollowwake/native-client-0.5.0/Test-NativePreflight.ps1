@@ -16,8 +16,10 @@ while([DateTime]::UtcNow-lt $deadline){
  if(Test-Path (Join-Path $data 'native-launch.log')){if((Get-Content (Join-Path $data 'native-launch.log') -Raw).Contains('NATIVE_PLATFORM_PREFLIGHT total=')){break}}
  Start-Sleep -Seconds 1
 }
-foreach($name in @('native-launch.log','runtime-policy.txt','managed-launch.log','packaged-content-plan.json','preflight-failure.txt')){if(Test-Path (Join-Path $data $name)){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}}
+foreach($name in @('native-launch.log','runtime-policy.txt','managed-launch.log','packaged-content-plan.json','native-storage-check.json','preflight-failure.txt')){if(Test-Path (Join-Path $data $name)){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}}
 if(Test-Path (Join-Path $data 'preflight-failure.txt')){throw ('Integrated owned preflight failed: '+(Get-Content (Join-Path $data 'preflight-failure.txt') -Raw))}
+$storage=Get-Content (Join-Path $data 'native-storage-check.json') -Raw|ConvertFrom-Json
+if(!$storage.passed-or !$storage.missingRejected-or !$storage.sizeRejected){throw 'Actual UWP file read/measure/rejection contract failed'}
 if(!(Test-Path (Join-Path $data 'native-imports-unresolved.txt'))){throw 'Integrated AppContainer native preflight did not produce exact-name report'}
 foreach($name in @('native-launch.log','runtime-policy.txt','native-imports-unresolved.txt','native-platform-imports.json','native-graphics-policy.json','native-network-availability.json','native-multimedia-timers.json','native-window-probe.json','packaged-content-plan.json')){Copy-Item (Join-Path $data $name) (Join-Path $OutputDirectory $name)}
 $timers=Get-Content (Join-Path $data 'native-multimedia-timers.json') -Raw|ConvertFrom-Json

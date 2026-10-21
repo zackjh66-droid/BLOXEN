@@ -7,6 +7,8 @@ namespace Hollowwake.Services {
   static readonly Regex binding=new Regex(@"^[A-Za-z0-9_.-]{1,96}![A-Za-z0-9_?@$#.:~+<>\-]{1,220}$");
   static readonly Regex searchBinding=new Regex(@"[A-Za-z0-9_.-]{1,96}![A-Za-z0-9_?@$#.:~+<>\-]{1,220}");
   static readonly Regex numbers=new Regex(@"\b(code|error|HRESULT|Win32|RVA|address|bytes|unresolved|total|registered|missing|windowBind|controllerCount)=(-?(?:0x)?[0-9a-fA-F]{1,20})(?=\s|;|,|$)");
+  // This is a call-attempt marker, not proof that guest instructions executed.
+  public static bool EntryInvocationReported(string text){return Regex.IsMatch(text??"",@"(?m)^NATIVE_ENTRY (?:thread=[0-9]+ )?calling original entry(?:;|$)");}
   public static bool Binding(string text){return text!=null&&binding.IsMatch(text);}
   public static List<Dictionary<string,object>> Events(string text,out int omitted){
    var result=new List<Dictionary<string,object>>();

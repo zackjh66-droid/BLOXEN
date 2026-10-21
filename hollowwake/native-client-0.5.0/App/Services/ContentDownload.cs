@@ -48,10 +48,59 @@ namespace Hollowwake.Services {
    long bytes=await Task.Run(()=>ContentTransfer.VerifyCode(installed,records,progress,token));
    File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes="+bytes+" total="+expected+" registered="+expected+" missing=0\n");progress.Report("Client installed: "+(bytes/1000000.0).ToString("F1")+" MB · "+expected+"/"+expected+" code files verified");return bytes;
   }
+  // A separate WinRT pass must agree with the streamed SHA-256 verifier.
+  // Do not infer installation from a ready marker or signed manifest sizes.
+  public static async Task<long> VerifyWindowsFiles(string content,System.Collections.Generic.IList<ContentFile> files,CancellationToken token){
+   long total=0;
+   foreach(var record in files){
+    token.ThrowIfCancellationRequested();
+    var expected=Path.GetFullPath(Path.Combine(content,record.Path.Replace('/',Path.DirectorySeparatorChar)));
+    var file=await StorageFile.GetFileFromPathAsync(expected);
+    if(!String.Equals(file.Path,expected,StringComparison.OrdinalIgnoreCase))throw new IOException("Windows storage resolved an unexpected game-data path.");
+    var properties=await file.GetBasicPropertiesAsync();
+    if(properties.Size!=(ulong)record.Bytes)throw new IOException("Windows storage reports missing or different game-data bytes: "+Path.GetFileName(expected));
+    using(var input=await file.OpenReadAsync()){
+     if(input.Size!=properties.Size)throw new IOException("Game data changed during Windows storage verification.");
+     if(input.Size>0){
+      using(var first=new Windows.Storage.Streams.DataReader(input.GetInputStreamAt(0)))if(await first.LoadAsync(1)!=1)throw new IOException("Windows storage cannot read the game-data file.");
+      using(var last=new Windows.Storage.Streams.DataReader(input.GetInputStreamAt(input.Size-1)))if(await last.LoadAsync(1)!=1)throw new IOException("Windows storage cannot read the end of the game-data file.");
+     }
+    }
+    total=checked(total+record.Bytes);
+   }
+   return total;
+  }
+  public static async Task StorageContract(){
+   var local=ApplicationData.Current.LocalFolder;string name="owned-storage-check-"+Guid.NewGuid().ToString("N")+".bin";
+   var records=new System.Collections.Generic.List<ContentFile>{new ContentFile{Path=name,Bytes=3}};
+   var file=await local.CreateFileAsync(name,CreationCollisionOption.FailIfExists);
+   bool sizeRejected=false,missingRejected=false;
+   try{
+    await FileIO.WriteBytesAsync(file,new byte[]{6,2,1});
+    if(await VerifyWindowsFiles(local.Path,records,CancellationToken.None)!=3)throw new IOException("Owned WinRT storage count differs.");
+    records[0].Bytes=4;try{await VerifyWindowsFiles(local.Path,records,CancellationToken.None);}catch(IOException){sizeRejected=true;}
+    await file.DeleteAsync(StorageDeleteOption.PermanentDelete);
+    try{await VerifyWindowsFiles(local.Path,records,CancellationToken.None);}catch(FileNotFoundException){missingRejected=true;}
+    if(!sizeRejected||!missingRejected)throw new IOException("Owned WinRT storage rejection contract failed.");
+    await FileIO.WriteTextAsync(await local.CreateFileAsync("native-storage-check.json",CreationCollisionOption.ReplaceExisting),"{\"scope\":\"Owned UWP file create/open/measure/read/delete; no game or Xbox execution\",\"passed\":true,\"missingRejected\":true,\"sizeRejected\":true}");
+   }finally{try{await file.DeleteAsync(StorageDeleteOption.PermanentDelete);}catch{}}
+  }
+  static async Task ConfirmWindowsStorage(string content,ContentPlan plan,string root,CancellationToken token){
+   File.WriteAllText(Path.Combine(root,"content-location.txt"),"Package: "+Windows.ApplicationModel.Package.Current.Id.FullName+"\nLocalState: "+root+"\nGame data: "+content+"\n");
+   try{
+    var bytes=await VerifyWindowsFiles(content,plan.Files,token);
+    if(bytes!=plan.Validate())throw new IOException("Windows storage inventory differs from the hash-verified game data.");
+    File.AppendAllText(Path.Combine(root,"content-location.txt"),"WinRT independently opened "+plan.Files.Count+" files; total file bytes="+bytes+". SHA-256 was checked separately by the transfer verifier.\n");
+   }catch{
+    var marker=Path.Combine(root,"content-ready.txt");if(File.Exists(marker))File.Delete(marker);
+    File.AppendAllText(Path.Combine(root,"content-data-audit.txt"),"CONTENT_DATA_PENDING total="+plan.Files.Count+"\n");
+    throw;
+   }
+  }
   sealed class Capture:IProgress<ContentProgress>{
    readonly IProgress<ContentProgress> target;public ContentProgress Last;
    public Capture(IProgress<ContentProgress> output){target=output;}
-   public void Report(ContentProgress state){Last=state;target?.Report(state);}
+   public void Report(ContentProgress state){Last=state;var display=state.Copy();if(display.Complete){display.Complete=false;display.Phase="Checking Windows storage";}target?.Report(display);}
   }
   public static async Task<ContentProgress> Run(ApiClient api,string projectToken,IProgress<string> progress,CancellationToken token,IProgress<ContentProgress> details=null,IProgress<string> codeProgress=null){
    await api.SendAsync("/api/device/profile",null,projectToken,token);
@@ -72,14 +121,15 @@ namespace Hollowwake.Services {
      await Task.Run(()=>ContentTransfer.VerifyInstalled(installed,plan.Files,authorize,progress,token));await api.SendAsync("/api/device/profile",null,projectToken,token);
      long bytes=ContentTransfer.MeasureSelected(installed,plan.Files);
      var state=new ContentProgress{Phase="Verified",Complete=true,TotalFiles=plan.Files.Count,VerifiedFiles=plan.Files.Count,RequiredBytes=plan.Validate(),VerifiedBytes=bytes,OnDiskBytes=bytes};
-     File.WriteAllText(Path.Combine(root,"content-data-audit.txt"),"CONTENT_INVENTORY bytes="+bytes+" total="+plan.Files.Count+" registered="+plan.Files.Count+" missing=0\nCONTENT_TRANSFER bytes=0 total=0\nCONTENT_DATA_READY bytes="+bytes+" total="+plan.Validate()+"\n");capture.Report(state);return state;
+     File.WriteAllText(Path.Combine(root,"content-data-audit.txt"),"CONTENT_INVENTORY bytes="+bytes+" total="+plan.Files.Count+" registered="+plan.Files.Count+" missing=0\nCONTENT_TRANSFER bytes=0 total=0\nCONTENT_DATA_READY bytes="+bytes+" total="+plan.Validate()+"\n");await ConfirmWindowsStorage(installed,plan,root,token);details?.Report(state);return state;
     }
     progress.Report("Preparing the automatic game-data download.");
     Func<long,Task> space=async required=>{if(await FreeBytes()<required)throw new IOException("Insufficient Xbox app storage. Required free bytes: "+required);};
     await Task.Run(()=>ContentTransfer.EnsureIndexed(plan,root,authorize,space,progress,token,capture));
     await api.SendAsync("/api/device/profile",null,projectToken,token);
     if(capture.Last==null||!capture.Last.Complete||capture.Last.VerifiedFiles!=139||capture.Last.VerifiedBytes!=26449827840L||capture.Last.OnDiskBytes!=26449827840L)throw new IOException("Final data audit is incomplete.");
-    return capture.Last;
+    await ConfirmWindowsStorage(Path.Combine(root,"GameClean"),plan,root,token);
+    details?.Report(capture.Last);return capture.Last;
    }finally{
     try{long after=await FreeBytes();File.AppendAllText(Path.Combine(root,"content-space-audit.txt"),"CONTENT_SPACE_AFTER bytes="+after+"\n");}catch{}
    }

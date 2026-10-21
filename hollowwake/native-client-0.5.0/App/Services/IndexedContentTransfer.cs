@@ -60,7 +60,7 @@ namespace Hollowwake.Services {
     if(state.VerifiedFiles!=plan.Files.Count||state.VerifiedBytes!=expected||state.OnDiskBytes!=expected)throw new IOException("Final installed data count/size differs.");
     await authorize();token.ThrowIfCancellationRequested();state.Complete=true;state.Phase="Verified";
     SaveDataAudit(root,state);File.WriteAllText(marker,plan.Id);publish(true);
-    progress.Report("Selected game data verified: "+state.VerifiedFiles+" files, "+(state.OnDiskBytes/1000000000.0).ToString("F2")+" GB on disk. This session downloaded "+(state.NetworkBytes/1000000000.0).ToString("F2")+" GB.");
+    progress.Report("Game-data hashes checked; confirming Windows storage: "+state.VerifiedFiles+" files, "+(state.OnDiskBytes/1000000000.0).ToString("F2")+" GB on disk. This session downloaded "+(state.NetworkBytes/1000000000.0).ToString("F2")+" GB.");
    }catch{
     state.Complete=false;state.Phase=token.IsCancellationRequested?"Paused":"Failed";
     if(File.Exists(marker))File.Delete(marker);

@@ -1,4 +1,5 @@
 #include "ClientLaunchIdentity.h"
+#include "CrashLocation.h"
 #include "LegacyCrt.h"
 #include "LegacyStartup.h"
 #include "KernelStartup.h"
@@ -211,7 +212,9 @@ extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
  return unavailable||requiredPlatform||additionalMissing?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
 }
 
-static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{Log("NATIVE_CRASH code="+std::to_string(code)+" address="+std::to_string((ULONGLONG)data->ExceptionRecord->ExceptionAddress)+"; exception continues to OS");}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}
+static Hollowwake::CrashModuleLookup crashLookup=nullptr;
+static Hollowwake::CrashModuleFilename crashFilename=nullptr;
+static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{Log(Hollowwake::DescribeCrash(*data->ExceptionRecord,crashLookup,crashFilename)+"; exception continues to OS");}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}
 
 // Explicit native-loader experiment. It accepts no download URL, credentials,
 // arbitrary DLL path or user command line. The UI's existing mapper is unchanged.
@@ -224,7 +227,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.5.7.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.5.8.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
@@ -243,6 +246,8 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   std::wstring gameLogin;if(!gameIdentity.Consume(GetTickCount64(),gameLogin)){Log("NATIVE_LOAD_BLOCKED a fresh linked-account launch ticket is required");return E_ACCESSDENIED;}launchCommand+=gameLogin;
   if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",launchCommand.c_str())){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
   Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; one-time game exchange ticket configured; no project session supplied");
+  crashLookup=reinterpret_cast<Hollowwake::CrashModuleLookup>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleExW"));
+  crashFilename=reinterpret_cast<Hollowwake::CrashModuleFilename>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleFileNameW"));
   using AddHandler=PVOID(WINAPI*)(ULONG,PVECTORED_EXCEPTION_HANDLER);auto addHandler=reinterpret_cast<AddHandler>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","AddVectoredExceptionHandler"));if(!addHandler||!addHandler(1,NativeCrashRecord))Log("NATIVE_DIAGNOSTIC vectored crash recorder unavailable");
   Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
   std::wstring manifestPath=std::wstring(location->Data())+L"\\native-package-manifest.json";std::ifstream metadata(manifestPath,std::ios::binary);if(!metadata){Log("NATIVE_LOAD_BLOCKED private dependency manifest missing");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}

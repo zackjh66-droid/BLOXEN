@@ -2,6 +2,7 @@ using System;using System.Linq;using Hollowwake.Services;
 class DiagnosticSanitizerTest {
  static void Check(bool ok,string reason){if(!ok)throw new Exception(reason);}
  static void Main(){
+  Check(DiagnosticSanitizer.EntryInvocationReported("NATIVE_ENTRY thread=123 calling original entry; lobby not confirmed")&&!DiagnosticSanitizer.EntryInvocationReported("NATIVE_ENTRY_RETURN value=621")&&!DiagnosticSanitizer.EntryInvocationReported("No NATIVE_ENTRY calling original entry"),"Entry invocation marker recognition differs from actual production log");
   const string secret="do-not-send-password-or-access-token";int omitted;
   var events=DiagnosticSanitizer.Events("NATIVE_PROXY_BLOCKED KERNEL32.dll!__chkstk\nNATIVE_CRASH code=3221225477 address=123456\nNATIVE_LOAD_EXCEPTION HRESULT=-2147467259 password="+secret+"\nNATIVE_STARTUP commandLine=https://example.invalid/?access_token="+secret+"\nCALLed USER personal file\n",out omitted);
   Check(events.Count==4&&omitted==0,"Expected structured native events");

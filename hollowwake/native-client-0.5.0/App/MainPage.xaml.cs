@@ -106,7 +106,7 @@ namespace Hollowwake
             }
             if(App.WglPreflight){try{var result=await Task.Run(()=>HWWglProviderProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-wgl-probe.json")));StatusText.Text="Owned WGL provider test HRESULT="+result+"; no game code ran.";}catch(Exception ex){File.WriteAllText(Path.Combine(ApplicationData.Current.LocalFolder.Path,"wgl-managed-failure.log"),ex.ToString());StatusText.Text="Owned WGL check failed; no game code ran.";}return;}
             if(App.AudioPreflight){var audioResult=await Task.Run(()=>HWAudioProviderProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-audio-probe.json")));StatusText.Text="Owned audio provider test HRESULT="+audioResult+". No game code ran.";return;}
-            if(App.NativePreflight){try{await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("packaged-content-plan.json",CreationCollisionOption.ReplaceExisting),await ContentDownload.AuditPackagedPlan());var nativeWindowResult=await Task.Run(()=>HWNativeWindowProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-window-probe.json")));await ManagedLog("OWNED_NATIVE_WINDOW_ROUTE result="+nativeWindowResult+"; not Fortnite execution");if(await Task.Run(()=>HWMultimediaTimerProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-multimedia-timers.json")))<0)throw new InvalidOperationException("Actual UWP multimedia timer scheduling/cancellation failed");uint networkFlags,networkError;var networkResult=HWNetworkAvailabilityProbe(out networkFlags,out networkError);
+            if(App.NativePreflight){try{await ContentDownload.StorageContract();await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("packaged-content-plan.json",CreationCollisionOption.ReplaceExisting),await ContentDownload.AuditPackagedPlan());var nativeWindowResult=await Task.Run(()=>HWNativeWindowProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-window-probe.json")));await ManagedLog("OWNED_NATIVE_WINDOW_ROUTE result="+nativeWindowResult+"; not Fortnite execution");if(await Task.Run(()=>HWMultimediaTimerProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-multimedia-timers.json")))<0)throw new InvalidOperationException("Actual UWP multimedia timer scheduling/cancellation failed");uint networkFlags,networkError;var networkResult=HWNetworkAvailabilityProbe(out networkFlags,out networkError);
                     bool knownLan=false,unknownNetwork=false;int activeProfiles=0;
                     foreach(var profile in Windows.Networking.Connectivity.NetworkInformation.GetConnectionProfiles()){
                         if(profile.GetNetworkConnectivityLevel()==Windows.Networking.Connectivity.NetworkConnectivityLevel.None)continue;
@@ -307,9 +307,25 @@ namespace Hollowwake
                 ClientDiagnostics.MarkEntryPending();var result=await Task.Run(()=>HWAttemptPackagedClient());ClientDiagnostics.CompleteAttempt();await ManagedLog("Native loading returned "+result+". Original lobby success has not been established.");StatusText.Text="Native loading stopped with result "+result+". Choose Show launch log; restart the app before another native load attempt.";var uploaded=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(uploaded!=null)StatusText.Text+=" Report uploaded: "+uploaded;}
             catch(Exception ex){if(ex is IOException){await ManagedLog("CONTENT_FAILED "+ex.Message);StatusText.Text=ex.Message;}else{await ManagedLog("NATIVE_LOAD_EXCEPTION HRESULT="+ex.HResult.ToString("X8"));StatusText.Text="Native attempt failed. Retrieve the launch logs.";}ClientDiagnostics.CompleteAttempt();var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"launch_return");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;}finally{loadBusy=false;}
         }
+        private static async Task<string> StorageLocationReport(){
+            var local=ApplicationData.Current.LocalFolder;
+            string report="STORAGE LOCATION (queried from this running app)\nPackage: "+Windows.ApplicationModel.Package.Current.Id.FullName+"\nLocalState: "+local.Path+"\nInstalled package: "+Windows.ApplicationModel.Package.Current.InstalledLocation.Path+"\nGame data: "+Path.Combine(local.Path,"GameClean","6.21")+"\n";
+            try{
+                var game=await local.GetFolderAsync("GameClean");
+                var build=await game.GetFolderAsync("6.21");
+                var fortnite=await build.GetFolderAsync("FortniteGame");
+                var content=await fortnite.GetFolderAsync("Content");
+                var paks=await content.GetFolderAsync("Paks");
+                var files=await paks.GetFilesAsync();ulong bytes=0;
+                foreach(var file in files){var properties=await file.GetBasicPropertiesAsync();bytes=checked(bytes+properties.Size);}
+                report+="WinRT Paks directory: "+paks.Path+"\nWinRT direct file count: "+files.Count+"; bytes: "+bytes+"\nThis independent listing measures files; it does not verify their hashes.\n";
+            }catch(Exception error){report+="WinRT Paks listing unavailable: HRESULT=0x"+error.HResult.ToString("X8")+"\nNo file count or installed size is inferred from the manifest.\n";}
+            return report;
+        }
         private async void Log_Click(object sender,RoutedEventArgs e){
+            string storage=await StorageLocationReport();
             string native="",policy="",managed="";
-            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log","native-imports-unresolved.txt","native-platform-imports.json","content-data-audit.txt","content-code-audit.txt","content-space-audit.txt"}){
+            foreach(var name in new[]{"native-launch.log","runtime-policy.txt","managed-launch.log","native-imports-unresolved.txt","native-platform-imports.json","content-data-audit.txt","content-code-audit.txt","content-space-audit.txt","content-location.txt"}){
                 try{var content=await FileIO.ReadTextAsync(await ApplicationData.Current.LocalFolder.GetFileAsync(name));if(name=="native-launch.log")native=content;else if(name=="runtime-policy.txt")policy=content;else managed+=name+"\n"+content+"\n";}catch{}
             }
             int start=native.LastIndexOf("ATTEMPT_BEGIN",StringComparison.Ordinal);string latest=start>=0?native.Substring(start):native;
@@ -331,7 +347,7 @@ namespace Hollowwake
             try{var upload=Path.Combine(ApplicationData.Current.LocalFolder.Path,"diagnostic-upload-status.txt");if(File.Exists(upload))summary+="\n\n"+File.ReadAllText(upload);}catch{}
             summary+="\n\nNative route: game DLLs must be installed in the private client package. A LocalState boot import cannot provide them. The original lobby has not been reached.";
 
-            string full="runtime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
+            string full=storage+"\nruntime-policy.txt\n"+policy+"\nnative-launch.log\n"+native+"\nmanaged-launch.log\n"+managed;
             var block=new TextBlock{Text=summary,FontSize=18,TextWrapping=TextWrapping.Wrap,IsTextSelectionEnabled=false};
             Windows.UI.Xaml.Automation.AutomationProperties.SetAutomationId(block,"FailureSummary");
             var dialog=new ContentDialog{Title="Native client diagnostics — "+ClientDiagnostics.Version(),CloseButtonText="Close",PrimaryButtonText="Missing imports",SecondaryButtonText="Full log",Content=block};
