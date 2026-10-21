@@ -6,7 +6,9 @@
 #include <intrin.h>
 #ifdef USE_NATIVE_ENTRY_CONTEXT
 extern "C" DWORD RunPreservedEntry(void*);
+extern "C" DWORD RunPreservedDllAttach(void*,HMODULE);
 #endif
+HMODULE startupModule=nullptr;
 void Stage(unsigned phase){char text[64]={};sprintf_s(text,"HW_STARTUP_HOST stage=%u",phase);OutputDebugStringA(text);}
 #ifdef USE_PRODUCTION_IDENTITY
 #include "../native-client-0.5.0/Native/PackagedNamespace.h"
@@ -40,7 +42,11 @@ bool BindIdentity(HMODULE module){
 DWORD WINAPI Enter(void* address){
  Stage(6);
 #ifdef USE_NATIVE_ENTRY_CONTEXT
+#ifdef USE_DLL_ATTACH_CONTEXT
+ return RunPreservedDllAttach(address,startupModule);
+#else
  return RunPreservedEntry(address);
+#endif
 #else
  return reinterpret_cast<DWORD(__cdecl*)()>(address)();
 #endif
@@ -53,17 +59,24 @@ int wmain(){
  if(!Hash(image.c_str(),hash)||hash!=kBaselinePin)return 3;
  Stage(2);
  auto loaded=LoadLibraryExW(image.c_str(),nullptr,LOAD_WITH_ALTERED_SEARCH_PATH);if(!loaded)return static_cast<int>(GetLastError());
+ startupModule=loaded;
  Stage(3);
 #ifdef USE_PRODUCTION_IDENTITY
  client=loaded;
  if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.baseline.private.dll",L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX=640 -ResY=360")||!Hollowwake::ConfigurePackagedRoot(directory.c_str())||!Hollowwake::RegisterPackagedMainIdentity(L"FortniteClient-Win64-Shipping.exe"))return 6;
  Stage(4);if(!BindIdentity(loaded))return 6;Stage(5);
 #endif
-#ifdef NO_ENTRY_CASE
+#if defined(NO_ENTRY_CASE) || defined(PINNED_ENTRY_RVA)
  auto entry=reinterpret_cast<FARPROC>(reinterpret_cast<BYTE*>(loaded)+0x369e098);
 #else
  auto entry=GetProcAddress(loaded,"StartHollowwakeClient");if(!entry)return ERROR_PROC_NOT_FOUND;
 #endif
- Handle thread;thread.value=CreateThread(nullptr,1048576,Enter,reinterpret_cast<void*>(entry),STACK_SIZE_PARAM_IS_A_RESERVATION,nullptr);
+ Handle thread;
+#ifdef USE_OS_ENTRY_THREAD
+ Stage(7);
+ thread.value=CreateThread(nullptr,1048576,reinterpret_cast<LPTHREAD_START_ROUTINE>(entry),reinterpret_cast<void*>(__readgsqword(0x60)),STACK_SIZE_PARAM_IS_A_RESERVATION,nullptr);
+#else
+ thread.value=CreateThread(nullptr,1048576,Enter,reinterpret_cast<void*>(entry),STACK_SIZE_PARAM_IS_A_RESERVATION,nullptr);
+#endif
  if(!thread.value)return static_cast<int>(GetLastError());WaitForSingleObject(thread.value,INFINITE);DWORD result=0;GetExitCodeThread(thread.value,&result);return static_cast<int>(result);
 }

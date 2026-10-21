@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[switch]$ConvertedOnly,[switch]$EvaluateNoEntry,[switch]$OsEntryOnly)
 $ErrorActionPreference='Stop'
 $source=$PSScriptRoot
 $repo=Split-Path (Split-Path $source -Parent) -Parent
@@ -44,6 +44,29 @@ try {
  $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
  ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
  $hostExe=Join-Path (Split-Path $exe -Parent) 'ConvertedStartupHost.exe'
+ if($OsEntryOnly){
+  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
+  $native=Join-Path $repo 'hollowwake/native-client-0.5.0/Native'
+  $route=Join-Path $repo 'hollowwake/runtime-native-route'
+  foreach($identity in @($false,$true)){
+   $flags=@('/nologo','/std:c++17','/EHsc','/MD','/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR','/DUSE_OS_ENTRY_THREAD',('/I'+$OutputDirectory))
+   $sources=@((Join-Path $source 'ConvertedStartupHost.cpp'))
+   $label='os-entry'
+   if($identity){
+    $label='os-entry-identity'
+    $flags+=@('/DWIN32_LEAN_AND_MEAN','/DNOMINMAX','/DUSE_PRODUCTION_IDENTITY',('/I'+$native))
+    $sources+=@((Join-Path $native 'PackagedNamespace.cpp'),(Join-Path $native 'StartupImport.cpp'),(Join-Path $route 'NativeSystem.cpp'),(Join-Path $route 'NativeProxyDispatch.cpp'))
+   }
+   & cl.exe @flags @sources bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\$label-build.log"
+   if($LASTEXITCODE){throw ('Direct OS entry host compilation failed: '+$label)}
+   & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-$label.jsonl" 30 --converted
+   if($LASTEXITCODE){throw ('Direct OS entry execution could not be established: '+$label)}
+   $rows=@(Get-Content "$OutputDirectory\converted-client-$label.jsonl"|ForEach-Object {$_|ConvertFrom-Json})
+   if(!($rows|Where-Object {$_.event-eq 'process_created'})){throw 'No real child process was created'}
+  }
+  @{inputSha256=$pin;nativeWindowsExecution=$true;directOsThreadEntry=$true;productionIdentityComparison=$true;softwareInstructionPatches=$false;outboundNetworkBlocked=$true;fullGameAssetsStaged=$false;xboxTested=$false;lobbyDemonstrated=$false;existingSignedPackagesChanged=$false}|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\scope.json"
+  return
+ }
  & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-host-build.log"
  if($LASTEXITCODE){throw 'Converted private baseline host compilation failed'}
  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null

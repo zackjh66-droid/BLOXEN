@@ -19,7 +19,7 @@ jobs:
         shell: cmd
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
-          powershell -NoProfile -File hollowwake\startup-investigation\Run-NativeStartup.ps1 -ConvertedOnly -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\startup-investigation"
+          powershell -NoProfile -File hollowwake\startup-investigation\Run-NativeStartup.ps1 -ConvertedOnly -OsEntryOnly -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\startup-investigation"
       - name: Preserve numeric startup evidence only
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

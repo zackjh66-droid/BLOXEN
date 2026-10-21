@@ -16,7 +16,7 @@
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
-constexpr char kMainImageSha[]="6f08eafdf41b16cf0f91fc1797976c2e1225691c647a9c4b91c9fa003e58ab0a";
+constexpr char kMainImageSha[]="bf6a36ebfb80f2499f655b70b0c595ae505c8066d2add994564aba2532cbe5c0";
 constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
 constexpr ULONG_PTR kInitializedBoundary=kEntry+9;
 bool captureRequested=false;
@@ -52,8 +52,7 @@ bool Watch(HANDLE thread,ULONG_PTR base,bool owned){
  if(owned)return true;CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
  if(!GetThreadContext(thread,&state))return false;
  if(state.Dr0||state.Dr1||state.Dr2||state.Dr3||(state.Dr7&255)){SetLastError(ERROR_ALREADY_EXISTS);return false;}
- state.Dr0=base+kEntry;state.Dr1=base+kDispatch;state.Dr2=base+kGuard;state.Dr7=(state.Dr7&~0xfff003fULL)|21;
- if(captureRequested){state.Dr3=base+kInitializedBoundary;state.Dr7|=64;}
+ state.Dr0=base+kEntry;state.Dr1=base+kDispatch;state.Dr2=base+kGuard;state.Dr3=base+kInitializedBoundary;state.Dr7=(state.Dr7&~0xffff00ffULL)|85;
  return SetThreadContext(thread,&state)!=FALSE;
 }
 void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,const char* phase){
@@ -171,11 +170,14 @@ int wmain(int argc,wchar_t** argv){
    }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;ULONG_PTR address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
-   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&captureRequested&&address==imageBase+kInitializedBoundary){
-    Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"original_initialized_boundary");
-    bool captured=false;try{captured=CaptureInitializedImage(process.value,imageBase,argv[1],argv[5]);}catch(...){SetLastError(ERROR_INVALID_DATA);}
-    Event(out,captured?"initialized_image_captured":"initialized_capture_failed",captured?0:GetLastError());
-    TerminateJobObject(job.value,WAIT_TIMEOUT);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;
+   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&address==imageBase+kInitializedBoundary){
+    Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"original_initialized_boundary");
+    if(captureRequested){
+     bool captured=false;try{captured=CaptureInitializedImage(process.value,imageBase,argv[1],argv[5]);}catch(...){SetLastError(ERROR_INVALID_DATA);}
+     Event(out,captured?"initialized_image_captured":"initialized_capture_failed",captured?0:GetLastError());
+     TerminateJobObject(job.value,WAIT_TIMEOUT);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;
+    }
+    if(thread.value){CONTEXT state={};state.ContextFlags=CONTEXT_CONTROL|CONTEXT_DEBUG_REGISTERS;if(GetThreadContext(thread.value,&state)){state.Dr7&=~64ULL;state.Dr6=0;state.EFlags|=0x10000;SetThreadContext(thread.value,&state);}}
    }else if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&(address==imageBase+kEntry||address==imageBase+kDispatch||address==imageBase+kGuard)){
     Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);
     if(address==imageBase+kEntry&&!entryThread.value)entryThread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SUSPEND_RESUME,FALSE,event.dwThreadId);
