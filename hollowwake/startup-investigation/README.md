@@ -66,6 +66,21 @@ This is a genuine layout comparison, not a restoration/spoof of runtime headers
 or a bypass of any client check. Native execution results determine whether it
 is usable; static checks alone do not establish startup.
 
+Native runs through 39656500020 still fault at the original write for the
+converted variants. Entry register restoration, the self-identity subset and
+preserving original section extents have not fixed that initialization.
+
+The initialized-image capture runs the exact unchanged signed-source client as
+a main process, then stops at the original entry's first call-return address.
+It requires the observed initialized comparison state, reads only the original
+module's header/file-backed section ranges, and stops the process. It does not
+patch checks, instructions, runtime headers or the PEB. A missing boundary or
+incomplete section read rejects the capture. Only numeric status is public;
+all game-containing bytes are AES-GCM encrypted to the existing recipient key
+before upload. This is private build-input research, not a runnable converted
+client, signed package, Xbox test or lobby result. Loader-state normalization
+and native execution must still be validated before any derived input is used.
+
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch
 helper. It records numeric control-flow state and two bounded image fields.

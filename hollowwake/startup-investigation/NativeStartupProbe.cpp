@@ -12,11 +12,14 @@
 #include <chrono>
 #include <iostream>
 #include <cstring>
+#include <filesystem>
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
 constexpr char kMainImageSha[]="6f08eafdf41b16cf0f91fc1797976c2e1225691c647a9c4b91c9fa003e58ab0a";
 constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
+constexpr ULONG_PTR kInitializedBoundary=kEntry+9;
+bool captureRequested=false;
 struct Handle {HANDLE value=nullptr;~Handle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);} };
 bool Hash(const wchar_t* path,std::string& result){
  BCRYPT_ALG_HANDLE alg=nullptr;BCRYPT_HASH_HANDLE hash=nullptr;
@@ -48,8 +51,9 @@ void Locate(std::ofstream& out,DWORD process,ULONG_PTR address){
 bool Watch(HANDLE thread,ULONG_PTR base,bool owned){
  if(owned)return true;CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
  if(!GetThreadContext(thread,&state))return false;
- if(state.Dr0||state.Dr1||state.Dr2||(state.Dr7&63)){SetLastError(ERROR_ALREADY_EXISTS);return false;}
+ if(state.Dr0||state.Dr1||state.Dr2||state.Dr3||(state.Dr7&255)){SetLastError(ERROR_ALREADY_EXISTS);return false;}
  state.Dr0=base+kEntry;state.Dr1=base+kDispatch;state.Dr2=base+kGuard;state.Dr7=(state.Dr7&~0xfff003fULL)|21;
+ if(captureRequested){state.Dr3=base+kInitializedBoundary;state.Dr7|=64;}
  return SetThreadContext(thread,&state)!=FALSE;
 }
 void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,const char* phase){
@@ -72,17 +76,44 @@ void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,con
     <<"\",\"baseReadable\":"<<(b?"true":"false")<<",\"sourceBase64\":\""<<storedBase
     <<"\",\"slotReadable\":"<<(c?"true":"false")<<",\"frameSlot\":\""<<slot
     <<"\",\"rcx\":\""<<context.Rcx<<"\",\"frameBaseReadable\":"<<(d?"true":"false")<<",\"frameBase\":\""<<frameBase
+    <<"\",\"rdx\":\""<<context.Rdx<<"\",\"r8\":\""<<context.R8
     <<"\",\"comparisonReadable\":"<<(checks?"true":"false")<<",\"comparisonEqual\":"<<(checks&&checkLeft==checkRight?"true":"false")
     <<",\"processPeb\":\""<<peb<<"\",\"pebImage\":\""<<pebImage<<"\",\"rcxMatchesPeb\":"<<(peb&&context.Rcx==peb?"true":"false")<<"}\n";out.flush();
 }
+#ifndef STARTUP_PROBE_LIBRARY
+bool CaptureInitializedImage(HANDLE process,ULONG_PTR base,const wchar_t* sourcePath,const wchar_t* outputPath){
+ DWORD left=0,right=0;
+ if(!Read(process,base+0xb1d80a,left)||!Read(process,base+0x39c8da,right)||left!=right){SetLastError(ERROR_INVALID_STATE);return false;}
+ std::ifstream input(sourcePath,std::ios::binary|std::ios::ate);if(!input)return false;auto length=input.tellg();if(length!=100729744){SetLastError(ERROR_INVALID_DATA);return false;}
+ input.seekg(0);std::vector<BYTE> raw(static_cast<size_t>(length));if(!input.read(reinterpret_cast<char*>(raw.data()),length))return false;
+ auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(raw.data());auto nt=reinterpret_cast<const IMAGE_NT_HEADERS64*>(raw.data()+dos->e_lfanew);
+ if(dos->e_lfanew!=0x1d0||nt->FileHeader.NumberOfSections!=9||nt->OptionalHeader.SizeOfHeaders!=0x600||nt->OptionalHeader.AddressOfEntryPoint!=kEntry){SetLastError(ERROR_INVALID_DATA);return false;}
+ std::filesystem::path directory(outputPath);if(std::filesystem::exists(directory)){SetLastError(ERROR_ALREADY_EXISTS);return false;}std::filesystem::create_directories(directory);
+ auto write=[&](const wchar_t* name,ULONG_PTR address,SIZE_T count){
+  std::ofstream file(directory/name,std::ios::binary|std::ios::trunc);if(!file)return false;BYTE buffer[65536];
+  while(count){SIZE_T wanted=count<sizeof(buffer)?count:sizeof(buffer),read=0;if(!ReadProcessMemory(process,reinterpret_cast<void*>(address),buffer,wanted,&read)||read!=wanted)return false;file.write(reinterpret_cast<char*>(buffer),wanted);if(!file)return false;address+=wanted;count-=wanted;}return true;
+ };
+ if(!write(L"runtime-headers.bin",base,0x600))return false;
+ {std::ofstream file(directory/L"source-headers.bin",std::ios::binary);file.write(reinterpret_cast<const char*>(raw.data()),0x600);if(!file)return false;}
+ auto sections=IMAGE_FIRST_SECTION(nt);std::ofstream receipt(directory/L"capture.json");
+ receipt<<"{\"format\":\"HollowwakeInitializedImage1\",\"originalSha256\":\""<<kClientSha<<"\",\"phase\":\"original_entry_first_call_return\",\"loadedBase\":\""<<base<<"\",\"preferredBase\":\""<<nt->OptionalHeader.ImageBase<<"\",\"originalEntryRva\":"<<kEntry<<",\"comparisonEqual\":true,\"sections\":[";
+ for(unsigned i=0;i<9;++i){auto& section=sections[i];if(section.SizeOfRawData>128*1024*1024||section.PointerToRawData>raw.size()||section.SizeOfRawData>raw.size()-section.PointerToRawData){SetLastError(ERROR_INVALID_DATA);return false;}
+  wchar_t name[32]={};swprintf_s(name,L"section-%02u.bin",i);if(!write(name,base+section.VirtualAddress,section.SizeOfRawData))return false;
+  if(i)receipt<<',';receipt<<"{\"index\":"<<i<<",\"rva\":"<<section.VirtualAddress<<",\"rawOffset\":"<<section.PointerToRawData<<",\"rawBytes\":"<<section.SizeOfRawData<<",\"virtualBytes\":"<<section.Misc.VirtualSize<<",\"characteristics\":"<<section.Characteristics<<"}";
+ }
+ receipt<<"],\"captureComplete\":true,\"normalOriginalInitializationExecuted\":true,\"clientChecksPatched\":false,\"xboxTested\":false,\"lobbyDemonstrated\":false}";receipt.flush();return receipt.good();
+}
+#endif
 }
 #ifndef STARTUP_PROBE_LIBRARY
 int wmain(int argc,wchar_t** argv){
- if(argc<4||argc>5)return 2;
+ if(argc<4||argc>6)return 2;
  bool owned=argc==5&&std::wstring(argv[4])==L"--owned";
  bool plain=argc==5&&std::wstring(argv[4])==L"--plain";
  bool converted=argc==5&&std::wstring(argv[4])==L"--converted";
  bool mainImage=argc==5&&std::wstring(argv[4])==L"--main-image";
+ captureRequested=argc==6&&std::wstring(argv[4])==L"--capture";
+ if(argc==6&&!captureRequested)return 2;
  if(argc==5&&!owned&&!plain&&!converted&&!mainImage)return 2;
  std::wstring exe=argv[1],output=argv[2];auto slash=exe.find_last_of(L"/\\");if(slash==std::wstring::npos)return 2;
  if((owned?L"OwnedStartupFixture.exe":converted?L"ConvertedStartupHost.exe":L"FortniteClient-Win64-Shipping.exe")!=exe.substr(slash+1))return 2;
@@ -140,7 +171,12 @@ int wmain(int argc,wchar_t** argv){
    }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;ULONG_PTR address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
-   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&(address==imageBase+kEntry||address==imageBase+kDispatch||address==imageBase+kGuard)){
+   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&captureRequested&&address==imageBase+kInitializedBoundary){
+    Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"original_initialized_boundary");
+    bool captured=false;try{captured=CaptureInitializedImage(process.value,imageBase,argv[1],argv[5]);}catch(...){SetLastError(ERROR_INVALID_DATA);}
+    Event(out,captured?"initialized_image_captured":"initialized_capture_failed",captured?0:GetLastError());
+    TerminateJobObject(job.value,WAIT_TIMEOUT);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;
+   }else if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&(address==imageBase+kEntry||address==imageBase+kDispatch||address==imageBase+kGuard)){
     Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);
     if(address==imageBase+kEntry&&!entryThread.value)entryThread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SUSPEND_RESUME,FALSE,event.dwThreadId);
     if(thread.value){Snapshot(out,process.value,thread.value,imageBase,address==imageBase+kEntry?"original_entry":address==imageBase+kGuard?"helper_entry":"dispatch_before_calculation");CONTEXT state={};state.ContextFlags=CONTEXT_CONTROL|CONTEXT_DEBUG_REGISTERS;
