@@ -1,0 +1,19 @@
+{
+  "name": "hollowwake-private-content",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@vercel/blob": "2.8.2"
+  },
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  }
+}
