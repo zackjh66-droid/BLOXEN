@@ -11,6 +11,7 @@ from redirect_imports import redirect,SHORT
 SHORT.update({"imm32.dll":"HWIM.dll","opengl32.dll":"HWGL.dll","dwmapi.dll":"HWDWM.dll","dsound.dll":"HWDS.dll","sensapi.dll":"HWSENS.dll","winmm.dll":"HWMM.dll","d3d9.dll":"HWD9.dll","xinput1_3.dll":"HWXI13.dll","xinput1_4.dll":"HWXI14.dll","xinput9_1_0.dll":"HWXI91.dll"})
 from generate_native_proxy import emit
 from patch_service_hosts import patch as patch_service_hosts
+from patch_stack_address import patch as patch_stack_address
 PIN='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def metadata(path):
@@ -65,6 +66,9 @@ def prepare(source,out):
   if p==main:
    hostPatch=patch_service_hosts(dest);result['serviceHostPatch']=hostPatch
    (reports/'service-host-patch.json').write_text(json.dumps(hostPatch,indent=2))
+   stackPatch=patch_stack_address(dest);result['stackAddressRepair']=stackPatch
+   result['outputSha256']=sha(dest);result['outputBytes']=dest.stat().st_size
+   (reports/'stack-address-repair.json').write_text(json.dumps(stackPatch,indent=2))
   (reports/(str(i)+'.json')).write_text(json.dumps(result,indent=2))
   for item in result['proxies']:
    key=item['proxyDll'].lower()
@@ -78,7 +82,7 @@ def prepare(source,out):
   # PE forwarder preserves the provider's actual object address and CRT ownership.
   if item['sourceDll'].lower()=='msvcrt.dll' and '_iob' in item['symbols']:item['dataSymbols']=['_iob']
   emit(item,proxyRoot/item['proxyDll'])
- manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch}
+ manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'stackAddressRepair':stackPatch}
  (stage/'native-package-manifest.json').write_text(json.dumps(manifest,indent=2));(out/'plan.json').write_text(json.dumps(manifest,indent=2));return manifest
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('output');a=p.parse_args();m=prepare(a.source,a.output);print(json.dumps({'images':len(m['files']),'proxies':len(m['proxyDlls']),'externalPlatformDependencies':len(m['externalPlatformDependencies']),'executed':False}))

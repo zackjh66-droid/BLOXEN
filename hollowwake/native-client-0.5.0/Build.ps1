@@ -60,6 +60,9 @@ if($LASTEXITCODE){throw 'Performance marker production compilation failed'}
 if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
 & "$OutputDirectory\NativeClientThreadTest.exe" (Join-Path $OutputDirectory 'native-thread-results.json') 2>&1|Tee-Object (Join-Path $OutputDirectory 'native-thread-test.log');if($LASTEXITCODE){throw 'Native entry-thread behavior failed'}
 # Focused production window/network checks; no game code or repeated graphics demos.
+& cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'tests\StackAddressRepairTest.cpp') kernel32.lib /Fe:"$OutputDirectory\StackAddressRepairTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-address-repair-build.log')
+if($LASTEXITCODE){throw 'Stack pointer repair owned fixture compilation failed'}
+& "$OutputDirectory\StackAddressRepairTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'stack-address-repair-test.log');if($LASTEXITCODE){throw 'Stack pointer repair owned fixture behavior failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\WindowBridge.cpp') (Join-Path $source 'tests\WindowStateTest.cpp') kernel32.lib user32.lib /Fe:"$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test-build.log')
 if($LASTEXITCODE){throw 'Window state test build failed'}
 & "$OutputDirectory\WindowStateTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'window-test.log');if($LASTEXITCODE){throw 'Window state behavior failed'}
@@ -124,7 +127,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.1.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.2.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
