@@ -1,21 +1,24 @@
 """Exact-build pointer-width repair for the observed Xbox startup write.
 
-Private preparation only: never executes a game image. Preserve the original
-arithmetic flags and write; correct only RCX's effective stack address. This is
+Private preparation only: never executes a game image. Preserve the computed target, arithmetic flags and epilogue; adapt the
+complete pointer/value/slot sequence to a 64-bit return address. This is
 not a general instruction rewriter or a claim of completed engine startup.
 """
 from pathlib import Path
 import hashlib
 import struct
-import pefile
 
 INPUT_SHA256 = '8548e7edc221a48d12648c98500092bfeb3c0c6d0e4e69d66e417a245c2015af'
-SITE_RVA = 0x05FA3A72
-ORIGINAL = bytes.fromhex('8d8d9000000083e904')
-WRITE = bytes.fromhex('8901')
+SITE_RVA = 0x05FA3A6C
+ORIGINAL = bytes.fromhex('8945508b45508d8d9000000083e9048901')
+EPILOGUE = bytes.fromhex('488b5d70488b7578488da5800000005dc3')
+POINTER_CALCULATION = bytes.fromhex('8d8d9000000083e904')
+FULL_VALUE_ROUNDTRIP = bytes.fromhex('48894550488b4550')
+FULL_WRITE = bytes.fromhex('488901')
 # Replay the original ECX arithmetic first so EFLAGS are unchanged. LEA RCX
-# then recovers the full stack-relative address without touching those flags.
-RESTORE_POINTER = bytes.fromhex('488d8d8c000000')
+# then addresses the 8-byte return slot at RBP+0x88 without changing flags.
+# RAX retains the full RVA+module-base value; no fixed return/success is supplied.
+RESTORE_POINTER = bytes.fromhex('488d8d88000000')
 
 def branch(source_rva, destination_rva):
     displacement = destination_rva - (source_rva + 5)
@@ -24,7 +27,7 @@ def branch(source_rva, destination_rva):
     return b'\xe9' + struct.pack('<i', displacement)
 
 def trampoline(at_rva):
-    body = ORIGINAL + RESTORE_POINTER
+    body = FULL_VALUE_ROUNDTRIP + POINTER_CALCULATION + RESTORE_POINTER + FULL_WRITE
     return body + branch(at_rva + len(body), SITE_RVA + len(ORIGINAL))
 
 def patch(path):
@@ -33,12 +36,13 @@ def patch(path):
     digest = hashlib.sha256(original).hexdigest()
     if digest != INPUT_SHA256:
         raise ValueError('Stack repair requires the exact preserved converted client SHA-256')
+    import pefile
     pe = pefile.PE(data=original, fast_load=True)
     try:
         if pe.FILE_HEADER.Machine != 0x8664 or pe.OPTIONAL_HEADER.Magic != 0x20b:
             raise ValueError('Stack repair requires PE32+ x64')
         site = pe.get_offset_from_rva(SITE_RVA)
-        if original[site:site + len(ORIGINAL) + len(WRITE)] != ORIGINAL + WRITE:
+        if original[site:site + len(ORIGINAL) + len(EPILOGUE)] != ORIGINAL + EPILOGUE:
             raise ValueError('Observed fault instruction window differs')
         section = max(pe.sections, key=lambda s: s.PointerToRawData + s.SizeOfRawData)
         if (section.Characteristics & 0xe0000000) != 0x60000000:
@@ -73,13 +77,14 @@ def patch(path):
         struct.pack_into('<I', output, pe.OPTIONAL_HEADER.get_field_absolute_offset('CheckSum'), 0)
         # No import/export/TLS/unwind/relocation record is removed or retargeted.
         # Both new branches are direct. No stack operation or call is introduced.
-        if output[site + len(ORIGINAL):site + len(ORIGINAL) + len(WRITE)] != WRITE:
-            raise AssertionError('Original write changed')
+        if output[site + len(ORIGINAL):site + len(ORIGINAL) + len(EPILOGUE)] != EPILOGUE:
+            raise AssertionError('Original epilogue changed')
         report = {'inputSha256': digest, 'outputSha256': hashlib.sha256(output).hexdigest(),
                   'inputBytes': len(original), 'outputBytes': len(output),
-                  'siteRva': SITE_RVA, 'faultRva': SITE_RVA + len(ORIGINAL),
+                  'siteRva': SITE_RVA, 'previousWriteFaultRva': 0x05FA3A7B, 'observedReturnFaultRva': 0x05FA3A8D,
                   'trampolineRva': at_rva, 'originalHex': ORIGINAL.hex(),
-                  'trampolineHex': body.hex(), 'originalWritePreserved': True,
+                  'trampolineHex': body.hex(), 'returnWritePreservedWithCorrect64BitWidth': True, 'originalEpiloguePreserved': True,
+                  'returnSlotOffset': 0x88, 'returnPointerBytes': 8,
                   'originalArithmeticFlagsPreserved': True,
                   'gameExecuted': False, 'xboxTested': False}
     finally:

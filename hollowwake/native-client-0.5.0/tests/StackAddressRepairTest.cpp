@@ -1,51 +1,31 @@
-// Original owned arithmetic fixture. No game image is loaded or executed.
+// Execute owned complete return frames. No game loading or emulated OS APIs.
 #include <windows.h>
 #include <vector>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include "StackAddressRepairFixture.generated.h"
 namespace {
-using Entry=unsigned __int64(__fastcall*)(void*,unsigned);
-void Check(bool value){if(!value)throw std::runtime_error("Stack address repair behavior differs");}
-void AddBranch(std::vector<BYTE>& code,size_t destination){
- auto offset=static_cast<INT32>(destination)-static_cast<INT32>(code.size()+5);
- code.push_back(0xe9);auto bytes=reinterpret_cast<BYTE*>(&offset);code.insert(code.end(),bytes,bytes+4);
+void Check(bool value){if(!value)throw std::runtime_error("Complete return-frame repair failed");}
+void* Allocate(ULONG_PTR start){
+ for(auto at=start;at<start+0x1000000;at+=0x10000){auto memory=VirtualAlloc(reinterpret_cast<void*>(at),4096,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);if(memory)return memory;}return nullptr;
 }
-unsigned __int64 Run(void* frame,unsigned value,bool repaired,bool reference){
- // Microsoft x64: RCX=frame, EDX=value. Preserve nonvolatile RBP.
- const BYTE prefix[]={0x55,0x48,0x89,0xcd,0x89,0xd0};
- const BYTE original[]={0x8d,0x8d,0x90,0,0,0,0x83,0xe9,4};
- const BYTE full[]={0x48,0x8d,0x8d,0x8c,0,0,0};
- const BYTE tail[]={0x89,0x01,0x9c,0x58,0x5d,0xc3};
- std::vector<BYTE> code(prefix,prefix+sizeof(prefix));
- if(repaired){AddBranch(code,128);code.insert(code.end(),4,0x90);}
- else code.insert(code.end(),original,original+sizeof(original));
- if(reference)code.insert(code.end(),full,full+sizeof(full));
- code.insert(code.end(),tail,tail+sizeof(tail));
- if(repaired){code.resize(128,0x90);code.insert(code.end(),original,original+sizeof(original));code.insert(code.end(),full,full+sizeof(full));AddBranch(code,sizeof(prefix)+sizeof(original));}
- auto storage=VirtualAlloc(nullptr,4096,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);Check(storage!=nullptr);
- memcpy(storage,code.data(),code.size());DWORD previous=0;
- if(!VirtualProtect(storage,4096,PAGE_EXECUTE_READ,&previous)){VirtualFree(storage,0,MEM_RELEASE);Check(false);}
- Check(FlushInstructionCache(GetCurrentProcess(),storage,code.size())!=FALSE);
- auto flags=reinterpret_cast<Entry>(storage)(frame,value);
- Check(VirtualFree(storage,0,MEM_RELEASE)!=FALSE);return flags;
-}
-void* AllocateRange(ULONG_PTR start,ULONG_PTR end){
- for(auto address=start;address<end;address+=0x10000){auto memory=VirtualAlloc(reinterpret_cast<void*>(address),4096,MEM_COMMIT|MEM_RESERVE,PAGE_READWRITE);if(memory)return memory;}return nullptr;
-}
-}
-int main(){
- void* low=nullptr;void* high=nullptr;
+template<size_t N>void Fix(std::vector<BYTE>& code,const size_t(&offsets)[N],ULONG_PTR value){for(auto offset:offsets){Check(offset+8<=code.size());memcpy(code.data()+offset,&value,8);}}
+void Case(bool lowStack,bool lowCode){
+ void* code=Allocate(lowCode?0x10000000ull:0x100000000ull);void* stack=Allocate(lowStack?0x20000000ull:0x200000000ull);
+ if(!code||!stack){if(code)VirtualFree(code,0,MEM_RELEASE);if(stack)VirtualFree(stack,0,MEM_RELEASE);Check(false);}
  try{
-  low=AllocateRange(0x10000000,0x11000000);high=AllocateRange(0x100000000ull,0x101000000ull);
-  Check(low&&high);Check(reinterpret_cast<ULONG_PTR>(low)<0x100000000ull&&reinterpret_cast<ULONG_PTR>(high)>=0x100000000ull);
-  auto lowTarget=reinterpret_cast<unsigned*>(static_cast<BYTE*>(low)+128);
-  auto highTarget=reinterpret_cast<unsigned*>(static_cast<BYTE*>(high)+128);
-  auto flags=Run(reinterpret_cast<void*>(reinterpret_cast<ULONG_PTR>(lowTarget)-0x8c),621,false,false);Check(*lowTarget==621);
-  auto fixedFlags=Run(reinterpret_cast<void*>(reinterpret_cast<ULONG_PTR>(lowTarget)-0x8c),4526925,true,false);Check(*lowTarget==4526925);Check((flags&0x8d5)==(fixedFlags&0x8d5));
-  auto expected=Run(reinterpret_cast<void*>(reinterpret_cast<ULONG_PTR>(highTarget)-0x8c),621,false,true);Check(*highTarget==621);
-  auto actual=Run(reinterpret_cast<void*>(reinterpret_cast<ULONG_PTR>(highTarget)-0x8c),4526925,true,false);Check(*highTarget==4526925);Check((expected&0x8d5)==(actual&0x8d5));
-  VirtualFree(low,0,MEM_RELEASE);VirtualFree(high,0,MEM_RELEASE);
-  std::cout<<"PASS owned Windows x64 fixture: actual low/high memory writes, original arithmetic flags and ABI preserved; RW-to-RX direct branch repair. No game/Xbox execution.\n";return 0;
- }catch(const std::exception& error){if(low)VirtualFree(low,0,MEM_RELEASE);if(high)VirtualFree(high,0,MEM_RELEASE);std::cerr<<error.what()<<"\n";return 1;}
+  Check((reinterpret_cast<ULONG_PTR>(code)<0x100000000ull)==lowCode);Check((reinterpret_cast<ULONG_PTR>(stack)<0x100000000ull)==lowStack);
+  ULONGLONG output[11]={};std::vector<BYTE> bytes(kOwnedReturnCode,kOwnedReturnCode+sizeof(kOwnedReturnCode));
+  Fix(bytes,kCodeFixups,reinterpret_cast<ULONG_PTR>(code));Fix(bytes,kStackFixups,reinterpret_cast<ULONG_PTR>(stack)+3072);Fix(bytes,kOutputFixups,reinterpret_cast<ULONG_PTR>(output));
+  memcpy(code,bytes.data(),bytes.size());DWORD previous=0;Check(VirtualProtect(code,4096,PAGE_EXECUTE_READ,&previous)!=FALSE);Check(FlushInstructionCache(GetCurrentProcess(),code,bytes.size())!=FALSE);
+  auto result=reinterpret_cast<ULONGLONG(__cdecl*)()>(code)();Check(result==621&&output[0]==621);
+  for(unsigned i=0;i<4;++i)Check(output[2+i]==output[6+i]);Check((output[1]&0x8d5)==(output[10]&0x8d5));
+  VirtualFree(code,0,MEM_RELEASE);VirtualFree(stack,0,MEM_RELEASE);
+ }catch(...){VirtualFree(code,0,MEM_RELEASE);VirtualFree(stack,0,MEM_RELEASE);throw;}
 }
+}
+int main(){try{
+ for(bool lowStack:{false,true})for(bool lowCode:{false,true})Case(lowStack,lowCode);
+ std::cout<<"PASS owned Windows complete x64 frames: real computed RET continuation for all four low/high stack/code combinations; full target, 8-byte slot, RSP/RBP/RBX/RSI and arithmetic flags preserved. Production-generated trampoline bytes. No native game/Xbox execution.\n";return 0;
+}catch(const std::exception& error){std::cerr<<error.what()<<"\n";return 1;}}
