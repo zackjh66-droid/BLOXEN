@@ -4,7 +4,7 @@
 #include "NativeStartupProbe.cpp"
 #include "BaselinePin.generated.h"
 #include <intrin.h>
-void Stage(unsigned phase){wchar_t text[64]={};swprintf_s(text,L"HW_STARTUP_HOST stage=%u",phase);OutputDebugStringW(text);}
+void Stage(unsigned phase){char text[64]={};sprintf_s(text,"HW_STARTUP_HOST stage=%u",phase);OutputDebugStringA(text);}
 #ifdef USE_PRODUCTION_IDENTITY
 #include "../native-client-0.5.0/Native/PackagedNamespace.h"
 #include "../native-client-0.5.0/Native/StartupImport.h"

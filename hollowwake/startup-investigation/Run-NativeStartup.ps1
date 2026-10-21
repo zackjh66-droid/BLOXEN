@@ -25,6 +25,8 @@ if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 
 # Do not fall back to allowing networking if this operation is unavailable.
 $rule='Hollowwake-Startup-'+[Guid]::NewGuid().ToString('N')
 $hostRule=$rule+'-host'
+$mainRule=$rule+'-main'
+$mainRoot=Join-Path $env:RUNNER_TEMP 'HollowwakeMainImageInputs'
 try {
  New-NetFirewallRule -DisplayName $rule -Direction Outbound -Program $exe -Action Block -Profile Any|Out-Null
  if(!$ConvertedOnly){
@@ -57,6 +59,16 @@ try {
  if($LASTEXITCODE){throw 'Production identity baseline host compilation failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-identity.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Production identity startup baseline could not establish bounded execution'}
+ # A main-image comparison keeps the original executable name/path structure.
+ # Only a private copy is changed; no original bytes/checks are rewritten.
+ Copy-Item $inputs $mainRoot -Recurse
+ $mainExe=Join-Path $mainRoot '6.21/FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
+ Remove-Item $mainExe -Force
+ python (Join-Path $source 'prepare_main_image.py') $exe $mainExe "$OutputDirectory\main-image-preparation.json"
+ if($LASTEXITCODE){throw 'Bounded main-image comparison preparation failed'}
+ New-NetFirewallRule -DisplayName $mainRule -Direction Outbound -Program $mainExe -Action Block -Profile Any|Out-Null
+ & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\client-main-image.jsonl" 30 --main-image
+ if($LASTEXITCODE){throw 'Main-image comparison failed to establish bounded execution'}
  $checkFile=if($ConvertedOnly){'converted-client-native.jsonl'}else{'original-client-native.jsonl'}
  $rows=@(Get-Content (Join-Path $OutputDirectory $checkFile)|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'input_verified'})-or !($rows|Where-Object {$_.event-eq 'process_created'})){throw 'Real original process was not created'}
@@ -71,5 +83,7 @@ try {
 } finally {
  Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
  Remove-NetFirewallRule -DisplayName $hostRule -ErrorAction SilentlyContinue
+ Remove-NetFirewallRule -DisplayName $mainRule -ErrorAction SilentlyContinue
+ Remove-Item $mainRoot -Recurse -Force -ErrorAction SilentlyContinue
  Remove-Item $inputs -Recurse -Force -ErrorAction SilentlyContinue
 }

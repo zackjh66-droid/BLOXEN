@@ -28,6 +28,14 @@ the probe checks it against NtQueryInformationProcess. It never changes the PEB
 or constructs fake process metadata. This experiment alone does not establish
 the full entry ABI or make the host's main-image identity equal the client DLL.
 
+The separate main-image case keeps EXE characteristics and the original filename.
+It reuses the existing converter's bounded append mechanism, replacing only the
+converter's own six-byte entry shim with a direct jump to the preserved original
+entry. This keeps the client as the OS process main image. No original game
+instruction/import/TLS/relocation is changed. Its exact prepared hash is pinned
+in the probe. This is an initialization comparison, not a UWP/Xbox bootstrap,
+and it does not include a new launcher, full game assets, login or matchmaking.
+
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch
 helper. It records numeric control-flow state and two bounded image fields.

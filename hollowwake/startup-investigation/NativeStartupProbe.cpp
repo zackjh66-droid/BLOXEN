@@ -15,6 +15,7 @@
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
+constexpr char kMainImageSha[]="8e4685254bc0fd4909292ac112159f6d03fbc13424cac2e62d9aaa2a0bda81eb";
 constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
 struct Handle {HANDLE value=nullptr;~Handle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);} };
 bool Hash(const wchar_t* path,std::string& result){
@@ -35,6 +36,15 @@ ULONG_PTR ImageBase(DWORD process){
  MODULEENTRY32W module={};module.dwSize=sizeof(module);return Module32FirstW(snapshot.value,&module)?reinterpret_cast<ULONG_PTR>(module.modBaseAddr):0;
 }
 void Event(std::ofstream& out,const char* name,DWORD error){out<<"{\"event\":\""<<name<<"\",\"error\":"<<error<<"}\n";out.flush();}
+void Locate(std::ofstream& out,DWORD process,ULONG_PTR address){
+ Handle snapshot;snapshot.value=CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,process);if(snapshot.value==INVALID_HANDLE_VALUE)return;
+ MODULEENTRY32W module={};module.dwSize=sizeof(module);
+ for(BOOL ok=Module32FirstW(snapshot.value,&module);ok;ok=Module32NextW(snapshot.value,&module)){
+  auto base=reinterpret_cast<ULONG_PTR>(module.modBaseAddr);if(address<base||address-base>=module.modBaseSize)continue;
+  std::string name;for(auto p=module.szModule;*p&&name.size()<96;++p){auto c=*p;name+=((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'_'||c==L'-')?static_cast<char>(c):'_';}
+  out<<"{\"event\":\"fault_module\",\"name\":\""<<name<<"\",\"rva\":\""<<address-base<<"\"}\n";out.flush();return;
+ }
+}
 bool Watch(HANDLE thread,ULONG_PTR base,bool owned){
  if(owned)return true;CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
  if(!GetThreadContext(thread,&state))return false;
@@ -72,12 +82,13 @@ int wmain(int argc,wchar_t** argv){
  bool owned=argc==5&&std::wstring(argv[4])==L"--owned";
  bool plain=argc==5&&std::wstring(argv[4])==L"--plain";
  bool converted=argc==5&&std::wstring(argv[4])==L"--converted";
- if(argc==5&&!owned&&!plain&&!converted)return 2;
+ bool mainImage=argc==5&&std::wstring(argv[4])==L"--main-image";
+ if(argc==5&&!owned&&!plain&&!converted&&!mainImage)return 2;
  std::wstring exe=argv[1],output=argv[2];auto slash=exe.find_last_of(L"/\\");if(slash==std::wstring::npos)return 2;
  if((owned?L"OwnedStartupFixture.exe":converted?L"ConvertedStartupHost.exe":L"FortniteClient-Win64-Shipping.exe")!=exe.substr(slash+1))return 2;
  DWORD seconds=static_cast<DWORD>(_wtoi(argv[3]));if(seconds<1||seconds>45)return 2;
  std::ofstream out(output,std::ios::trunc);if(!out)return 2;
- std::string sha;if(!Hash(exe.c_str(),sha)||(!owned&&!converted&&sha!=kClientSha)){Event(out,"input_pin_rejected",ERROR_INVALID_DATA);return 3;}
+ std::string sha;if(!Hash(exe.c_str(),sha)||(!owned&&!converted&&sha!=(mainImage?kMainImageSha:kClientSha))){Event(out,"input_pin_rejected",ERROR_INVALID_DATA);return 3;}
  out<<"{\"event\":\"input_verified\",\"sha256\":\""<<sha<<"\",\"ownedFixture\":"<<(owned?"true":"false")<<"}\n";out.flush();
  Handle job;job.value=CreateJobObjectW(nullptr,nullptr);if(!job.value){Event(out,"job_create_failed",GetLastError());return 4;}
  JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits={};limits.BasicLimitInformation.LimitFlags=JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE|JOB_OBJECT_LIMIT_ACTIVE_PROCESS|JOB_OBJECT_LIMIT_PROCESS_MEMORY;limits.BasicLimitInformation.ActiveProcessLimit=1;limits.ProcessMemoryLimit=2ULL*1024*1024*1024;
@@ -122,9 +133,9 @@ int wmain(int argc,wchar_t** argv){
    if(event.u.LoadDll.hFile)CloseHandle(event.u.LoadDll.hFile);
   }else if(event.dwDebugEventCode==OUTPUT_DEBUG_STRING_EVENT){
    auto info=event.u.DebugString;
-   if(converted&&info.fUnicode&&info.nDebugStringLength>0&&info.nDebugStringLength<64){wchar_t text[64]={};SIZE_T read=0;
-    if(ReadProcessMemory(process.value,info.lpDebugStringData,text,info.nDebugStringLength*sizeof(wchar_t),&read)&&read==info.nDebugStringLength*sizeof(wchar_t)&&!wcsncmp(text,L"HW_STARTUP_HOST stage=",22)){
-     auto phase=_wtoi(text+22);if(phase>=1&&phase<=20){out<<"{\"event\":\"owned_host_stage\",\"stage\":"<<phase<<"}\n";out.flush();}
+   if(converted&&!info.fUnicode&&info.nDebugStringLength>0&&info.nDebugStringLength<64){char text[64]={};SIZE_T read=0;
+    if(ReadProcessMemory(process.value,info.lpDebugStringData,text,info.nDebugStringLength,&read)&&read==info.nDebugStringLength&&!strncmp(text,"HW_STARTUP_HOST stage=",22)){
+     auto phase=atoi(text+22);if(phase>=1&&phase<=20){out<<"{\"event\":\"owned_host_stage\",\"stage\":"<<phase<<"}\n";out.flush();}
     }
    }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
@@ -140,7 +151,7 @@ int wmain(int argc,wchar_t** argv){
     disposition=DBG_EXCEPTION_NOT_HANDLED;
     if(++exceptions<=64){out<<"{\"event\":\"exception\",\"code\":"<<record.ExceptionCode<<",\"address\":\""<<address<<"\",\"firstChance\":"<<(info.dwFirstChance?"true":"false");
      if(record.ExceptionCode==EXCEPTION_ACCESS_VIOLATION&&record.NumberParameters>=2)out<<",\"operation\":"<<record.ExceptionInformation[0]<<",\"target\":\""<<record.ExceptionInformation[1]<<"\"";out<<"}\n";out.flush();}
-    if(!owned&&(record.ExceptionCode==EXCEPTION_ACCESS_VIOLATION||!info.dwFirstChance)){Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"exception_control_state");}
+    if(!owned&&(record.ExceptionCode==EXCEPTION_ACCESS_VIOLATION||!info.dwFirstChance)){Locate(out,pi.dwProcessId,address);Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"exception_control_state");}
    }
   }else if(event.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT){out<<"{\"event\":\"process_exit\",\"code\":"<<event.u.ExitProcess.dwExitCode<<"}\n";exited=true;}
   ContinueDebugEvent(event.dwProcessId,event.dwThreadId,disposition);if(exited)break;
