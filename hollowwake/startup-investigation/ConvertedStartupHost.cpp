@@ -4,6 +4,9 @@
 #include "NativeStartupProbe.cpp"
 #include "BaselinePin.generated.h"
 #include <intrin.h>
+#ifdef USE_NATIVE_ENTRY_CONTEXT
+extern "C" DWORD RunPreservedEntry(void*);
+#endif
 void Stage(unsigned phase){char text[64]={};sprintf_s(text,"HW_STARTUP_HOST stage=%u",phase);OutputDebugStringA(text);}
 #ifdef USE_PRODUCTION_IDENTITY
 #include "../native-client-0.5.0/Native/PackagedNamespace.h"
@@ -37,7 +40,7 @@ bool BindIdentity(HMODULE module){
 DWORD WINAPI Enter(void* address){
  Stage(6);
 #ifdef USE_NATIVE_ENTRY_CONTEXT
- return reinterpret_cast<DWORD(WINAPI*)(void*)>(address)(reinterpret_cast<void*>(__readgsqword(0x60)));
+ return RunPreservedEntry(address);
 #else
  return reinterpret_cast<DWORD(__cdecl*)()>(address)();
 #endif

@@ -15,7 +15,7 @@
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
-constexpr char kMainImageSha[]="8e4685254bc0fd4909292ac112159f6d03fbc13424cac2e62d9aaa2a0bda81eb";
+constexpr char kMainImageSha[]="6f08eafdf41b16cf0f91fc1797976c2e1225691c647a9c4b91c9fa003e58ab0a";
 constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
 struct Handle {HANDLE value=nullptr;~Handle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);} };
 bool Hash(const wchar_t* path,std::string& result){

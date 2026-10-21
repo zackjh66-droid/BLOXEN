@@ -1,8 +1,8 @@
 """Private controlled EXE-main-image comparison; no inputs are executed here.
 
 Reuse the existing bounded converter's append/extent checks. Restore the exact
-original executable characteristics and replace only its OWN six-byte DllMain
-shim with a direct JMP to the original entry. All original game instructions,
+original executable characteristics and replace only its OWN DllMain
+shim with LEA RAX,original_entry; JMP RAX. All original game instructions,
 imports, TLS and relocations remain as supplied. This is not an Xbox bootstrap.
 """
 from pathlib import Path
@@ -32,16 +32,19 @@ def prepare(source, destination):
     table = optional + struct.unpack_from('<H', data, nt + 20)[0]
     shim = receipt['newDllEntryRva']
     raw = None
+    section_header = None
     for index in range(sections):
         at = table + 40 * index
-        _, rva, size, offset = struct.unpack_from('<4I', data, at + 8)
-        if rva <= shim and shim + 6 <= rva + size:
+        virtual_size, rva, size, offset = struct.unpack_from('<4I', data, at + 8)
+        if rva <= shim and shim + 9 <= rva + size:
             raw = offset + shim - rva
+            section_header = at
             break
-    if raw is None or data[raw:raw + 6] != bytes.fromhex('b801000000c3'):
+    if raw is None or data[raw:raw + 9] != bytes.fromhex('b801000000c3000000'):
         raise ValueError('Owned converter shim differs')
-    delta = receipt['originalEntryRva'] - (shim + 5)
-    data[raw:raw + 6] = b'\xe9' + struct.pack('<i', delta) + b'\x90'
+    delta = receipt['originalEntryRva'] - (shim + 7)
+    data[raw:raw + 9] = b'\x48\x8d\x05' + struct.pack('<i', delta) + b'\xff\xe0'
+    struct.pack_into('<I', data, section_header + 8, max(virtual_size, shim - rva + 9))
     original_nt = struct.unpack_from('<I', original, 0x3c)[0]
     flags = struct.unpack_from('<H', original, original_nt + 22)[0]
     if flags & 0x2000:
@@ -52,6 +55,7 @@ def prepare(source, destination):
         raise AssertionError('Original changed')
     return {'originalSha256': PIN, 'outputSha256': hashlib.sha256(data).hexdigest(),
             'originalEntryRva': receipt['originalEntryRva'], 'ownedShimRva': shim,
+            'entryRaxRestoredToOriginalEntry': True,
             'originalExeCharacteristicsRestored': True,
             'originalGameInstructionsChanged': False, 'importsRedirected': False,
             'originalInputUnchanged': True, 'executed': False, 'xboxBootstrap': False}

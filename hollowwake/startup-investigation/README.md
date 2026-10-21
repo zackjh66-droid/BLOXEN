@@ -22,19 +22,26 @@ watch at the helper entry captures its argument and whether its observed
 comparison operands agree; later snapshots also retain the computed frame base.
 
 The entry-context experiment passes the real current process PEB pointer as
-the first argument, instead of leaving RCX equal to the thread's function-pointer
-argument. This is motivated by measured original-process entry register state;
+the first argument and restores RAX to the original entry address using an owned
+leaf MASM thunk. This is motivated by measured original-process entry register state;
 the probe checks it against NtQueryInformationProcess. It never changes the PEB
 or constructs fake process metadata. This experiment alone does not establish
 the full entry ABI or make the host's main-image identity equal the client DLL.
 
 The separate main-image case keeps EXE characteristics and the original filename.
 It reuses the existing converter's bounded append mechanism, replacing only the
-converter's own six-byte entry shim with a direct jump to the preserved original
-entry. This keeps the client as the OS process main image. No original game
+converter's own entry shim with LEA RAX,original_entry; JMP RAX. The previous
+JMP-only comparison retained the new entry address in RAX and still faulted.
+This keeps the client as the OS process main image. No original game
 instruction/import/TLS/relocation is changed. Its exact prepared hash is pinned
 in the probe. This is an initialization comparison, not a UWP/Xbox bootstrap,
 and it does not include a new launcher, full game assets, login or matchmaking.
+
+The desktop host is compiled with `_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR` because
+the preserved game directory supplies MSVCP140 14.13.26020, while CI uses newer
+STL headers. A prior identity-host run faulted in MSVCP140 before guest entry.
+This compatibility setting addresses that test-host runtime mismatch; it is not
+claimed to fix the Xbox game crash or change the preserved runtime dependency.
 
 The probe verifies the original client SHA-256 in both PowerShell and C++.
 It sets hardware execution breakpoints at the preserved entry and dispatch

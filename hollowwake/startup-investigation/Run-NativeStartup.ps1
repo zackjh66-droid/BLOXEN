@@ -44,18 +44,20 @@ try {
  $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
  ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
  $hostExe=Join-Path (Split-Path $exe -Parent) 'ConvertedStartupHost.exe'
- & cl.exe /nologo /std:c++17 /EHsc /MD /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-host-build.log"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-host-build.log"
  if($LASTEXITCODE){throw 'Converted private baseline host compilation failed'}
  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-native.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Converted native baseline could not establish bounded execution'}
- & cl.exe /nologo /std:c++17 /EHsc /MD /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-context-build.log"
+ & ml64.exe /nologo /c /Fo"$OutputDirectory\NativeEntryContext.obj" (Join-Path $source 'NativeEntryContext.asm')
+ if($LASTEXITCODE){throw 'Observed native entry handoff assembly failed'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-context-build.log"
  if($LASTEXITCODE){throw 'Measured native-entry-context host compilation failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-context.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Measured native-entry-context startup could not establish bounded execution'}
  $native=Join-Path $repo 'hollowwake/native-client-0.5.0/Native'
  $route=Join-Path $repo 'hollowwake/runtime-native-route'
- & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUSE_PRODUCTION_IDENTITY /I"$OutputDirectory" /I"$native" (Join-Path $source 'ConvertedStartupHost.cpp') (Join-Path $native 'PackagedNamespace.cpp') (Join-Path $native 'StartupImport.cpp') (Join-Path $route 'NativeSystem.cpp') (Join-Path $route 'NativeProxyDispatch.cpp') bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-identity-build.log"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DUSE_PRODUCTION_IDENTITY /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" /I"$native" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" (Join-Path $native 'PackagedNamespace.cpp') (Join-Path $native 'StartupImport.cpp') (Join-Path $route 'NativeSystem.cpp') (Join-Path $route 'NativeProxyDispatch.cpp') bcrypt.lib kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-identity-build.log"
  if($LASTEXITCODE){throw 'Production identity baseline host compilation failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-identity.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Production identity startup baseline could not establish bounded execution'}
