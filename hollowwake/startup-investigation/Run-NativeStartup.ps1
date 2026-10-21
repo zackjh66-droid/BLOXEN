@@ -4,7 +4,7 @@ $source=$PSScriptRoot
 $repo=Split-Path (Split-Path $source -Parent) -Parent
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
-& cl.exe /nologo /std:c++17 /EHsc /MD /W4 (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\probe-build.log"
+& cl.exe /nologo /std:c++17 /EHsc /MD /W4 (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\probe-build.log"
 if($LASTEXITCODE){throw 'Native startup probe compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'OwnedStartupFixture.cpp') kernel32.lib /Fe:"$OutputDirectory\OwnedStartupFixture.exe" 2>&1|Tee-Object "$OutputDirectory\owned-build.log"
 if($LASTEXITCODE){throw 'Owned child fixture compilation failed'}
@@ -50,7 +50,7 @@ try {
   if($LASTEXITCODE){throw 'Private initialized-image normalization rejected'}
   $permissionReceipt=Get-Content (Join-Path $capture 'capture.json') -Raw|ConvertFrom-Json
   if(!$permissionReceipt.protections-or !$permissionReceipt.protections.Count){throw 'Measured original page permissions absent'}
-  $permissionLines=@('struct CapturedProtection {DWORD rva;SIZE_T bytes;DWORD protect;};','static constexpr CapturedProtection kCapturedProtections[]={')
+  $permissionLines=@('static constexpr ClientImageProtection kCapturedProtections[]={')
   foreach($region in $permissionReceipt.protections){
    if(!$region.bytes-or $region.rva-ge 0x6314000-or $region.bytes-gt (0x6314000-$region.rva)-or $region.protect-notin @(1,2,4,8,16,32,64,128)){throw 'Unsupported measured image page permission'}
    $permissionLines+=('{'+$region.rva+','+$region.bytes+','+$region.protect+'},')
@@ -58,7 +58,7 @@ try {
   $permissionLines+='};';$permissionLines|Set-Content -Encoding ASCII "$OutputDirectory\CapturedProtections.generated.h"
   $preparedSha=(Get-FileHash $mainExe -Algorithm SHA256).Hash.ToLowerInvariant()
   ('constexpr char kMainImageSha[]="'+$preparedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\MainPin.generated.h"
-  & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\initialized-probe-build.log"
+  & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\initialized-probe-build.log"
   if($LASTEXITCODE){throw 'Private initialized-image probe build failed'}
   New-NetFirewallRule -DisplayName $mainRule -Direction Outbound -Program $mainExe -Action Block -Profile Any|Out-Null
   & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\initialized-main.jsonl" 30 --main-image
@@ -74,8 +74,8 @@ try {
   $route=Join-Path $repo 'hollowwake/runtime-native-route'
   foreach($identity in @($false,$true)){
    $flags=@('/nologo','/std:c++17','/EHsc','/MD','/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR','/DUSE_OS_ENTRY_THREAD',('/I'+$OutputDirectory))
-   $flags+='/DUSE_CAPTURED_PROTECTIONS'
-   $sources=@((Join-Path $source 'ConvertedStartupHost.cpp'));$label='initialized-dll'
+   $flags+=@('/DUSE_CAPTURED_PROTECTIONS','/DUSE_PRODUCTION_THREAD')
+   $sources=@((Join-Path $source 'ConvertedStartupHost.cpp'),(Join-Path $native 'NativeClientThread.cpp'));$label='initialized-dll'
    if($identity){
     $label='initialized-dll-identity';$flags+=@('/DWIN32_LEAN_AND_MEAN','/DNOMINMAX','/DUSE_PRODUCTION_IDENTITY',('/I'+$native))
     $sources+=@((Join-Path $native 'PackagedNamespace.cpp'),(Join-Path $native 'StartupImport.cpp'),(Join-Path $route 'NativeSystem.cpp'),(Join-Path $route 'NativeProxyDispatch.cpp'))
@@ -98,7 +98,7 @@ try {
    if($LASTEXITCODE){throw ('Metadata comparison rejected: '+$variant)}
    $sha=(Get-FileHash $mainExe -Algorithm SHA256).Hash.ToLowerInvariant()
    ('constexpr char kMainImageSha[]="'+$sha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\MainPin.generated.h"
-   & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\$variant-probe-build.log"
+   & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DMAIN_PIN_GENERATED /I"$OutputDirectory" (Join-Path $source 'NativeStartupProbe.cpp') bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$OutputDirectory\NativeStartupProbe.exe" 2>&1|Tee-Object "$OutputDirectory\$variant-probe-build.log"
    if($LASTEXITCODE){throw 'Pinned metadata probe compilation failed'}
    & "$OutputDirectory\NativeStartupProbe.exe" $mainExe "$OutputDirectory\main-$variant.jsonl" 30 --main-image
    if($LASTEXITCODE){throw ('Metadata comparison execution not established: '+$variant)}
@@ -138,14 +138,14 @@ try {
   @{inputSha256=$pin;nativeWindowsExecution=$true;directOsThreadEntry=$true;productionIdentityComparison=$true;softwareInstructionPatches=$false;outboundNetworkBlocked=$true;fullGameAssetsStaged=$false;xboxTested=$false;lobbyDemonstrated=$false;existingSignedPackagesChanged=$false}|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\scope.json"
   return
  }
- & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-host-build.log"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-host-build.log"
  if($LASTEXITCODE){throw 'Converted private baseline host compilation failed'}
  New-NetFirewallRule -DisplayName $hostRule -Direction Outbound -Program $hostExe -Action Block -Profile Any|Out-Null
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-native.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Converted native baseline could not establish bounded execution'}
  & ml64.exe /nologo /c /Fo"$OutputDirectory\NativeEntryContext.obj" (Join-Path $source 'NativeEntryContext.asm')
  if($LASTEXITCODE){throw 'Observed native entry handoff assembly failed'}
- & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-context-build.log"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\converted-context-build.log"
  if($LASTEXITCODE){throw 'Measured native-entry-context host compilation failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-context.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Measured native-entry-context startup could not establish bounded execution'}
@@ -179,7 +179,7 @@ try {
  if($LASTEXITCODE){throw 'Section-preserving no-entry preparation failed'}
  $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
  ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
- & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /DNO_ENTRY_CASE /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\noentry-client-host-build.log"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /DNO_ENTRY_CASE /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\noentry-client-host-build.log"
  if($LASTEXITCODE){throw 'No-entry client host build failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-noentry.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'No-entry client startup did not establish bounded execution'}
@@ -191,7 +191,7 @@ try {
  if($LASTEXITCODE){throw 'Section-preserving real-entry conversion failed'}
  $convertedSha=(Get-FileHash $converted -Algorithm SHA256).Hash.ToLowerInvariant()
  ('static const char kBaselinePin[]="'+$convertedSha+'";')|Set-Content -Encoding ASCII "$OutputDirectory\BaselinePin.generated.h"
- & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib dbghelp.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\new-section-client-host-build.log"
+ & cl.exe /nologo /std:c++17 /EHsc /MD /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR /DUSE_NATIVE_ENTRY_CONTEXT /I"$OutputDirectory" (Join-Path $source 'ConvertedStartupHost.cpp') "$OutputDirectory\NativeEntryContext.obj" bcrypt.lib kernel32.lib dbghelp.lib user32.lib /Fe:"$hostExe" 2>&1|Tee-Object "$OutputDirectory\new-section-client-host-build.log"
  if($LASTEXITCODE){throw 'Section-preserving client host build failed'}
  & "$OutputDirectory\NativeStartupProbe.exe" $hostExe "$OutputDirectory\converted-client-new-section.jsonl" 30 --converted
  if($LASTEXITCODE){throw 'Section-preserving client did not establish bounded execution'}

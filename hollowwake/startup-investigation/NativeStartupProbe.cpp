@@ -53,6 +53,23 @@ void Locate(std::ofstream& out,DWORD process,ULONG_PTR address,const char* event
   out<<"{\"event\":\""<<eventName<<"\",\"name\":\""<<name<<"\",\"rva\":\""<<address-base<<"\"}\n";out.flush();return;
  }
 }
+struct DialogCapture {DWORD processId;std::ofstream* out;unsigned texts=0;};
+BOOL CALLBACK CaptureDialogChild(HWND window,LPARAM parameter){
+ auto state=reinterpret_cast<DialogCapture*>(parameter);if(state->texts>=8)return FALSE;
+ wchar_t kind[64]={};GetClassNameW(window,kind,64);if(wcscmp(kind,L"Static"))return TRUE;
+ wchar_t text[2049]={};auto n=GetWindowTextW(window,text,2049);if(n<=0)return TRUE;
+ std::string value;for(int i=0;i<n;++i){auto c=text[i];if(c<L' '){value+=' ';continue;}if(c==L'"'||c==L'\\')value+='\\';value+=c<127?static_cast<char>(c):'?';}
+ *state->out<<"{\"event\":\"guest_dialog_text\",\"text\":\""<<value<<"\"}\n";state->out->flush();++state->texts;return TRUE;
+}
+BOOL CALLBACK CaptureDialogWindow(HWND window,LPARAM parameter){
+ auto state=reinterpret_cast<DialogCapture*>(parameter);DWORD processId=0;GetWindowThreadProcessId(window,&processId);if(processId!=state->processId)return TRUE;
+ wchar_t kind[64]={};GetClassNameW(window,kind,64);if(!wcscmp(kind,L"#32770"))EnumChildWindows(window,CaptureDialogChild,parameter);return TRUE;
+}
+void CaptureGuestDialogs(std::ofstream& out,DWORD processId){
+ // Only bounded Static controls in this clean, no-account guest's own dialog.
+ // Never inspect other applications, input fields, process environment or files.
+ DialogCapture state={processId,&out};EnumWindows(CaptureDialogWindow,reinterpret_cast<LPARAM>(&state));
+}
 void WaitFrames(std::ofstream& out,HANDLE process,HANDLE thread,DWORD processId){
  CONTEXT context={};context.ContextFlags=CONTEXT_FULL;if(!GetThreadContext(thread,&context)){Event(out,"wait_frames_context_failed",GetLastError());return;}
  // Empty explicit search path and ignored ambient NT symbol path: no symbol
@@ -232,7 +249,7 @@ int wmain(int argc,wchar_t** argv){
  }
  if(!exited){
   auto sampled=entryThread.value?entryThread.value:firstThread.value;
-  if(!owned&&imageBase&&SuspendThread(sampled)!=static_cast<DWORD>(-1)){Snapshot(out,process.value,sampled,imageBase,"bounded_stop_control_state");WaitFrames(out,process.value,sampled,pi.dwProcessId);ResumeThread(sampled);}
+  if(!owned&&imageBase&&SuspendThread(sampled)!=static_cast<DWORD>(-1)){Snapshot(out,process.value,sampled,imageBase,"bounded_stop_control_state");WaitFrames(out,process.value,sampled,pi.dwProcessId);ResumeThread(sampled);CaptureGuestDialogs(out,pi.dwProcessId);}
   Event(out,"bounded_stop",WAIT_TIMEOUT);TerminateJobObject(job.value,WAIT_TIMEOUT);
   // A debugged process cannot complete teardown while its exit debug event is
   // left pending. Drain events instead of waiting on a still-debug-stopped

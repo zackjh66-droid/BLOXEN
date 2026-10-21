@@ -52,17 +52,14 @@ DWORD WINAPI Enter(void* address){
 #endif
 }
 #ifdef USE_CAPTURED_PROTECTIONS
+#include "../native-client-0.5.0/Native/ClientImageStartup.h"
 #include "CapturedProtections.generated.h"
-bool ApplyCapturedProtections(HMODULE module){
- auto base=reinterpret_cast<BYTE*>(module);
- for(const auto& region:kCapturedProtections){
-  if(!region.bytes||region.rva>=0x6314000||region.bytes>0x6314000-region.rva)return false;
-  MEMORY_BASIC_INFORMATION actual={};if(!VirtualQuery(base+region.rva,&actual,sizeof(actual))||actual.AllocationBase!=module||actual.State!=MEM_COMMIT||actual.Type!=MEM_IMAGE)return false;
-  DWORD before=0;if(!VirtualProtect(base+region.rva,region.bytes,region.protect,&before))return false;
- }
- return true;
-}
+bool ApplyCapturedProtections(HMODULE module){return SUCCEEDED(ApplyClientImageStartup(module,0x6314000,kCapturedProtections,static_cast<unsigned>(sizeof(kCapturedProtections)/sizeof(kCapturedProtections[0])),&VirtualQuery,&VirtualProtect,nullptr));}
 #endif
+#ifdef USE_PRODUCTION_THREAD
+#include "../native-client-0.5.0/Native/NativeClientThread.h"
+#endif
+
 int wmain(){
  Stage(1);
  wchar_t module[32768]={};DWORD n=GetModuleFileNameW(nullptr,module,32768);if(!n||n>=32768)return 2;
@@ -86,6 +83,9 @@ int wmain(){
  auto entry=reinterpret_cast<FARPROC>(reinterpret_cast<BYTE*>(loaded)+0x369e098);
 #else
  auto entry=GetProcAddress(loaded,"StartHollowwakeClient");if(!entry)return ERROR_PROC_NOT_FOUND;
+#endif
+#ifdef USE_PRODUCTION_THREAD
+ Stage(7);int threadResult=0;auto started=RunNativeClientThread(reinterpret_cast<NativeClientEntry>(entry),1048576,&threadResult,nullptr);return FAILED(started)?static_cast<int>(started):threadResult;
 #endif
  Handle thread;
 #ifdef USE_OS_ENTRY_THREAD
