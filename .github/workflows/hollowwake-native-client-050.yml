@@ -183,6 +183,13 @@ jobs:
           set "HW_MESA_ARGUMENT="
           if exist "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa\mesa-build.json" set HW_MESA_ARGUMENT=-PrivateMesaDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\mesa"
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 %HW_MESA_ARGUMENT% -OutputDirectory "%RUNNER_TEMP%\HollowwakePrivatePackage" -PrivatePreparedDirectory "%RUNNER_TEMP%\HollowwakePrivatePrepared" -PrivateAudioDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\audio"
+      - name: Attempt actual signed Fortnite client with complete verified data and real account link
+        id: integrated_windows
+        if: ${{ contains(github.event.head_commit.message, '[integrated-windows]') && steps.private_source.outcome == 'success' }}
+        timeout-minutes: 45
+        continue-on-error: true
+        shell: powershell
+        run: ./hollowwake/native-client-0.5.0/tests/Test-IntegratedWindowsClient.ps1 -OutputDirectory artifacts/native-client-050/IntegratedWindows
       - name: Encrypt private client delivery for the authorized recipient
         id: private_encrypt
         if: ${{ steps.private_source.outcome == 'success' }}
@@ -201,7 +208,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force artifacts/native-client-050|Out-Null
-          @{mesaBehavior='${{ steps.mesa_behavior.outcome }}';audioBehavior='${{ steps.audio_behavior.outcome }}';audioProvider='${{ steps.audio_candidate.outcome }}';mesaProvider='${{ steps.mesa_candidate.outcome }}';fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
+          @{integratedWindows='${{ steps.integrated_windows.outcome }}';mesaBehavior='${{ steps.mesa_behavior.outcome }}';audioBehavior='${{ steps.audio_behavior.outcome }}';audioProvider='${{ steps.audio_candidate.outcome }}';mesaProvider='${{ steps.mesa_candidate.outcome }}';fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
           foreach($name in @('launcher-startup-results.json','launcher-startup.log','launcher-native-imports.log','signature.log','package-results.json')){$file=Join-Path $env:RUNNER_TEMP ('HollowwakePrivatePackage/'+$name);if(Test-Path $file){Copy-Item $file ('artifacts/native-client-050/private-'+$name)}}
@@ -215,6 +222,7 @@ jobs:
             artifacts/native-client-050/**/*.log
             artifacts/native-client-050/native-imports-unresolved.txt
             artifacts/native-client-050/WindowsScreenshots/*.png
+            artifacts/native-client-050/IntegratedWindows/*.png
           retention-days: 3
       - name: Reject requested provider compilation failures
         if: ${{ always() && ((contains(github.event.head_commit.message, '[audio-uwp]') && steps.audio_candidate.outcome != 'success') || (contains(github.event.head_commit.message, '[mesa-uwp]') && steps.mesa_candidate.outcome != 'success') || steps.audio_behavior.outcome == 'failure' || steps.mesa_behavior.outcome == 'failure') }}
