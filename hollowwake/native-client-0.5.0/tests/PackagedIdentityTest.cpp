@@ -1,6 +1,9 @@
 #include "../Native/ClientLaunchIdentity.h"
 #include "../Native/PackagedNamespace.h"
 #include <windows.h>
+#define PSAPI_VERSION 2
+#include <psapi.h>
+#include <vector>
 #include <cassert>
 #include <cstring>
 #include <string>
@@ -35,6 +38,30 @@ int wmain(int argc,wchar_t** argv){
  auto proc=api<decltype(&GetProcAddress)>("GetProcAddress");Hollowwake::ConfigurePackagedNamespaceLogger(CaptureMissing);
  SetLastError(0);assert(!proc(owned,"OwnedMissingExport")&&GetLastError()==ERROR_PROC_NOT_FOUND);assert(missingExport.find("!OwnedMissingExport Win32=127")!=std::string::npos);
  assert(proc(owned,"OwnedIdentity")==reinterpret_cast<FARPROC>(entry));
+ // Exact dynamic PSAPI call that crashed the actual client: first query
+ // required module-array bytes, then enumerate genuine OS module handles.
+ auto psapi=api<decltype(&LoadLibraryW)>("LoadLibraryW")(L"PSAPI.DLL");assert(psapi);
+ auto enumerate=reinterpret_cast<decltype(&EnumProcessModules)>(proc(psapi,"EnumProcessModules"));assert(enumerate);
+ DWORD needed=0;assert(enumerate(GetCurrentProcess(),nullptr,0,&needed)&&needed>=sizeof(HMODULE));
+ std::vector<HMODULE> modules(needed/sizeof(HMODULE)+64);assert(enumerate(GetCurrentProcess(),modules.data(),static_cast<DWORD>(modules.size()*sizeof(HMODULE)),&needed));
+ bool found=false;for(size_t i=0;i<modules.size()&&i<needed/sizeof(HMODULE);++i)if(modules[i]==owned)found=true;assert(found);
+ auto info=reinterpret_cast<decltype(&GetModuleInformation)>(proc(psapi,"GetModuleInformation"));MODULEINFO actualInfo={};assert(info&&info(GetCurrentProcess(),owned,&actualInfo,sizeof(actualInfo))&&actualInfo.lpBaseOfDll==owned&&actualInfo.SizeOfImage>=4096);
+ auto realName=reinterpret_cast<decltype(&GetModuleFileNameExW)>(proc(psapi,"GetModuleFileNameExW"));assert(realName&&realName(GetCurrentProcess(),owned,result,32768)&&!_wcsicmp(result,physical.c_str()));
+ auto realBase=reinterpret_cast<decltype(&GetModuleBaseNameW)>(proc(psapi,"GetModuleBaseNameW"));assert(realBase&&realBase(GetCurrentProcess(),owned,result,32768)&&!_wcsicmp(result,base.c_str()));
+ auto processes=reinterpret_cast<decltype(&EnumProcesses)>(proc(psapi,"EnumProcesses"));DWORD processIds[4096]={};assert(processes&&processes(processIds,sizeof(processIds),&needed));found=false;for(size_t i=0;i<4096&&i<needed/sizeof(DWORD);++i)if(processIds[i]==GetCurrentProcessId())found=true;assert(found);
+ SetLastError(0);assert(!enumerate(reinterpret_cast<HANDLE>(1),modules.data(),static_cast<DWORD>(modules.size()*sizeof(HMODULE)),&needed)&&GetLastError()!=ERROR_SUCCESS);
+ assert(!proc(psapi,"HWNoSuchProcessApi")&&GetLastError()==ERROR_PROC_NOT_FOUND);
+ // A redirected physical delay-DLL name must identify a real registered
+ // module, never a facade token or an implicit LocalState/desktop search.
+ auto proxyPath=root+L"\\HWOwnedIdentity.dll";
+ assert(!module(L"HWOwnedIdentity.dll"));
+ assert(Hollowwake::RegisterPackagedDependency(L"HWOwnedIdentity.dll",L"HWOwnedIdentity.dll",L"HWOwnedIdentity.dll"));
+ assert(!module(L"HWOwnedIdentity.dll"));
+ HMODULE proxy=LoadLibraryW(proxyPath.c_str());assert(proxy&&proxy!=owned);
+ assert(module(L"HWOwnedIdentity.dll")==proxy&&module(proxyPath.c_str())==proxy);
+ auto ownedProxyEntry=reinterpret_cast<int(__cdecl*)()>(proc(proxy,"OwnedIdentity"));assert(ownedProxyEntry&&ownedProxyEntry()==621);
+ assert(!Hollowwake::RegisterPackagedDependency(L"HWOutside.dll",L"../HWOutside.dll",L"HWOutside.dll"));
+ FreeLibrary(proxy);
  // Guest aliasing must not change the host OS identity or the DLL's real bytes.
  assert(GetModuleFileNameW(owned,result,32768));assert(!_wcsicmp(result,physical.c_str()));assert(entry()==621);
  std::cout<<"PASS original logical EXE identity, real OS DLL ownership, W/A lengths and truncation, path aliases and invalid handles; desktop owned fixture only\n";

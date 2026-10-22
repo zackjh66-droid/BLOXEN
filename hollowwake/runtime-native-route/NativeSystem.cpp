@@ -59,11 +59,22 @@ struct NativeModules {
  }
 };
 NativeModules& Modules(){static NativeModules value;return value;}
+// PSAPI v2 documents these exact ABI-compatible Kernel32 K32* exports.
+// Resolve only genuine loaded OS providers; no fabricated process/module list,
+// downloaded DLL, foreign-process access grant or success/error substitution.
+FARPROC ProcessStatus(const char* name){
+ const char* permitted[]={"EnumProcesses","EnumProcessModules","GetModuleFileNameExW","GetModuleBaseNameW","GetModuleInformation"};
+ bool allowed=false;for(auto symbol:permitted)if(!strcmp(name,symbol)){allowed=true;break;}if(!allowed)return nullptr;
+ char providerName[96]="K32";size_t index=3;for(auto p=name;*p;++p)providerName[index++]=*p;providerName[index]=0;auto& modules=Modules();
+ auto result=modules.kernel?::GetProcAddress(modules.kernel,providerName):nullptr;
+ return result?result:modules.base?::GetProcAddress(modules.base,providerName):nullptr;
+}
 }
 bool NativeLegacyCrtAvailable(){return Modules().legacyComplete;}
 #include "NativeContracts.generated.h"
 bool NativeSystemFacadeAvailable(const char* dll){
  if(!dll)return false;auto& m=Modules();
+ if(!_stricmp(dll,"psapi.dll")){for(auto name:{"EnumProcesses","EnumProcessModules","GetModuleFileNameExW","GetModuleBaseNameW","GetModuleInformation"})if(!ProcessStatus(name))return false;return true;}
  if(!_stricmp(dll,"kernel32.dll"))return m.kernel!=nullptr;
  if(!_stricmp(dll,"kernelbase.dll"))return m.base!=nullptr;
  if(!_stricmp(dll,"ntdll.dll"))return m.ntdll!=nullptr;
@@ -75,6 +86,7 @@ bool NativeSystemFacadeAvailable(const char* dll){
 }
 void* ResolveNativeSystemImport(const char* dll,const char* name){
  if(!dll||!name||!name[0])return nullptr;
+ if(!_stricmp(dll,"psapi.dll"))return reinterpret_cast<void*>(ProcessStatus(name));
  if((!_stricmp(dll,"kernel32.dll")||!_stricmp(dll,"kernelbase.dll"))&&!strcmp(name,"__chkstk"))return reinterpret_cast<void*>(&::__chkstk);
  // A public WinRT SDK import establishes the OS provider dependency. It is
  // not an AppContainer bypass and performs no activation during lookup.

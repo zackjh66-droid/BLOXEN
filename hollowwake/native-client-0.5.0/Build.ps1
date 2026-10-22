@@ -37,6 +37,7 @@ if($LASTEXITCODE){throw 'Stack-probe production resolver fixture compilation fai
 # OS DLL ownership. This fixture executes only our original small module.
 & cl.exe /nologo /std:c++17 /EHsc /MD /LD (Join-Path $source 'tests\PackagedIdentityFixture.cpp') /link /OUT:"$OutputDirectory\OwnedIdentity.dll" 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-fixture-build.log')
 if($LASTEXITCODE){throw 'Owned identity module compilation failed'}
+Copy-Item (Join-Path $OutputDirectory 'OwnedIdentity.dll') (Join-Path $OutputDirectory 'HWOwnedIdentity.dll')
 & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native\PackagedNamespace.cpp') (Join-Path $repo 'runtime-native-route\NativeSystem.cpp') (Join-Path $repo 'runtime-native-route\NativeProxyDispatch.cpp') (Join-Path $source 'tests\PackagedIdentityTest.cpp') kernel32.lib windowsapp.lib runtimeobject.lib /Fe:"$OutputDirectory\PackagedIdentityTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-build.log')
 if($LASTEXITCODE){throw 'Packaged identity compilation failed'}
 & "$OutputDirectory\PackagedIdentityTest.exe" (Join-Path $OutputDirectory 'OwnedIdentity.dll') 2>&1|Tee-Object (Join-Path $OutputDirectory 'packaged-identity-test.log');if($LASTEXITCODE){throw 'Converted main identity behavior failed'}
@@ -136,7 +137,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.6.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.7.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')

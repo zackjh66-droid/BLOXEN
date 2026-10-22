@@ -208,9 +208,11 @@ extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
  // follow the original Windows delay-load helper: they fail on actual request.
  // Their exact missing names/counts remain in the unchanged 838-pair audit.
  Log("NATIVE_PLATFORM_LOAD_TIME_REQUIRED unresolved="+std::to_string(requiredPlatform)+"; delayed unavailable APIs remain reported, not implemented");
+ unsigned dynamicMissing=0;for(auto name:{"EnumProcesses","EnumProcessModules","GetModuleFileNameExW","GetModuleBaseNameW","GetModuleInformation"})if(!HWResolvePackagedImport("PSAPI.dll",name))++dynamicMissing;
+ Log("NATIVE_DYNAMIC_PREFLIGHT total=5 unresolved="+std::to_string(dynamicMissing)+"; real OS process-status exports required by observed startup; original import inventories unchanged");
  unsigned additionalMissing=0;auto packageRoot=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;std::wstring installed(packageRoot->Data());
  if(GetFileAttributesW((installed+L"\\native-package-manifest.json").c_str())!=INVALID_FILE_ATTRIBUTES){additionalMissing=AuditAdditionalProviderImports((installed+L"\\provider-imports.json").c_str(),(logName.substr(0,slash+1)+L"native-provider-imports.json").c_str());Log("NATIVE_PROVIDER_PREFLIGHT unresolved="+std::to_string(additionalMissing)+"; additional licensed-provider inventory, original platform baseline unchanged");}
- return unavailable||requiredPlatform||additionalMissing?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
+ return unavailable||requiredPlatform||additionalMissing||dynamicMissing?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
 }
 
 static Hollowwake::CrashModuleLookup crashLookup=nullptr;
@@ -230,9 +232,15 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.6.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.7.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
+  // Read the same real own-user known folder requested by the original main
+  // image. Redirect only its FortniteGame subtree into private app storage.
+  using LoadSystem=HMODULE(WINAPI*)(LPCWSTR,HANDLE,DWORD);auto loadSystem=reinterpret_cast<LoadSystem>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","LoadLibraryExW"));
+  HMODULE shell=loadSystem?loadSystem(L"shell32.dll",nullptr,0x800):nullptr;
+  if(shell){using Folder=HRESULT(WINAPI*)(HWND,int,HANDLE,DWORD,LPWSTR);auto folder=reinterpret_cast<Folder>(GetProcAddress(shell,"SHGetFolderPathW"));wchar_t ownLocal[260]={};auto folderResult=folder?folder(nullptr,0x1c,nullptr,0,ownLocal):HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);bool alias=SUCCEEDED(folderResult)&&ConfigureDataFilesUserLocal(ownLocal);FreeLibrary(shell);Log("NATIVE_DATA_SAVED_BRIDGE HRESULT="+std::to_string(static_cast<long>(folderResult))+" configured="+(alias?"true":"false"));}
+  else Log("NATIVE_DATA_SAVED_BRIDGE Win32="+std::to_string(GetLastError())+" configured=false");
   auto location=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;
   std::wstring file=std::wstring(location->Data())+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
   std::ifstream in(file,std::ios::binary|std::ios::ate);if(!in){Log("NATIVE_LOAD_BLOCKED verified client DLL is not in installed package; LocalState import is not a package dependency");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
@@ -247,6 +255,8 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   bytes.clear();
   UINT launchWidth=0,launchHeight=0;auto sizeResult=HWReadViewport(&launchWidth,&launchHeight);if(FAILED(sizeResult))return sizeResult;
   std::wstring launchCommand=L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX="+std::to_wstring(launchWidth)+L" -ResY="+std::to_wstring(launchHeight);
+  auto deviceFamily=Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
+  if(std::wstring(deviceFamily->Data())==L"Windows.Desktop"){launchCommand+=L" -AllowSoftwareRendering";Log("NATIVE_STARTUP Windows.Desktop permits the original engine software-adapter option; actual feature-level checks and hardware preference retained");}
   std::wstring gameLogin;if(!gameIdentity.Consume(GetTickCount64(),gameLogin)){Log("NATIVE_LOAD_BLOCKED a fresh linked-account launch ticket is required");return E_ACCESSDENIED;}launchCommand+=gameLogin;
   if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",launchCommand.c_str())){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
   Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; one-time game exchange ticket configured; no project session supplied");
@@ -260,6 +270,11 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   std::string text((std::istreambuf_iterator<char>(metadata)),std::istreambuf_iterator<char>());if(text.size()>1024*1024)return E_INVALIDARG;std::wstring wide(text.begin(),text.end());auto manifest=Windows::Data::Json::JsonObject::Parse(ref new Platform::String(wide.c_str()));auto files=manifest->GetNamedArray(L"files");if(files->Size>200)return E_INVALIDARG;
   if(!Hollowwake::ConfigurePackagedRoot(location->Data()))return E_INVALIDARG;
   for(unsigned fileIndex=0;fileIndex<files->Size;++fileIndex){auto item=files->GetAt(fileIndex)->GetObject();auto relative=item->GetNamedString(L"packageRelativePath");std::wstring path(relative->Data());if(path.empty()||path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return E_INVALIDARG;auto slash=path.find_last_of(L"/\\");auto name=path.substr(slash==std::wstring::npos?0:slash+1);std::wstring disk=std::wstring(location->Data())+L"\\"+path;std::ifstream dependency(disk,std::ios::binary|std::ios::ate);if(!dependency)return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);auto length=dependency.tellg();if(length<1024||length>512*1024*1024)return E_INVALIDARG;dependency.seekg(0);std::vector<BYTE> image((SIZE_T)length);if(!dependency.read((char*)image.data(),length))return E_FAIL;auto hash=item->GetNamedString(L"sha256");if(hash->Length()!=64)return E_INVALIDARG;BYTE expectedDependency[32];for(unsigned i=0;i<32;++i){auto nibble=[](wchar_t c)->int{return c>=L'0'&&c<=L'9'?c-L'0':c>=L'a'&&c<=L'f'?c-L'a'+10:-1;};int a=nibble(hash->Data()[i*2]),b=nibble(hash->Data()[i*2+1]);if(a<0||b<0)return E_INVALIDARG;expectedDependency[i]=(BYTE)(a*16+b);}if(!HashPinned(image,expectedDependency)){Log("NATIVE_LOAD_BLOCKED packaged dependency hash mismatch");return E_INVALIDARG;}if(!RegisterCodeFileAlias(item->GetNamedString(L"originalRelativePath")->Data(),path.c_str()))return E_INVALIDARG;if(item->GetNamedBoolean(L"mainImage")&&!Hollowwake::RegisterPackagedMainIdentity(item->GetNamedString(L"originalRelativePath")->Data()))return E_INVALIDARG;if(!item->GetNamedBoolean(L"mainImage")&&!Hollowwake::RegisterPackagedDependency(name.c_str(),path.c_str(),item->GetNamedString(L"originalRelativePath")->Data()))return E_INVALIDARG;}
+  // Redirected delay descriptors contain physical proxy basenames, too.
+  // Register them before loading the main image so the original delay helper
+  // can perform a genuine package-only OS load and query its real exports.
+  auto proxyFiles=manifest->GetNamedArray(L"proxyDlls");if(proxyFiles->Size>64)return E_INVALIDARG;
+  for(unsigned proxyIndex=0;proxyIndex<proxyFiles->Size;++proxyIndex){auto proxy=proxyFiles->GetAt(proxyIndex)->GetObject()->GetNamedString(L"proxyDll");std::wstring name(proxy->Data());if(name.size()<7||name.size()>96||name.compare(0,2,L"HW")!=0||name.find_first_of(L"/\\:")!=std::wstring::npos||!Hollowwake::RegisterPackagedDependency(name.c_str(),name.c_str(),name.c_str())){Log("NATIVE_LOAD_BLOCKED invalid signed proxy namespace");return E_INVALIDARG;}}
   if(!Hollowwake::RegisterPackagedDependency(L"dsound.dll",L"HWAUD.dll",L"6.21/FortniteGame/Binaries/Win64/dsound.dll"))return E_INVALIDARG;
   for(auto pair: {std::make_pair(L"imm32.dll",L"HWIM.dll"),std::make_pair(L"opengl32.dll",L"HWGL.dll"),std::make_pair(L"dwmapi.dll",L"HWDWM.dll"),std::make_pair(L"d3d9.dll",L"HWD9.dll")}){auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+pair.first;if(!Hollowwake::RegisterPackagedDependency(pair.first,pair.second,logical.c_str()))return E_INVALIDARG;}
   auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}

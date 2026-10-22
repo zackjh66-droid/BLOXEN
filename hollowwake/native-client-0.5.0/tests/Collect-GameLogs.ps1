@@ -4,12 +4,13 @@ param([Parameter(Mandatory=$true)][string]$OutputDirectory,[Parameter(Mandatory=
 $records=@();$remaining=8
 foreach($label in ($Roots.Keys|Sort-Object)){
  $root=$Roots[$label];if(!$root-or !(Test-Path -LiteralPath $root -PathType Container)){continue}
- foreach($file in (Get-ChildItem -LiteralPath $root -File -Filter '*.log'|Where-Object{$_.LastWriteTimeUtc-ge $Since.ToUniversalTime().AddSeconds(-2)}|Sort-Object LastWriteTimeUtc -Descending|Select-Object -First $remaining)){
+ foreach($file in (Get-ChildItem -LiteralPath $root -File -Filter '*.log'|Where-Object{$_.LastWriteTimeUtc-ge $Since.ToUniversalTime().AddSeconds(-2)-and !($_.Attributes-band [IO.FileAttributes]::ReparsePoint)}|Sort-Object LastWriteTimeUtc -Descending|Select-Object -First $remaining)){
   if($remaining-le 0){break};$remaining--
   $stream=[IO.File]::Open($file.FullName,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite-bor [IO.FileShare]::Delete)
   try{
-   $tailBytes=[Math]::Min([long]1048576,$stream.Length);$null=$stream.Seek(-$tailBytes,[IO.SeekOrigin]::End);$reader=[IO.StreamReader]::new($stream,[Text.Encoding]::UTF8,$true,4096,$true)
-   try{$text=$reader.ReadToEnd()}finally{$reader.Dispose()}
+   $tailBytes=[Math]::Min([long]1048576,$stream.Length);$null=$stream.Seek(-$tailBytes,[IO.SeekOrigin]::End);$buffer=[byte[]]::new([int]$tailBytes);$received=0
+   while($received-lt $buffer.Length){$count=$stream.Read($buffer,$received,$buffer.Length-$received);if(!$count){break};$received+=$count}
+   $text=[Text.Encoding]::UTF8.GetString($buffer,0,$received)
    if($tailBytes-lt $file.Length){$newline=$text.IndexOf("`n");if($newline-ge 0){$text=$text.Substring($newline+1)}}
    $text=$text-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]'-replace '(?i)(Bearer\s+)[^\s"<>]+','$1[REDACTED]'-replace '(?i)((?:exchange_code|access_token|refresh_token|session_token)["\s:=]+)[^\s",;&<>]+','$1[REDACTED]'-replace '(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])','[REDACTED]'
    $outputName=('game-log-'+$label+'-'+(8-$remaining)+'.log');$text|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory $outputName)
