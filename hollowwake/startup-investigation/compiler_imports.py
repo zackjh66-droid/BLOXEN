@@ -1,8 +1,8 @@
 """Restore measured copies of declared import tables through the native PE loader.
 
 No function is emulated. Each complete, zero-terminated copy must match the
-captured declared table in order. New lookup arrays retain the declared symbolic
-bindings; the OS loader resolves both tables in the destination process.
+captured declared table in order. The file retains symbolic unbound values; the native host replays the measured
+copy phase from its current declared IAT before any original entry executes.
 """
 import struct
 
@@ -53,33 +53,5 @@ def restore_tables(pe, raw, data, start, end, expected_tables, expected_bindings
  if len(groups)!=expected_tables or bindings!=expected_bindings:raise ValueError('Exact copied import inventory differs')
  return groups
 
-def append_directory(pe, raw, data, groups):
- # Caller has already removed the original bounded certificate overlay.
- count=pe.FILE_HEADER.NumberOfSections;opt=pe.DOS_HEADER.e_lfanew+24;table=opt+pe.FILE_HEADER.SizeOfOptionalHeader;new_header=table+count*40
- first_raw=min(s.PointerToRawData for s in pe.sections if s.SizeOfRawData)
- header_room=count<95 and new_header+40<=min(first_raw,pe.OPTIONAL_HEADER.SizeOfHeaders) and not any(data[new_header:new_header+40])
- extend=None
- if not header_room:
-  extend=max(pe.sections,key=lambda x:x.PointerToRawData+x.SizeOfRawData)
-  if extend.Misc_VirtualSize>extend.SizeOfRawData or extend.Characteristics&0x82000000 or extend.Characteristics&0x60000000!=0x60000000 or extend.VirtualAddress+extend.SizeOfRawData<max(x.VirtualAddress+max(x.Misc_VirtualSize,x.SizeOfRawData) for x in pe.sections):raise ValueError('No safe existing immutable final section for import metadata')
- last=max(s.PointerToRawData+s.SizeOfRawData for s in pe.sections)
- if len(data)!=last:raise ValueError('Unknown overlay before import restoration')
- sa=pe.OPTIONAL_HEADER.SectionAlignment;fa=pe.OPTIONAL_HEADER.FileAlignment;va=align(pe.OPTIONAL_HEADER.SizeOfImage,sa);rp=align(len(data),fa)
- if extend is not None:va=extend.VirtualAddress+rp-extend.PointerToRawData
- old=pe.OPTIONAL_HEADER.DATA_DIRECTORY[1];old_off=pe.get_offset_from_rva(old.VirtualAddress)
- directory_bytes=(len(pe.DIRECTORY_ENTRY_IMPORT)+len(groups)+1)*20;body=bytearray(align(directory_bytes,8))
- for i,d in enumerate(pe.DIRECTORY_ENTRY_IMPORT):
-  entry=bytearray(raw[old_off+i*20:old_off+(i+1)*20]);struct.pack_into('<I',entry,4,0);body[i*20:(i+1)*20]=entry
- for i,g in enumerate(groups):
-  lookup_rva=va+len(body);body.extend(struct.pack('<'+'Q'*(g['count']+1),*(g['lookups']+[0])))
-  at=(len(pe.DIRECTORY_ENTRY_IMPORT)+i)*20;struct.pack_into('<IIIII',body,at,lookup_rva,0,0,g['nameRva'],g['firstThunkRva'])
- rs=align(len(body),fa);data.extend(b'\0'*(rp+rs-len(data)));data[rp:rp+len(body)]=body
- if extend is None:
-  header=bytearray(40);header[:8]=b'.hwiat\0\0';struct.pack_into('<IIII',header,8,len(body),va,rs,rp);struct.pack_into('<I',header,36,0x40000040);data[new_header:new_header+40]=header
-  struct.pack_into('<H',data,pe.DOS_HEADER.e_lfanew+6,count+1);struct.pack_into('<I',data,opt+8,pe.OPTIONAL_HEADER.SizeOfInitializedData+rs)
- else:
-  header=extend.get_file_offset();struct.pack_into('<I',data,header+8,va+len(body)-extend.VirtualAddress);struct.pack_into('<I',data,header+16,rp+rs-extend.PointerToRawData);struct.pack_into('<I',data,opt+4,pe.OPTIONAL_HEADER.SizeOfCode+rs)
- struct.pack_into('<I',data,opt+56,align(va+len(body),sa));struct.pack_into('<II',data,opt+112+8,va,directory_bytes)
- # Bound-import metadata is invalid for an expanded symbolic import directory.
- struct.pack_into('<II',data,opt+112+11*8,0,0)
- return {'tables':len(groups),'bindings':sum(g['count'] for g in groups),'groups':[{k:v for k,v in g.items() if k not in ('lookups','nameRva')} for g in groups],'nativeLoaderRequired':True,'capturedImportAddressesRetained':False,'instructionsChanged':False,'importDirectoryRva':va,'sectionBytes':rs,'metadataStorage':'new-readonly-section' if extend is None else 'extended-original-immutable-rx-section','scope':'Complete measured compiler-table copies rebound from declared symbolic imports by the destination OS loader; execution unverified'}
+def describe_restore_plan(groups):
+ return {'tables':len(groups),'bindings':sum(g['count'] for g in groups),'groups':[{**{k:v for k,v in g.items() if k not in ('lookups','nameRva')},'unboundValues':[hex(x) for x in g['lookups']]} for g in groups],'nativeHostRebindingRequired':True,'capturedImportAddressesRetained':False,'instructionsChanged':False,'scope':'Measured compiler-table copies require current-process native-host import rebinding before entry; this file is not a standalone executable'}

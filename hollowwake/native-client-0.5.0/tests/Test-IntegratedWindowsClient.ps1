@@ -59,7 +59,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   $alive=[bool](Get-Process -Id $applicationPid -ErrorAction SilentlyContinue)
   $nativeText='';if(Test-Path $native){$nativeText=Get-Content $native -Raw}
   if($nativeText-match 'NATIVE_THREAD original entry is OS start address'){$result.nativeThreadCreated=$true}
-  if($tick-in @(3,9,24,36)-or !$alive){Screenshot ('Windows-actual-client-after-launch-'+$tick)}
+  if($tick-in @(2,4,6,8,10,12,24,36)-or !$alive){Screenshot ('Windows-actual-client-after-launch-'+$tick)}
   $dialogs=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
   $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$texts=$dialog.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Text));$body=@();foreach($textControl in $texts){if($textControl.Current.Name.Length-lt 1000){$body+=$textControl.Current.Name}};$body=@($body|ForEach-Object{$_-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]'-replace '(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])','[REDACTED]'});$titles+=@{title=$title;text=$body};if(($body-join ' ')-match 'Failed to open descriptor file'){ $result.firstEngineError=($body-join ' ');$result.originalEngineStartupObserved=$true }}}
   $observations+=@{seconds=$tick*5;alive=$alive;windowTitles=$titles}

@@ -6,13 +6,13 @@ only recorded DIR64 relocations, requiring every captured relocation to match
 its source plus actual loader delta. Never patches branches, skips an entry
 call, substitutes APIs, or edits the PEB. A resulting file is an experimental
 input, not proof of portable initialization; BSS is not in this capture.
-Measured compiler import-table copies are restored as symbolic OS-loader
-imports so capture-process function addresses are never their persisted bindings.
+Measured compiler import-table copies retain symbolic unbound values and
+require current-process native-host rebinding before entry.
 """
 import argparse,bisect,hashlib,json,struct
 from pathlib import Path
 import pefile
-from compiler_imports import restore_tables,append_directory
+from compiler_imports import restore_tables,describe_restore_plan
 PIN='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
 MASK=(1<<64)-1
 
@@ -83,7 +83,7 @@ def prepare(source,capture,destination,report):
  del data[end:]
  opt=p.DOS_HEADER.e_lfanew+24;struct.pack_into('<I',data,opt+64,0);struct.pack_into('<II',data,opt+112+4*8,0,0)
  if struct.unpack_from('<I',data,opt+16)[0]!=p.OPTIONAL_HEADER.AddressOfEntryPoint:raise AssertionError('Entry changed')
- compiler_imports=append_directory(p,raw,data,compiler_groups)
+ compiler_imports=describe_restore_plan(compiler_groups)
  destination.write_bytes(data)
  receipt={'originalSha256':PIN,'outputSha256':hashlib.sha256(data).hexdigest(),'capturePhase':m['phase'],'originalInitializationExecuted':True,'dir64Restored':len(relocations),'normalIatBindingsRestored':restored,'delayIatBindingsRestored':delay,'entryCallRetained':True,'checksPatched':False,'uncapturedBss':True,'compilerImports':compiler_imports,'nativeExecutionTested':False,'xboxTested':False,'lobbyDemonstrated':False}
  report.write_text(json.dumps(receipt,indent=2)+'\n');return receipt

@@ -12,8 +12,10 @@ try{
  if(Test-Path -LiteralPath ./StartupConsumer.dll){Remove-Item -LiteralPath ./StartupConsumer.dll}
  python (Join-Path $PSScriptRoot 'Prepare-OwnedCompilerImports.py') StartupConsumerUnbound.dll StartupConsumer.dll
  if($LASTEXITCODE){throw 'Owned copied import table preparation failed'}
- & cl.exe /nologo /MD /DWIN32_LEAN_AND_MEAN (Join-Path $source 'Native/StartupImport.cpp') (Join-Path $PSScriptRoot 'StartupImportTest.cpp') kernel32.lib windowsapp.lib /Fe:StartupImportTest.exe
+ & cl.exe /nologo /std:c++17 /EHsc /MD /DWIN32_LEAN_AND_MEAN /DNOMINMAX (Join-Path $source 'Native/StartupImport.cpp') (Join-Path $PSScriptRoot 'StartupImportTest.cpp') kernel32.lib windowsapp.lib /Fe:StartupImportTest.exe
  if($LASTEXITCODE){throw 'Production startup import binder compilation failed'}
- & ./StartupImportTest.exe
+ $copies=Get-Content ./owned-compiler-imports.json -Raw|ConvertFrom-Json
+ & ./StartupImportTest.exe $copies.sourceRva $copies.destinationRva $copies.unboundValue
+ Write-Host ('OWNED_STARTUP_EXIT_CODE '+$LASTEXITCODE)
  if($LASTEXITCODE){throw 'Actual image-local startup import behavior failed'}
 }finally{Pop-Location}
