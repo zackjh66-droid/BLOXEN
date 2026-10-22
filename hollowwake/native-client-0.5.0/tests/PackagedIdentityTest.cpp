@@ -4,6 +4,7 @@
 #define PSAPI_VERSION 2
 #include <psapi.h>
 #include <vector>
+#include <ctime>
 #include <cassert>
 #include <cstring>
 #include <string>
@@ -51,6 +52,10 @@ int wmain(int argc,wchar_t** argv){
  auto processes=reinterpret_cast<decltype(&EnumProcesses)>(proc(psapi,"EnumProcesses"));DWORD processIds[4096]={};assert(processes&&processes(processIds,sizeof(processIds),&needed));found=false;for(size_t i=0;i<4096&&i<needed/sizeof(DWORD);++i)if(processIds[i]==GetCurrentProcessId())found=true;assert(found);
  SetLastError(0);assert(!enumerate(reinterpret_cast<HANDLE>(1),modules.data(),static_cast<DWORD>(modules.size()*sizeof(HMODULE)),&needed)&&GetLastError()!=ERROR_SUCCESS);
  assert(!proc(psapi,"HWNoSuchProcessApi")&&GetLastError()==ERROR_PROC_NOT_FOUND);
+ // Real unredirected API-set function newly required by APEX startup.
+ HMODULE timeApi=::LoadLibraryExW(L"api-ms-win-crt-time-l1-1-0.dll",nullptr,0x800);assert(timeApi);
+ auto formatTime=reinterpret_cast<char*(__cdecl*)(const std::tm*)>(::GetProcAddress(timeApi,"asctime"));assert(formatTime);std::tm stamp={};stamp.tm_year=70;stamp.tm_mday=1;stamp.tm_wday=4;
+ auto formatted=formatTime(&stamp);assert(formatted&&!strcmp(formatted,"Thu Jan  1 00:00:00 1970\n"));FreeLibrary(timeApi);
  // A redirected physical delay-DLL name must identify a real registered
  // module, never a facade token or an implicit LocalState/desktop search.
  auto proxyPath=root+L"\\HWOwnedIdentity.dll";
@@ -59,6 +64,9 @@ int wmain(int argc,wchar_t** argv){
  assert(!module(L"HWOwnedIdentity.dll"));
  HMODULE proxy=LoadLibraryW(proxyPath.c_str());assert(proxy&&proxy!=owned);
  assert(module(L"HWOwnedIdentity.dll")==proxy&&module(proxyPath.c_str())==proxy);
+ assert(Hollowwake::RegisterPackagedDependency(L"OwnedPhysics.dll",L"HWOwnedIdentity.dll",L"6.21/Engine/OwnedPhysics.dll"));
+ assert(module(L"../../../Engine/OwnedPhysics.dll")==proxy&&module(L"6.21/Engine/OwnedPhysics.dll")==proxy);
+ assert(!module(L"../../../../outside/OwnedPhysics.dll"));
  auto ownedProxyEntry=reinterpret_cast<int(__cdecl*)()>(proc(proxy,"OwnedIdentity"));assert(ownedProxyEntry&&ownedProxyEntry()==621);
  assert(!Hollowwake::RegisterPackagedDependency(L"HWOutside.dll",L"../HWOutside.dll",L"HWOutside.dll"));
  FreeLibrary(proxy);

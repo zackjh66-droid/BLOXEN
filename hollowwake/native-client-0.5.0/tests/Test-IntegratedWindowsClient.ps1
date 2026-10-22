@@ -77,10 +77,11 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  Remove-Item $PrivateInputLeasePath -ErrorAction SilentlyContinue
  if($data){foreach($name in @('native-launch.log','managed-launch.log','launcher-startup.log','content-data-audit.txt','client-missing-imports.txt')){$path=Join-Path $data $name;if(Test-Path $path){$text=Get-Content $path -Raw;$text=$text-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]';$text|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory ('integrated-'+$name))}}}
  if($data){try{& (Join-Path $PSScriptRoot 'Collect-GameLogs.ps1') -OutputDirectory $OutputDirectory -Since $attemptStarted -Roots @{mapped=(Join-Path $data 'GameClean/6.21/FortniteGame/Saved/Logs');packageLocal=(Join-Path (Split-Path $data) 'LocalCache/Local/FortniteGame/Saved/Logs');packageRoaming=(Join-Path (Split-Path $data) 'LocalCache/Roaming/FortniteGame/Saved/Logs');windowsLocal=(Join-Path $env:LOCALAPPDATA 'FortniteGame/Saved/Logs')}}catch{Write-Host ('Actual game-log collection failed: '+$_.Exception.GetType().Name)}}
+ if($data){try{& (Join-Path $PSScriptRoot 'Collect-GameCrashContext.ps1') -CrashRoot (Join-Path $data 'GameClean/6.21/FortniteGame/Saved/Crashes') -OutputDirectory $OutputDirectory -Since $attemptStarted}catch{Write-Host ('Crash-code context export failed: '+$_.Exception.GetType().Name)}}
  # Revoke only this temporary account's linked sessions, never another user's.
  if($browser-and $result.testAccount){try{$devices=Invoke-RestMethod -Uri ($origin+'/api/devices') -WebSession $browser -TimeoutSec 30;foreach($device in $devices.devices){$null=Post '/api/devices/revoke' @{id=$device.id}};$null=Post '/api/auth/sign-out' @{}}catch{Write-Host 'Temporary test-session cleanup could not complete; no credential was exported'}}
  if($applicationPid){Stop-Process -Id $applicationPid -Force -ErrorAction SilentlyContinue}
  SaveResult
 }
-if($data-and ($result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory}
+if($data-and ($result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory -Variant normalized}
 if($result.failure){exit 1}

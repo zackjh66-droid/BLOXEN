@@ -43,3 +43,8 @@ unsigned AuditPlatformImports(const wchar_t* output,unsigned* requiredMissing){
  report<<"\n],\"total\":"<<total<<",\"missing\":"<<missing<<",\"normalMissing\":"<<normalMissing<<",\"delayOnlyMissing\":"<<(missing-normalMissing)<<",\"mainMissing\":"<<mainMissing<<",\"osMissing\":"<<osMissing<<",\"adapterCount\":"<<adapterCount<<",\"capabilityUnavailable\":"<<capabilityUnavailable<<",\"dlls\":"<<modules.size()<<",\"xboxTested\":false}";report.flush();bool written=report.good();for(auto& module:modules)if(module.second.handle)FreeLibrary(module.second.handle);
  if(!written){SetLastError(ERROR_WRITE_FAULT);return (unsigned)-1;}if(requiredMissing)*requiredMissing=normalMissing;return missing;
 }
+unsigned AuditApexStartupImports(const wchar_t* output){
+ using Load=HMODULE(WINAPI*)(LPCWSTR,HANDLE,DWORD);auto load=reinterpret_cast<Load>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","LoadLibraryExW"));
+ SetLastError(0);auto module=load?load(L"api-ms-win-crt-time-l1-1-0.dll",nullptr,0x800):nullptr;auto address=module?GetProcAddress(module,"asctime"):nullptr;auto error=address?0:GetLastError();if(!address&&!error)error=ERROR_PROC_NOT_FOUND;
+ std::ofstream report(output,std::ios::trunc);report<<"{\"scope\":\"Additional observed APEX unredirected OS import; original 838-pair baseline retained; export presence is not behavior/Xbox proof\",\"pairs\":[{\"name\":\"api-ms-win-crt-time-l1-1-0.dll!asctime\",\"resolved\":"<<(address?"true":"false")<<",\"error\":"<<error<<",\"normalImport\":true}],\"total\":1,\"missing\":"<<(address?0:1)<<",\"gameExecuted\":false,\"xboxTested\":false}";report.flush();bool written=report.good();if(module)FreeLibrary(module);if(!written){SetLastError(ERROR_WRITE_FAULT);return (unsigned)-1;}return address?0:1;
+}

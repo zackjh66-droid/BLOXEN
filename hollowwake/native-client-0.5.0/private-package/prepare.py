@@ -21,11 +21,7 @@ def metadata(path):
  for attr in ['DIRECTORY_ENTRY_IMPORT','DIRECTORY_ENTRY_DELAY_IMPORT']:
   for d in getattr(p,attr,[]):deps.append(d.dll.decode('ascii').lower())
  p.close();return sorted(set(deps))
-def prepare(source,out,initialized_capture=None):
- source=Path(source).resolve();out=Path(out).resolve()
- if out.exists() or out==source or source in out.parents:raise ValueError('Use a new staging directory outside original inputs')
- main=source/'FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
- if sha(main)!=PIN:raise ValueError('Exact 6.21 main image hash mismatch')
+def select_images(source,main):
  index=collections.defaultdict(list)
  for p in source.rglob('*.dll'):
   if p.is_symlink():raise ValueError('Symlink input rejected')
@@ -35,10 +31,17 @@ def prepare(source,out,initialized_capture=None):
    if pe.FILE_HEADER.Machine==0x8664:index[p.name.lower()].append(p)
    pe.close()
   except pefile.PEFormatError:raise ValueError('Invalid DLL: '+str(p.relative_to(source)))
- queue=[main];seen=set();images=[];external=set();duplicates={}
+ # These modules are loaded by name during real observed main initialization,
+ # not represented by normal or delayed PE import descriptors.
+ dynamic=['Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Legacy_x64.dll','Engine/Binaries/ThirdParty/PhysX3/Win64/VS2015/APEX_Clothing_x64.dll']
+ pins=json.loads((Path(__file__).resolve().parents[1]/'App/boot-inputs.json').read_text())
+ expected={item['path'].casefold():item for item in pins['files']}
+ queue=[main]+[source/name for name in dynamic];seen=set();images=[];external=set();duplicates={}
  while queue:
   p=queue.pop(0)
   if p in seen:continue
+  pin=expected.get(('6.21/'+p.relative_to(source).as_posix()).casefold())
+  if not pin or not p.is_file() or p.is_symlink() or p.stat().st_size!=pin['bytes'] or sha(p)!=pin['sha256']:raise ValueError('Selected native image differs from exact preserved build: '+p.name)
   seen.add(p);images.append(p)
   for name in metadata(p):
    # API-set forwarders are provided by Windows, not the archive's nonrelocatable shims.
@@ -55,6 +58,32 @@ def prepare(source,out,initialized_capture=None):
     selected=sorted(candidates)[0]
     if len(candidates)>1:duplicates[name]={'identicalCopies':[str(q.relative_to(source)) for q in candidates]}
    queue.append(selected)
+ # Validate every private-provider export against the same pinned original
+ # images before conversion. This is static graph evidence, not behavior proof.
+ providers={p.name.lower():p for p in images};exports={};privateBindings=[]
+ for consumer in images:
+  pe=pefile.PE(str(consumer),fast_load=True);pe.parse_data_directories(directories=[1,13])
+  for attr in ['DIRECTORY_ENTRY_IMPORT','DIRECTORY_ENTRY_DELAY_IMPORT']:
+   for descriptor in getattr(pe,attr,[]):
+    name=descriptor.dll.decode('ascii').lower()
+    if name not in providers:continue
+    if name not in exports:
+     target=pefile.PE(str(providers[name]),fast_load=True);target.parse_data_directories(directories=[0]);symbols=getattr(getattr(target,'DIRECTORY_ENTRY_EXPORT',None),'symbols',[])
+     exports[name]=({x.name.decode('ascii') for x in symbols if x.name and x.address},{x.ordinal for x in symbols if x.address});target.close()
+    named,ordinals=exports[name]
+    for symbol in descriptor.imports:
+     spelling=symbol.name.decode('ascii') if symbol.name else '#'+str(symbol.ordinal);found=spelling in named if symbol.name else symbol.ordinal in ordinals
+     if not found:raise ValueError('Missing original private-provider export: '+name+'!'+spelling)
+     privateBindings.append({'consumer':consumer.name,'provider':name,'symbol':spelling,'kind':'normal' if attr=='DIRECTORY_ENTRY_IMPORT' else 'delay','exportDeclared':True})
+  pe.close()
+ return images,external,duplicates,dynamic,privateBindings
+
+def prepare(source,out,initialized_capture=None):
+ source=Path(source).resolve();out=Path(out).resolve()
+ if out.exists() or out==source or source in out.parents:raise ValueError('Use a new staging directory outside original inputs')
+ main=source/'FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
+ if sha(main)!=PIN:raise ValueError('Exact 6.21 main image hash mismatch')
+ images,external,duplicates,dynamic,privateBindings=select_images(source,main)
  out.mkdir(parents=True);stage=out/'GamePayload';stage.mkdir();reports=out/'reports';reports.mkdir();proxies={};records=[]
  initialized=None;normalized=None
  if initialized_capture:
@@ -98,7 +127,7 @@ def prepare(source,out,initialized_capture=None):
   # PE forwarder preserves the provider's actual object address and CRT ownership.
   if item['sourceDll'].lower()=='msvcrt.dll' and '_iob' in item['symbols']:item['dataSymbols']=['_iob']
   emit(item,proxyRoot/item['proxyDll'])
- manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'stackAddressRepair':stackPatch,'initializedClient':initialized}
+ manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'privateDependencyExportAudit':{'scope':'Pinned static private-provider exports; runtime behavior and Xbox remain unverified','bindings':privateBindings,'missing':0},'startupDynamicImages':dynamic,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'stackAddressRepair':stackPatch,'initializedClient':initialized}
  (stage/'native-package-manifest.json').write_text(json.dumps(manifest,indent=2));(out/'plan.json').write_text(json.dumps(manifest,indent=2));return manifest
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('output');p.add_argument('--initialized-capture');a=p.parse_args();m=prepare(a.source,a.output,a.initialized_capture);print(json.dumps({'images':len(m['files']),'proxies':len(m['proxyDlls']),'externalPlatformDependencies':len(m['externalPlatformDependencies']),'executed':False}))

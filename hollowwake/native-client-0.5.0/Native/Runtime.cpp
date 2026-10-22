@@ -208,18 +208,19 @@ extern "C" __declspec(dllexport) int __cdecl HWPreflightClient(){
  // follow the original Windows delay-load helper: they fail on actual request.
  // Their exact missing names/counts remain in the unchanged 838-pair audit.
  Log("NATIVE_PLATFORM_LOAD_TIME_REQUIRED unresolved="+std::to_string(requiredPlatform)+"; delayed unavailable APIs remain reported, not implemented");
+ unsigned apexMissing=AuditApexStartupImports((logName.substr(0,slash+1)+L"native-apex-platform-imports.json").c_str());Log("NATIVE_ADDITIONAL_PLATFORM_PREFLIGHT total=1 unresolved="+std::to_string(apexMissing)+"; additional unredirected APEX import, original inventory retained");
  unsigned dynamicMissing=0;for(auto name:{"EnumProcesses","EnumProcessModules","GetModuleFileNameExW","GetModuleBaseNameW","GetModuleInformation"})if(!HWResolvePackagedImport("PSAPI.dll",name))++dynamicMissing;
  Log("NATIVE_DYNAMIC_PREFLIGHT total=5 unresolved="+std::to_string(dynamicMissing)+"; real OS process-status exports required by observed startup; original import inventories unchanged");
  unsigned additionalMissing=0;auto packageRoot=Windows::ApplicationModel::Package::Current->InstalledLocation->Path;std::wstring installed(packageRoot->Data());
  if(GetFileAttributesW((installed+L"\\native-package-manifest.json").c_str())!=INVALID_FILE_ATTRIBUTES){additionalMissing=AuditAdditionalProviderImports((installed+L"\\provider-imports.json").c_str(),(logName.substr(0,slash+1)+L"native-provider-imports.json").c_str());Log("NATIVE_PROVIDER_PREFLIGHT unresolved="+std::to_string(additionalMissing)+"; additional licensed-provider inventory, original platform baseline unchanged");}
- return unavailable||requiredPlatform||additionalMissing||dynamicMissing?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
+ return unavailable||requiredPlatform||additionalMissing||dynamicMissing||apexMissing?HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND):S_OK;
 }
 
 static Hollowwake::CrashModuleLookup crashLookup=nullptr;
 static Hollowwake::CrashModuleFilename crashFilename=nullptr;
 static Hollowwake::CrashReadMemory crashRead=nullptr;
 static Hollowwake::CrashQueryMemory crashQuery=nullptr;
-static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{Log(Hollowwake::DescribeCrash(*data->ExceptionRecord,crashLookup,crashFilename)+"; exception continues to OS"+Hollowwake::DescribeCrashStackCandidates(data->ContextRecord,crashLookup,crashFilename,crashRead,crashQuery));}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}
+static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD&&code!=1)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{auto description=Hollowwake::DescribeCrash(*data->ExceptionRecord,crashLookup,crashFilename);if(code==1)description.replace(0,12,"NATIVE_CLIENT_EXCEPTION");Log(description+"; exception continues to OS"+Hollowwake::DescribeCrashStackCandidates(data->ContextRecord,crashLookup,crashFilename,crashRead,crashQuery));}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}
 
 // Explicit native-loader experiment. It accepts no download URL, credentials,
 // arbitrary DLL path or user command line. The UI's existing mapper is unchanged.
@@ -232,7 +233,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.7.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.8.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   // Read the same real own-user known folder requested by the original main
@@ -256,7 +257,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   UINT launchWidth=0,launchHeight=0;auto sizeResult=HWReadViewport(&launchWidth,&launchHeight);if(FAILED(sizeResult))return sizeResult;
   std::wstring launchCommand=L"FortniteClient-Win64-Shipping.exe -windowed -d3d11 -ResX="+std::to_wstring(launchWidth)+L" -ResY="+std::to_wstring(launchHeight);
   auto deviceFamily=Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
-  if(std::wstring(deviceFamily->Data())==L"Windows.Desktop"){launchCommand+=L" -AllowSoftwareRendering";Log("NATIVE_STARTUP Windows.Desktop permits the original engine software-adapter option; actual feature-level checks and hardware preference retained");}
+  if(std::wstring(deviceFamily->Data())==L"Windows.Desktop"||std::wstring(deviceFamily->Data())==L"Windows.Server"){launchCommand+=L" -AllowSoftwareRendering";Log("NATIVE_STARTUP Windows desktop/server permits the original engine software-adapter option; actual feature-level checks and hardware preference retained");}
   std::wstring gameLogin;if(!gameIdentity.Consume(GetTickCount64(),gameLogin)){Log("NATIVE_LOAD_BLOCKED a fresh linked-account launch ticket is required");return E_ACCESSDENIED;}launchCommand+=gameLogin;
   if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",launchCommand.c_str())){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
   Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; one-time game exchange ticket configured; no project session supplied");

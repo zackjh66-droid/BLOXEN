@@ -13,7 +13,7 @@ namespace {
 std::recursive_mutex gate;
 Hollowwake::PackagedNamespaceLogger namespaceLogger=nullptr;unsigned missingExports=0;
 void MissingExport(const std::string& module,LPCSTR name,DWORD error){
- if(!namespaceLogger||missingExports>=32||!name||strnlen_s(name,221)>220)return;std::string safe;for(auto p=name;*p;++p){unsigned char c=*p;if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||strchr("_?@$#.:~+<>-",c)))return;safe+=static_cast<char>(c);}
+ if(!namespaceLogger||missingExports>=32||!name||strnlen_s(name,221)>220)return;std::string safe;for(auto p=name;*p;++p){unsigned char c=*p;if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||(c=='_'||c=='?'||c=='@'||c=='$'||c=='#'||c=='.'||c==':'||c=='~'||c=='+'||c=='<'||c=='>'||c=='-')))return;safe+=static_cast<char>(c);}
  if(!safe.empty()){++missingExports;namespaceLogger("NATIVE_DYNAMIC_IMPORT_MISSING "+module+"!"+safe+" Win32="+std::to_string(error));}
 }
 std::wstring mainName,originalMainPath;std::string originalMainBase;std::wstring command;std::string commandA;
@@ -28,7 +28,15 @@ bool Normalize(LPCWSTR value,std::string& name){
  }return false;
 }
 std::wstring Canonical(const wchar_t* value){if(!value||wcsnlen_s(value,32768)==32768)return {};std::wstring path(value);if(path.compare(0,4,L"\\\\?\\")==0)path=path.substr(4);for(auto& c:path){if(c==L'/')c=L'\\';else if(c>=L'A'&&c<=L'Z')c+=32;}return path;}
-bool NormalizeKnown(LPCWSTR value,std::string& key){if(Normalize(value,key))return true;key.clear();auto path=Canonical(value);auto found=pathAliases.find(path);if(found==pathAliases.end())return false;key=found->second;return true;}
+bool NormalizeKnown(LPCWSTR value,std::string& key){if(Normalize(value,key))return true;key.clear();auto path=Canonical(value);auto found=pathAliases.find(path);
+ if(found==pathAliases.end()&&!originalMainPath.empty()&&!path.empty()&&path[0]!=L'\\'&&path.find(L':')==std::wstring::npos){
+  // The real client passes ../../../Engine/... during DLL startup. Resolve
+  // against its configured logical image directory, never the host CWD.
+  auto slash=originalMainPath.find_last_of(L"\\");auto candidate=originalMainPath.substr(0,slash+1)+path;
+  using Full=DWORD(WINAPI*)(LPCWSTR,DWORD,LPWSTR,LPWSTR*);auto full=reinterpret_cast<Full>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetFullPathNameW"));wchar_t expanded[32768]={};auto count=full?full(candidate.c_str(),32768,expanded,nullptr):0;
+  if(count&&count<32768)found=pathAliases.find(Canonical(expanded));
+ }
+ if(found==pathAliases.end())return false;key=found->second;return true;}
 std::wstring Wide(LPCSTR text){if(!text)return {};std::wstring out;for(unsigned i=0;i<256;++i){unsigned char c=text[i];if(!c)return out;if(c>127)return {};out+=c;}return {};}
 HMODULE Main(){if(mainName.empty())return nullptr;using Get=HMODULE(WINAPI*)(LPCWSTR);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));return get?get(mainName.c_str()):nullptr;}
 HMODULE NativeModule(const std::string& name){using Get=HMODULE(WINAPI*)(LPCWSTR);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));std::wstring wide(name.begin(),name.end());auto alias=packaged.find(name);if(alias!=packaged.end()){auto slash=alias->second.find_last_of(L"/\\");wide=alias->second.substr(slash==std::wstring::npos?0:slash+1);}return get?get(wide.c_str()):nullptr;}
@@ -92,7 +100,7 @@ namespace Hollowwake {
 void ConfigurePackagedNamespaceLogger(PackagedNamespaceLogger logger){std::lock_guard<std::recursive_mutex> lock(gate);namespaceLogger=logger;}
 char* __cdecl PackagedWinMainTail(){std::lock_guard<std::recursive_mutex> lock(gate);if(commandA.empty())return nullptr;size_t i=0;bool quoted=false;while(i<commandA.size()){char c=commandA[i];if(c=='"')quoted=!quoted;else if(!quoted&&(c==' '||c=='\t'))break;++i;}while(i<commandA.size()&&(commandA[i]==' '||commandA[i]=='\t'))++i;return &commandA[0]+i;}
 bool ConfigurePackagedRoot(const wchar_t* root){std::lock_guard<std::recursive_mutex> lock(gate);auto path=Canonical(root);if(path.empty()||(!packageRoot.empty()&&packageRoot!=path))return false;if(packageRoot.empty())packageRootDisplay=root;packageRoot=path;return true;}
-bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relative,const wchar_t* original){std::lock_guard<std::recursive_mutex> lock(gate);std::string key;if(!Normalize(module,key)||!relative||!relative[0]||wcsnlen_s(relative,512)==512||NativeSystemFacadeAvailable(key.c_str()))return false;std::wstring path(relative);if(path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;for(auto c:path)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'/'||c==L'\\'))return false;if(packageRoot.empty()||!original||wcsnlen_s(original,512)==512)return false;auto origin=Canonical(original);if(origin.empty()||origin[0]==L'\\'||origin.find(L':')!=std::wstring::npos||origin.find(L"..")!=std::wstring::npos)return false;pathAliases[packageRoot+L"\\"+origin]=key;auto old=packaged.find(key);if(old!=packaged.end())return old->second==path;packaged[key]=path;return true;}
+bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relative,const wchar_t* original){std::lock_guard<std::recursive_mutex> lock(gate);std::string key;if(!Normalize(module,key)||!relative||!relative[0]||wcsnlen_s(relative,512)==512||NativeSystemFacadeAvailable(key.c_str()))return false;std::wstring path(relative);if(path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;for(auto c:path)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'/'||c==L'\\'))return false;if(packageRoot.empty()||!original||wcsnlen_s(original,512)==512)return false;auto origin=Canonical(original);if(origin.empty()||origin[0]==L'\\'||origin.find(L':')!=std::wstring::npos||origin.find(L"..")!=std::wstring::npos)return false;pathAliases[packageRoot+L"\\"+origin]=key;pathAliases[origin]=key;auto old=packaged.find(key);if(old!=packaged.end())return old->second==path;packaged[key]=path;return true;}
 bool RegisterPackagedMainIdentity(const wchar_t* original){
  std::lock_guard<std::recursive_mutex> lock(gate);if(!original||wcsnlen_s(original,512)==512||packageRoot.empty()||mainName.empty())return false;
  std::wstring relative(original);for(auto& c:relative)if(c==L'/')c=L'\\';if(relative.empty()||relative[0]==L'\\'||relative.find(L':')!=std::wstring::npos||relative.find(L"..")!=std::wstring::npos)return false;
