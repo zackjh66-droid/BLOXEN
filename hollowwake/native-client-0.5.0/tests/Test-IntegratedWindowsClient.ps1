@@ -61,8 +61,9 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   if($nativeText-match 'NATIVE_THREAD original entry is OS start address'){$result.nativeThreadCreated=$true}
   if($tick-in @(3,9,24,36)-or !$alive){Screenshot ('Windows-actual-client-after-launch-'+$tick)}
   $dialogs=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
-  $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$texts=$dialog.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Text));$body=@();foreach($textControl in $texts){if($textControl.Current.Name.Length-lt 1000){$body+=$textControl.Current.Name}};$titles+=@{title=$title;text=$body}}}
+  $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$texts=$dialog.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Text));$body=@();foreach($textControl in $texts){if($textControl.Current.Name.Length-lt 1000){$body+=$textControl.Current.Name}};$body=@($body|ForEach-Object{$_-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]'-replace '(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])','[REDACTED]'});$titles+=@{title=$title;text=$body};if(($body-join ' ')-match 'Failed to open descriptor file'){ $result.firstEngineError=($body-join ' ');$result.originalEngineStartupObserved=$true }}}
   $observations+=@{seconds=$tick*5;alive=$alive;windowTitles=$titles}
+  if($result.firstEngineError){Screenshot 'Windows-original-client-engine-error';$result.stage='actual-client-engine-error';break}
   if(!$alive){$result.stage='actual-client-process-exited';break}
  }while([DateTime]::UtcNow-lt $deadline)
  $result.observations=$observations
@@ -80,4 +81,5 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  if($applicationPid){Stop-Process -Id $applicationPid -Force -ErrorAction SilentlyContinue}
  SaveResult
 }
+if($result.firstEngineError){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory}
 if($result.failure){exit 1}

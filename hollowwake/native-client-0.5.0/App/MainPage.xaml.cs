@@ -58,7 +58,7 @@ namespace Hollowwake
         private CancellationTokenSource operation = new CancellationTokenSource();
         private string sessionToken, pendingDeviceCode;
         private int generation;
-        private bool allowLocalHttp, ready;
+        private bool allowLocalHttp, ready, startupBusy;
         private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };
         private bool heartbeatBusy;
         private readonly LauncherRecovery recovery;
@@ -75,7 +75,7 @@ namespace Hollowwake
             var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
             if(mouse != null) mouse.MouseMoved += (s,e) => { if(policyReady) HWMouseDelta(e.MouseDelta.X,e.MouseDelta.Y); };
             Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
-            Loaded += async (s, e) => { if (!ready) { ready = true; App.StartupStage("page-loaded"); await InitializeAsync(); recovery.CompleteBoot(); App.StartupStage("launcher-ready"); } };
+            Loaded += async (s, e) => { if (!ready) await StartLauncherAsync(); };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; if(!loadBusy)await CancelLinkAsync(); };
         }
@@ -94,14 +94,31 @@ namespace Hollowwake
         }
         private void Show(StackPanel panel)
         {
-            foreach (var p in new[] { SplashPanel, SetupPanel, LinkPanel, LinkedPanel, CancelledPanel }) p.Visibility = p == panel ? Visibility.Visible : Visibility.Collapsed;
+            foreach (var p in new[] { SplashPanel, SetupPanel, LinkPanel, LinkedPanel, CancelledPanel, StartupFailurePanel }) p.Visibility = p == panel ? Visibility.Visible : Visibility.Collapsed;
         }
         private void ResetOperation() { contentReady=false;runtimeAudited=false;generation++; operation.Cancel(); operation.Dispose(); operation = new CancellationTokenSource(); }
+        private async Task StartLauncherAsync()
+        {
+            if(startupBusy)return;startupBusy=true;
+            try{ready=true;App.StartupStage("page-loaded");await InitializeAsync();recovery.CompleteBoot();App.StartupStage("launcher-ready");}
+            catch(Exception error){
+                // Handle only this managed initialization operation. Game/native
+                // exceptions still follow their real OS/guest failure path.
+                var stage=App.ExecutionStage;ready=false;contentReady=false;
+                try{await ManagedLog("LAUNCHER_STARTUP_FAILED stage="+stage+" HRESULT="+error.HResult.ToString("X8")+" type="+error.GetType().FullName);}catch{}
+                App.StartupStage("launcher-startup-failed");
+                StartupFailureText.Text="Stage: "+stage+"\nError: 0x"+error.HResult.ToString("X8")+"\n"+error.GetType().Name;
+                Show(StartupFailurePanel);StatusText.Text="Launcher initialization stopped. Game startup has not been attempted. Existing files are retained.";
+                StartupRetryButton.Focus(FocusState.Programmatic);
+            }finally{startupBusy=false;}
+        }
+        private async void StartupRetry_Click(object sender,RoutedEventArgs e){if(startupBusy)return;ResetOperation();await StartLauncherAsync();}
         private async Task InitializeAsync()
         {
             Show(SplashPanel); StatusText.Text = "Experimental native client loader. No working Fortnite lobby is claimed.";
             policyReady=false;
             if(recoveryMode)await ManagedLog("NATIVE_STARTUP recovery mode; automatic verification and native initialization paused; files retained");
+            App.StartupStage("startup-policy-write");
             await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("runtime-policy.txt",CreationCollisionOption.ReplaceExisting),"route=native-packaged nativeDeferredUntilLaunch=true recovery="+recoveryMode.ToString().ToLowerInvariant()+" xboxUnverified=true");
             if(App.NativePreflight||App.AudioPreflight||App.WglPreflight||App.UnsupportedSelfTest)await EnsureNativeReadyAsync();
             if(App.WglPreflight){try{var result=await Task.Run(()=>HWWglProviderProbe(Path.Combine(ApplicationData.Current.LocalFolder.Path,"native-wgl-probe.json")));StatusText.Text="Owned WGL provider test HRESULT="+result+"; no game code ran.";}catch(Exception ex){File.WriteAllText(Path.Combine(ApplicationData.Current.LocalFolder.Path,"wgl-managed-failure.log"),ex.ToString());StatusText.Text="Owned WGL check failed; no game code ran.";}return;}
@@ -122,9 +139,11 @@ namespace Hollowwake
                 CodeStatusText.Text="Owned UI fixture; no client code was downloaded or executed.";
                 StatusText.Text="Native import preflight complete. No game execution attempted.";Log_Click(this,new RoutedEventArgs());return;}catch(Exception ex){await FileIO.WriteTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("preflight-failure.txt",CreationCollisionOption.ReplaceExisting),ex.ToString());StatusText.Text="Owned hosted preflight failed. Inspect preflight-failure.txt; no game code ran.";return;}}
             var selfTestMarker=Path.Combine(ApplicationData.Current.LocalFolder.Path,"selftest-unsupported.once");if(App.UnsupportedSelfTest||File.Exists(selfTestMarker)){if(File.Exists(selfTestMarker))File.Delete(selfTestMarker);HWUnsupportedContract();return;}
+            App.StartupStage("startup-delay");
             await Task.Delay(1500);
             try
             {
+                App.StartupStage("backend-config-read");
                 var file = await StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///backend-config.json"));
                 var config = JsonObject.Parse(await FileIO.ReadTextAsync(file));
                 allowLocalHttp = config.GetNamedBoolean("AllowLocalHttp", false);
@@ -153,10 +172,12 @@ namespace Hollowwake
             var candidate = new ApiClient(origin.Trim(), allowLocalHttp);
             try
             {
+                App.StartupStage("account-service-status");
                 var status = await candidate.SendAsync("/api/status", null, null, operation.Token);
                 if (status.GetNamedString("project", "") != "Hollowwake") throw new ArgumentException("This is not a Hollowwake account service.");
                 api?.Dispose(); api = candidate;
                 ApplicationData.Current.LocalSettings.Values["BackendOrigin"] = api.Origin;
+                App.StartupStage("protected-session-read");
                 sessionToken = await store.LoadAsync(api.Origin);
                 if (sessionToken != null) await ValidateSessionAsync(true); else await StartLinkAsync();
             }

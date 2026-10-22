@@ -10,7 +10,9 @@
 #include <cstring>
 #include <cwchar>
 #include <algorithm>
+#include <atomic>
 namespace {
+std::atomic<DataFilesLogger> dataLogger{nullptr};std::atomic<unsigned> pakFindLogs{0};
 std::recursive_mutex gate;std::wstring package,data,cwd;bool bundledContent=false;std::map<std::wstring,std::wstring> code;
 std::wstring Fold(std::wstring value){for(auto& c:value){if(c==L'/')c=L'\\';if(c>=L'A'&&c<=L'Z')c+=32;}if(value.compare(0,4,L"\\\\?\\")==0)value=value.substr(4);return value;}
 bool Under(const std::wstring& path,const std::wstring& root){return !root.empty()&&(path==root||path.compare(0,root.size()+1,root+L"\\")==0);}
@@ -45,9 +47,21 @@ HANDLE WINAPI Open(LPCWSTR name,DWORD access,DWORD share,LPSECURITY_ATTRIBUTES s
  CREATEFILE2_EXTENDED_PARAMETERS extra={};extra.dwSize=sizeof(extra);extra.dwFileAttributes=attributes&0xffff;extra.dwFileFlags=attributes&0xffe00000;extra.dwSecurityQosFlags=attributes&0x001f0000;extra.lpSecurityAttributes=security;extra.hTemplateFile=templateFile;
  return CreateFile2(path.c_str(),access,share,creation,&extra);
 }
+bool FileNameWide(LPCSTR name,std::wstring& wide){
+ if(!name||strnlen_s(name,32768)==32768){SetLastError(ERROR_INVALID_PARAMETER);return false;}
+ using FileAnsi=BOOL(WINAPI*)();auto ansi=reinterpret_cast<FileAnsi>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","AreFileApisANSI"));if(!ansi){SetLastError(ERROR_PROC_NOT_FOUND);return false;}
+ UINT page=ansi()?CP_ACP:CP_OEMCP;int needed=MultiByteToWideChar(page,0,name,-1,nullptr,0);if(!needed)return false;std::vector<wchar_t> value(needed);if(!MultiByteToWideChar(page,0,name,-1,value.data(),needed))return false;wide=value.data();return true;
+}
+HANDLE WINAPI OpenA(LPCSTR name,DWORD access,DWORD share,LPSECURITY_ATTRIBUTES security,DWORD creation,DWORD attributes,HANDLE templateFile){std::wstring wide;if(!FileNameWide(name,wide))return INVALID_HANDLE_VALUE;return Open(wide.c_str(),access,share,security,creation,attributes,templateFile);}
 BOOL WINAPI AttributesEx(LPCWSTR name,GET_FILEEX_INFO_LEVELS level,LPVOID output){auto path=Map(name,false);return path.empty()?FALSE:GetFileAttributesExFromAppW(path.c_str(),level,output);}
 DWORD WINAPI Attributes(LPCWSTR name){WIN32_FILE_ATTRIBUTE_DATA result={};return AttributesEx(name,GetFileExInfoStandard,&result)?result.dwFileAttributes:INVALID_FILE_ATTRIBUTES;}
-HANDLE WINAPI Find(LPCWSTR name,FINDEX_INFO_LEVELS level,LPVOID output,FINDEX_SEARCH_OPS operation,LPVOID filter,DWORD flags){auto path=Map(name,false);return path.empty()?INVALID_HANDLE_VALUE:FindFirstFileExFromAppW(path.c_str(),level,output,operation,filter,flags);}
+HANDLE FindMapped(LPCWSTR name,FINDEX_INFO_LEVELS level,LPVOID output,FINDEX_SEARCH_OPS operation,LPVOID filter,DWORD flags,const char* api){auto path=Map(name,false);if(path.empty())return INVALID_HANDLE_VALUE;
+ auto result=FindFirstFileExFromAppW(path.c_str(),level,output,operation,filter,flags);auto error=GetLastError();
+ if((Under(path,data+L"\\6.21\\fortnitegame\\content\\paks")||Under(path,package+L"\\6.21\\fortnitegame\\content\\paks"))&&pakFindLogs.fetch_add(1)<16)if(auto logger=dataLogger.load())logger(std::string("NATIVE_DATA_PAK_DISCOVERY api=")+api+" route="+(Under(path,data)?"downloaded-data":"installed-package")+" found="+(result!=INVALID_HANDLE_VALUE?"true":"false")+" error="+std::to_string(result!=INVALID_HANDLE_VALUE?0:error));
+ SetLastError(error);return result;
+}
+HANDLE WINAPI Find(LPCWSTR name,FINDEX_INFO_LEVELS level,LPVOID output,FINDEX_SEARCH_OPS operation,LPVOID filter,DWORD flags){return FindMapped(name,level,output,operation,filter,flags,"FindFirstFileExW");}
+HANDLE WINAPI First(LPCWSTR name,LPWIN32_FIND_DATAW output){return FindMapped(name,FindExInfoStandard,output,FindExSearchNameMatch,nullptr,0,"FindFirstFileW");}
 BOOL WINAPI Directory(LPCWSTR name,LPSECURITY_ATTRIBUTES security){auto path=Map(name,true);return !path.empty()&&CreateDirectoryFromAppW(path.c_str(),security);}
 BOOL WINAPI Delete(LPCWSTR name){auto path=Map(name,true);return !path.empty()&&DeleteFileFromAppW(path.c_str());}
 BOOL WINAPI RemoveDataDirectory(LPCWSTR name){auto path=Map(name,true);return !path.empty()&&RemoveDirectoryFromAppW(path.c_str());}
@@ -61,11 +75,12 @@ std::wstring MapReadOnlyImageFile(const wchar_t* name){
  if(Executable(logical)){SetLastError(ERROR_ACCESS_DENIED);return {};}
  return Map(name,false);
 }
+void ConfigureDataFilesLogger(DataFilesLogger logger){dataLogger.store(logger);}
 bool ConfigureDataFiles(const wchar_t* packageRoot,const wchar_t* localRoot){std::lock_guard<std::recursive_mutex> lock(gate);if(!packageRoot||!localRoot)return false;auto p=Fold(packageRoot),d=Fold(localRoot);while(!p.empty()&&p.back()==L'\\')p.pop_back();while(!d.empty()&&d.back()==L'\\')d.pop_back();if(p.empty()||d.empty()||p==d)return false;if(!package.empty())return package==p&&data==d;package=p;data=d;WIN32_FILE_ATTRIBUTE_DATA marker={};bundledContent=GetFileAttributesExFromAppW((package+L"\\bundled-content.json").c_str(),GetFileExInfoStandard,&marker)&&!(marker.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY);cwd=package+L"\\6.21\\fortnitegame\\binaries\\win64";return true;}
 bool RegisterCodeFileAlias(const wchar_t* original,const wchar_t* physical){std::lock_guard<std::recursive_mutex> lock(gate);if(!original||!physical||package.empty())return false;auto o=Fold(original),p=Fold(physical);for(auto path:{o,p})if(path.empty()||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;if(!Executable(o)||!Executable(p))return false;auto key=package+L"\\"+o,value=package+L"\\"+p;auto old=code.find(key);if(old!=code.end())return old->second==value;code[key]=value;code[value]=value;return true;}
 void* ResolveDataFileImport(const char* dll,const char* name){if(!dll||!name||(_stricmp(dll,"kernel32.dll")&&_stricmp(dll,"kernelbase.dll")&&_strnicmp(dll,"api-ms-win-core-file",20)&&_strnicmp(dll,"api-ms-win-core-processenvironment-",33)))return nullptr;
 #define API(n,f) if(!strcmp(name,n))return reinterpret_cast<void*>(&f)
- API("GetFullPathNameW",FullPathW);API("GetFullPathNameA",FullPathA);API("CreateFileW",Open);API("GetFileAttributesW",Attributes);API("GetFileAttributesExW",AttributesEx);API("FindFirstFileExW",Find);API("CreateDirectoryW",Directory);API("DeleteFileW",Delete);API("RemoveDirectoryW",RemoveDataDirectory);API("GetCurrentDirectoryW",Current);API("SetCurrentDirectoryW",SetCurrent);
+ API("GetFullPathNameW",FullPathW);API("GetFullPathNameA",FullPathA);API("CreateFileW",Open);API("CreateFileA",OpenA);API("GetFileAttributesW",Attributes);API("GetFileAttributesExW",AttributesEx);API("FindFirstFileExW",Find);API("FindFirstFileW",First);API("CreateDirectoryW",Directory);API("DeleteFileW",Delete);API("RemoveDirectoryW",RemoveDataDirectory);API("GetCurrentDirectoryW",Current);API("SetCurrentDirectoryW",SetCurrent);
 #undef API
  return nullptr;
 }
