@@ -233,7 +233,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.9.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.10.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   // Read the same real own-user known folder requested by the original main
@@ -283,6 +283,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   auto protectImage=reinterpret_cast<ClientImageProtect>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualProtect"));
   auto initialized=ApplyClientImageStartup(module,kPreparedOriginalImageBytes,kPreparedClientProtections,kPreparedClientProtectionCount,queryImage,protectImage,Log);
   if(FAILED(initialized)){Log("NATIVE_IMAGE_STARTUP_FAILED HRESULT="+std::to_string(static_cast<unsigned long>(initialized)));return initialized;}
+  auto compilerImports=VerifyClientImportCopies(module,kPreparedOriginalImageBytes,kPreparedCompilerImports,kPreparedCompilerImportCount,queryImage,Log);if(FAILED(compilerImports))return compilerImports;
   if(!BindWinMainCommandImport(module,"api-ms-win-crt-runtime-l1-1-0.dll",reinterpret_cast<void*>(&Hollowwake::PackagedWinMainTail))){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED _get_narrow_winmain_command_line binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   Log("NATIVE_STARTUP_BOUND image-local WinMain command import; host CRT globals unchanged");
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}

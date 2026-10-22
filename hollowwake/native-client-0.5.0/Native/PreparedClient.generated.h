@@ -8,3 +8,6 @@ static constexpr SIZE_T kPreparedOriginalImageBytes=0;
 static const BYTE kPreparedClientSha[32]={0};
 static const ClientImageProtection kPreparedClientProtections[]={{0,0,0}};
 static constexpr unsigned kPreparedClientProtectionCount=0;
+
+static const ClientCompilerImportCopy kPreparedCompilerImports[]={{0,0,nullptr,nullptr}};
+static constexpr unsigned kPreparedCompilerImportCount=0;
