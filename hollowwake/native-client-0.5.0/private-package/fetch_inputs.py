@@ -72,7 +72,14 @@ def fallback(manifest,destination):
   except (OSError,ValueError,RuntimeError,subprocess.SubprocessError) as e:failures.append({'source':url,'error':type(e).__name__,'message':str(e)[:200]})
  raise RuntimeError('No verified private source available: '+json.dumps(failures))
 if __name__=='__main__':
- p=argparse.ArgumentParser();p.add_argument('manifest');p.add_argument('output');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('manifest');p.add_argument('output');p.add_argument('--private-lease');a=p.parse_args()
+ if a.private_lease:
+  lease=json.loads(Path(a.private_lease).read_text(encoding='utf-8-sig'))
+  if lease.get('runId')!=os.environ.get('GITHUB_RUN_ID') or lease.get('build')!='6.21-CL-4526925' or lease.get('archiveBytes')!=12528679454 or lease.get('archiveSha256')!='bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5' or lease.get('private') is not True or not time.time()*1000+60000<lease.get('expiresAt',0)<=time.time()*1000+2*60*60*1000:raise ValueError('Private code input lease identity/expiry differs')
+  try:result=fetch_code_prefix(a.manifest,a.output,source_url=lease['archiveUrl'])
+  except (OSError,ValueError,RuntimeError,zipfile.BadZipFile,zlib.error) as error:
+   print(json.dumps({'privateCodeInputFailed':type(error).__name__,'unverifiedCodeStaged':False}));raise SystemExit(1)
+  print(json.dumps(result));raise SystemExit(0)
  try:result=fetch_code_prefix(a.manifest,a.output)
  except (OSError,ValueError,RuntimeError,zipfile.BadZipFile,zlib.error) as e:
   print(json.dumps({'primarySourceFailure':type(e).__name__,'message':str(e)[:180]}));result=fallback(a.manifest,a.output)

@@ -3,10 +3,10 @@ A prefix is not a complete archive. Every output still needs its recorded SHA256
 This avoids requiring the central directory or a multi-GB game-data transfer.
 """
 from pathlib import Path
-import json,hashlib,urllib.request,zlib,shutil
+import json,hashlib,urllib.request,urllib.parse,zlib,shutil
 from fetch_boot import NoRedirect
 SOURCE='https://public-build-archives-bucket.erafn.dev/6.21.zip'
-def fetch_code_prefix(manifest,destination,opener=None):
+def fetch_code_prefix(manifest,destination,opener=None,source_url=None):
  m=json.loads(Path(manifest).read_text());out=Path(destination)
  if m['source']!=SOURCE or m['archiveBytes']!=12528679454:raise ValueError('Unexpected pinned source')
  files=[x for x in m['files'] if x['path'].lower().endswith(('.exe','.dll'))]
@@ -29,7 +29,12 @@ def fetch_code_prefix(manifest,destination,opener=None):
  prefix=out.parent/(out.name+'.unverified-prefix')
  if prefix.exists():raise ValueError('Refusing overwrite of prior source evidence')
  opener=opener or urllib.request.build_opener(NoRedirect())
- request=urllib.request.Request(SOURCE,headers={'Range':f'bytes=0-{required-1}','User-Agent':'Hollowwake-PrivateStaticBuild/0.5'})
+ delivery=SOURCE
+ if source_url is not None:
+  u=urllib.parse.urlsplit(source_url);q=urllib.parse.parse_qs(u.query)
+  if u.scheme!='https' or u.netloc!='ricswvi50gagbcuh.private.blob.vercel-storage.com' or u.fragment or u.path!='/client621/bae66d8b0ff7e8ebea4361e835579c180bc2a2e618d04808f72b40214ababee5/6.21.zip' or len(u.query)>8192 or not q.get('vercel-blob-signature') or not q.get('vercel-blob-delegation'):raise ValueError('Private code input lease host/path differs')
+  delivery=source_url
+ request=urllib.request.Request(delivery,headers={'Range':f'bytes=0-{required-1}','User-Agent':'Hollowwake-PrivateStaticBuild/0.5'})
  with opener.open(request,timeout=90) as response,prefix.open('xb') as output:
   if response.status not in (200,206):raise ValueError('Source refused prefix request')
   if response.status==206 and response.headers.get('Content-Range')!=f'bytes 0-{required-1}/{m["archiveBytes"]}':raise ValueError('Incorrect source range')
