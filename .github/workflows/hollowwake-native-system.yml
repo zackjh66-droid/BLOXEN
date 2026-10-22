@@ -2,7 +2,7 @@ name: Hollowwake native-system route investigation
 on:
   push:
     branches: ['hollowwake/native-system-route']
-    paths: ['hollowwake/runtime-native-route/**', '.github/workflows/hollowwake-native-system.yml']
+    paths: ['hollowwake/runtime-native-route/**', 'hollowwake/experimental-0.4.7/Native/Native.vcxproj', '.github/workflows/hollowwake-native-system.yml']
   workflow_dispatch:
     inputs:
       build:
