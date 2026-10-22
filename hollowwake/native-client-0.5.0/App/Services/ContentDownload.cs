@@ -41,10 +41,12 @@ namespace Hollowwake.Services {
    if(doc.GetNamedNumber("schema")!=1||doc.GetNamedString("build")!="6.21-CL-4526925")throw new IOException("Unknown installed code inventory.");
    var records=new System.Collections.Generic.List<ContentFile>();
    foreach(var value in doc.GetNamedArray("files")){var f=value.GetObject();records.Add(new ContentFile{Path=f.GetNamedString("path"),Bytes=(long)f.GetNamedNumber("bytes"),Sha256=f.GetNamedString("sha256")});}
-   string variant=doc.GetNamedString("providerVariant","audio");int expected=variant=="audio"?47:variant=="audio-mesa"?51:0;
-   if(expected==0||records.Count!=expected)throw new IOException("Installed native code inventory is incomplete.");
-   foreach(string required in new[]{"HollowwakeClientRuntime.dll","HWAUD.dll","dsoal-aldrv.dll"})if(!records.Exists(f=>f.Path==required))throw new IOException("Required runtime provider is absent.");
-   if(variant=="audio-mesa")foreach(string required in new[]{"HWMGL.dll","libgallium_wgl.dll","libglapi.dll","DXIL.dll"})if(!records.Exists(f=>f.Path==required))throw new IOException("Required Mesa provider is absent.");
+   var manifest=JsonObject.Parse(await FileIO.ReadTextAsync(await Windows.ApplicationModel.Package.Current.InstalledLocation.GetFileAsync("native-package-manifest.json")));
+   if(manifest.GetNamedString("build")!=doc.GetNamedString("build"))throw new IOException("Signed prepared code build differs.");
+   var images=new System.Collections.Generic.List<string>();foreach(var value in manifest.GetNamedArray("files"))images.Add(value.GetObject().GetNamedString("packageRelativePath"));
+   var proxies=new System.Collections.Generic.List<string>();foreach(var value in manifest.GetNamedArray("proxyDlls"))proxies.Add(value.GetObject().GetNamedString("proxyDll"));
+   var indexed=new System.Collections.Generic.List<string>();foreach(var record in records)indexed.Add(record.Path);
+   int expected=CodeInventory.Validate(images,proxies,indexed,doc.GetNamedString("providerVariant","audio"));
    long bytes=await Task.Run(()=>ContentTransfer.VerifyCode(installed,records,progress,token));
    File.WriteAllText(Path.Combine(root,"content-code-audit.txt"),"CONTENT_CODE bytes="+bytes+" total="+expected+" registered="+expected+" missing=0\n");progress.Report("Client installed: "+(bytes/1000000.0).ToString("F1")+" MB · "+expected+"/"+expected+" code files verified");return bytes;
   }

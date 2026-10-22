@@ -148,6 +148,9 @@ if($LASTEXITCODE){throw 'Data route test build failed'}
 & "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnDataFixture') 2>&1|Tee-Object (Join-Path $OutputDirectory 'data-test.log');if($LASTEXITCODE){throw 'Actual data routing failed'}
 & "$OutputDirectory\DataFilesTest.exe" (Join-Path $OutputDirectory 'OwnedBundledDataFixture') bundled 2>&1|Tee-Object (Join-Path $OutputDirectory 'bundled-data-test.log');if($LASTEXITCODE){throw 'Actual bundled-data routing failed'}
 $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
+& $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'CodeInventoryTest.exe')) (Join-Path $source 'App\Services\CodeInventory.cs') (Join-Path $source 'tests\CodeInventoryTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'code-inventory-build.log')
+if($LASTEXITCODE){throw 'Signed code inventory test build failed'}
+& (Join-Path $OutputDirectory 'CodeInventoryTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'code-inventory-test.log');if($LASTEXITCODE){throw 'Exact signed dependency/provider set checks failed'}
 & $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe')) (Join-Path $source 'App\Services\DiagnosticSanitizer.cs') (Join-Path $source 'tests\DiagnosticSanitizerTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-build.log')
 if($LASTEXITCODE){throw 'Diagnostic sanitizer compilation failed'}
 & (Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-test.log');if($LASTEXITCODE){throw 'Diagnostic secret/field boundary tests failed'}
