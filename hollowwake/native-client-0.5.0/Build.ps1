@@ -204,7 +204,9 @@ try {
   foreach($proxy in $plan.proxyDlls){if(!$package.GetEntry($proxy.proxyDll)){throw 'Native import proxy missing from private APPX'}}
   $codeIndex=$package.GetEntry('package-code-index.json');if(!$codeIndex){throw 'Signed client code index missing'}
   $reader=[IO.StreamReader]::new($codeIndex.Open());try{$codePlan=$reader.ReadToEnd()|ConvertFrom-Json}finally{$reader.Dispose()}
-  if($codePlan.files.Count-ne (47+$extraCode.Count)){throw 'Unexpected installed client code count'}
+  $expectedCodePaths=@($plan.files|ForEach-Object {$_.packageRelativePath})+@($plan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
+  $expectedCodePaths=@($expectedCodePaths|Sort-Object -Unique);$actualCodePaths=@($codePlan.files|ForEach-Object {$_.path})
+  if($actualCodePaths.Count-ne $expectedCodePaths.Count-or @($actualCodePaths|Sort-Object -Unique).Count-ne $actualCodePaths.Count-or @(Compare-Object $expectedCodePaths @($actualCodePaths|Sort-Object)).Count){throw 'Installed client code index differs from exact prepared dependency/provider set'}
   foreach($record in $codePlan.files){$entry=$package.GetEntry($record.path);if(!$entry-or $entry.Length-ne $record.bytes){throw 'Installed client code missing/resized'};$hash=[Security.Cryptography.SHA256]::Create();$stream=$entry.Open();try{$actual=([BitConverter]::ToString($hash.ComputeHash($stream))).Replace('-','').ToLowerInvariant()}finally{$stream.Dispose();$hash.Dispose()};if($actual-ne $record.sha256){throw 'Installed client code hash differs'}}
   @{result='PASS private signed APPX contents match prepared hashes';images=$plan.files.Count;proxies=$plan.proxyDlls.Count;fortniteExecuted=$false;publiclyUploaded=$false}|ConvertTo-Json|Set-Content (Join-Path $OutputDirectory 'private-package-audit.json')
  }
