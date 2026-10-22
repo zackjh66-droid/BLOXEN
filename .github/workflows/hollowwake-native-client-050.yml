@@ -210,14 +210,17 @@ jobs:
         continue-on-error: true
         shell: powershell
         run: ./hollowwake/native-client-0.5.0/tests/Test-IntegratedWindowsClient.ps1 -OutputDirectory artifacts/native-client-050/IntegratedWindows -PrivateInputLeasePath "$env:RUNNER_TEMP/hw-private-input-lease.json"
-      - name: Encrypt private client delivery for the authorized recipient
+      - name: Preserve recipient-encrypted signed candidate for private analysis
         id: private_encrypt
-        if: ${{ steps.private_source.outcome == 'success' }}
+        if: ${{ always() && steps.public_build.outcome == 'success' }}
         shell: pwsh
         run: |
+          if(!(Test-Path "$env:RUNNER_TEMP/HollowwakePrivatePackage/private-package-audit.json")){Write-Host 'No integrity-verified private candidate exists';exit 0}
           ./hollowwake/native-client-0.5.0/private-package/Export-EncryptedDelivery.ps1 -InputDirectory "$env:RUNNER_TEMP/HollowwakePrivatePackage" -OutputDirectory "$env:RUNNER_TEMP/HollowwakeEncryptedDelivery" -RecipientPublicKey './hollowwake/native-client-0.5.0/private-package/delivery-recipient-public.pem'
+          if(!(Test-Path "$env:RUNNER_TEMP/HollowwakeEncryptedDelivery/delivery.json")){throw 'Encrypted candidate receipt absent'}
+          'ready=true' >> $env:GITHUB_OUTPUT
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: ${{ steps.private_source.outcome == 'success' }}
+        if: ${{ always() && steps.private_encrypt.outcome == 'success' && steps.private_encrypt.outputs.ready == 'true' }}
         with:
           name: hollowwake-private-client-recipient-encrypted
           path: ${{ runner.temp }}/HollowwakeEncryptedDelivery/
@@ -231,7 +234,7 @@ jobs:
           @{integratedWindows='${{ steps.integrated_windows.outcome }}';mesaBehavior='${{ steps.mesa_behavior.outcome }}';audioBehavior='${{ steps.audio_behavior.outcome }}';audioProvider='${{ steps.audio_candidate.outcome }}';mesaProvider='${{ steps.mesa_candidate.outcome }}';fullContentPackage='${{ steps.full_content.outcome }}';fullEncryptedDelivery='${{ steps.full_encrypt.outcome }}';neoDependencySignature='${{ steps.neo_dependency.outcome }}';publicPackage='${{ steps.public_build.outcome }}';privateInputPackaging='${{ steps.private_source.outcome }}';recipientEncryptedDelivery='${{ steps.private_encrypt.outcome }}';plaintextGameFilesInPublicDownload=$false;originalClientExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/workflow-outcomes.json
           $audit=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/private-package-audit.json'
           if(Test-Path $audit){Copy-Item $audit artifacts/native-client-050/private-package-audit.json}
-          foreach($name in @('launcher-startup-results.json','launcher-startup.log','launcher-native-imports.log','signature.log','package-results.json')){$file=Join-Path $env:RUNNER_TEMP ('HollowwakePrivatePackage/'+$name);if(Test-Path $file){Copy-Item $file ('artifacts/native-client-050/private-'+$name)}}
+          foreach($name in @('launcher-activation-failure.json','launcher-startup-results.json','launcher-startup.log','launcher-native-imports.log','signature.log','package-results.json')){$file=Join-Path $env:RUNNER_TEMP ('HollowwakePrivatePackage/'+$name);if(Test-Path $file){Copy-Item $file ('artifacts/native-client-050/private-'+$name)}}
           $captures=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage/WindowsScreenshots';if(Test-Path $captures){Copy-Item $captures artifacts/native-client-050/WindowsScreenshots -Recurse}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

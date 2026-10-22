@@ -1,5 +1,22 @@
 param([Parameter(Mandatory=$true)][string]$PackagePath,[Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
+$activationEvidenceSince=[DateTime]::UtcNow
+trap {
+ $failureRecord=$_;$chain=@();$exception=$failureRecord.Exception
+ while($exception){$chain+=@{type=$exception.GetType().FullName;hresult=('0x'+$exception.HResult.ToString('X8'));message=$exception.Message};$exception=$exception.InnerException}
+ $events=@()
+ foreach($channel in @('Microsoft-Windows-AppModel-Runtime/Admin','Microsoft-Windows-TWinUI/Operational','Application')){
+  try{foreach($event in (Get-WinEvent -FilterHashtable @{LogName=$channel;StartTime=$activationEvidenceSince.AddSeconds(-5)} -MaxEvents 40 -ErrorAction Stop)){
+   $message=$event.Message
+   if($message-match 'Hollowwake'){$events+=@{channel=$channel;id=$event.Id;provider=$event.ProviderName;time=$event.TimeCreated.ToUniversalTime().ToString('o');message=$message.Substring(0,[Math]::Min(12000,$message.Length))}}
+  }}catch{}
+ }
+ New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
+ @{operation='Signed private package ordinary activation/startup check';failure=$chain;events=$events;fortniteEntryEstablished=$false}|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'launcher-activation-failure.json')
+ if($data){$startup=Join-Path $data 'launcher-startup.log';if(Test-Path $startup){Copy-Item $startup (Join-Path $OutputDirectory 'launcher-startup.log')}}
+ Write-Host ('ACTUAL_LAUNCHER_FAILURE '+($chain|ConvertTo-Json -Compress))
+ throw $failureRecord
+}
 $dependencies=@(Get-ChildItem (Join-Path (Split-Path $PackagePath) 'Dependencies\x64') -Filter '*.appx'|ForEach-Object{$_.FullName})
 Add-AppxPackage -Path $PackagePath -DependencyPath $dependencies -ForceApplicationShutdown
 $package=Get-AppxPackage -Name 'Hollowwake.NativeClientExperiment'
@@ -8,7 +25,7 @@ $data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\Loca
 Add-Type @'
 using System;using System.Runtime.InteropServices;
 [ComImport,Guid("2e941141-7f97-4756-ba1d-9decde894a3d"),InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]interface IHwStartupActivation{[PreserveSig]int ActivateApplication([MarshalAs(UnmanagedType.LPWStr)]string id,[MarshalAs(UnmanagedType.LPWStr)]string args,uint options,out uint pid);[PreserveSig]int ActivateForFile(IntPtr x,[MarshalAs(UnmanagedType.LPWStr)]string y,out uint z);[PreserveSig]int ActivateForProtocol(IntPtr x,out uint y);}
-public class HwStartupActivation{public static uint Launch(string id){var m=(IHwStartupActivation)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")));uint p;Marshal.ThrowExceptionForHR(m.ActivateApplication(id,"",0,out p));return p;}}
+public class HwStartupActivation{public static uint Launch(string id){var m=(IHwStartupActivation)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")));uint p;int hr=m.ActivateApplication(id,"",0,out p);if(hr<0)throw new COMException("ActivateApplication failed: 0x"+hr.ToString("X8"),hr);return p;}}
 '@
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
