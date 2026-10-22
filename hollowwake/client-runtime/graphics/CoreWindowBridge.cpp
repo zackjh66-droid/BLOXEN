@@ -5,23 +5,32 @@
 #include "NativeFactoryBridge.h"
 #include <wrl/client.h>
 #include <new>
+#include <atomic>
 using Microsoft::WRL::ComPtr;
 namespace Hollowwake {
+static std::atomic<void(*)(const std::string&)> presentationLogger{nullptr};
+static std::atomic<unsigned> presentationEvents{0};
+void SetPresentationLogger(void(*logger)(const std::string&)){presentationLogger.store(logger);}
+static void PresentationEvent(const DXGI_SWAP_CHAIN_DESC& d,const char* stage,HRESULT result){
+ auto logger=presentationLogger.load();if(!logger||presentationEvents.fetch_add(1)>=16)return;auto error=GetLastError();
+ logger(std::string("NATIVE_PRESENTATION stage=")+stage+" HRESULT="+std::to_string(static_cast<unsigned long>(result))+" width="+std::to_string(d.BufferDesc.Width)+" height="+std::to_string(d.BufferDesc.Height)+" format="+std::to_string(static_cast<unsigned>(d.BufferDesc.Format))+" buffers="+std::to_string(d.BufferCount)+" samples="+std::to_string(d.SampleDesc.Count)+" quality="+std::to_string(d.SampleDesc.Quality)+" flags="+std::to_string(d.Flags)+" windowed="+std::to_string(static_cast<unsigned>(!!d.Windowed)));SetLastError(error);
+}
 static HRESULT(*compositionAttach)(IDXGISwapChain*)=nullptr;
 void SetCompositionAttachment(HRESULT(*attach)(IDXGISwapChain*)){compositionAttach=attach;}
 HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CHAIN_DESC& d,IDXGISwapChain** result,IUnknown* virtualFactory){
  if(!result)return E_POINTER;*result=nullptr;
  if(!window||!device)return E_INVALIDARG;
+ PresentationEvent(d,"request",S_OK);
  // Never silently convert exclusive, multisampled or mode-switching requests.
- if(!d.Windowed||d.SampleDesc.Count!=1||d.SampleDesc.Quality||d.Flags||d.BufferCount>16)return DXGI_ERROR_UNSUPPORTED;
- if(d.BufferDesc.Format!=DXGI_FORMAT_R8G8B8A8_UNORM&&d.BufferDesc.Format!=DXGI_FORMAT_B8G8R8A8_UNORM)return DXGI_ERROR_UNSUPPORTED;
+ if(!d.Windowed||d.SampleDesc.Count!=1||d.SampleDesc.Quality||d.Flags||d.BufferCount>16){PresentationEvent(d,"unsupported-request",DXGI_ERROR_UNSUPPORTED);return DXGI_ERROR_UNSUPPORTED;}
+ if(d.BufferDesc.Format!=DXGI_FORMAT_R8G8B8A8_UNORM&&d.BufferDesc.Format!=DXGI_FORMAT_B8G8R8A8_UNORM&&d.BufferDesc.Format!=DXGI_FORMAT_R10G10B10A2_UNORM&&d.BufferDesc.Format!=DXGI_FORMAT_R16G16B16A16_FLOAT){PresentationEvent(d,"unsupported-format",DXGI_ERROR_UNSUPPORTED);return DXGI_ERROR_UNSUPPORTED;}
  ComPtr<IDXGIDevice> dxgi;HRESULT hr=device->QueryInterface(IID_PPV_ARGS(&dxgi));if(FAILED(hr))return hr;
  ComPtr<IDXGIAdapter> adapter;hr=dxgi->GetAdapter(&adapter);if(FAILED(hr))return hr;
  ComPtr<IDXGIFactory2> factory;hr=adapter->GetParent(IID_PPV_ARGS(&factory));if(FAILED(hr))return hr;
  DXGI_SWAP_CHAIN_DESC1 s={};s.Width=d.BufferDesc.Width;s.Height=d.BufferDesc.Height;s.Format=d.BufferDesc.Format;s.SampleDesc.Count=1;s.BufferUsage=d.BufferUsage;
  s.BufferCount=d.BufferCount<2?2:d.BufferCount;s.Scaling=DXGI_SCALING_STRETCH;s.SwapEffect=DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;s.AlphaMode=DXGI_ALPHA_MODE_IGNORE;
- ComPtr<IDXGISwapChain1> chain;hr=compositionAttach?factory->CreateSwapChainForComposition(device,&s,nullptr,&chain):factory->CreateSwapChainForCoreWindow(device,window,&s,nullptr,&chain);if(FAILED(hr))return hr;
- if(compositionAttach){hr=compositionAttach(chain.Get());if(FAILED(hr))return hr;}
+ ComPtr<IDXGISwapChain1> chain;hr=compositionAttach?factory->CreateSwapChainForComposition(device,&s,nullptr,&chain):factory->CreateSwapChainForCoreWindow(device,window,&s,nullptr,&chain);PresentationEvent(d,"native-create",hr);if(FAILED(hr))return hr;
+ if(compositionAttach){hr=compositionAttach(chain.Get());PresentationEvent(d,"composition-attach",hr);if(FAILED(hr))return hr;}
  return WrapWindowedChain(chain.Get(),d.OutputWindow,__uuidof(IDXGISwapChain),reinterpret_cast<void**>(result),virtualFactory);
 }
 HRESULT CreateCoreDeviceAndSwapChain(IUnknown* window,IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,const DXGI_SWAP_CHAIN_DESC* desc,IDXGISwapChain** swap,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context){

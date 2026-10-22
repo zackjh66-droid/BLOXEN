@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <dxgi1_2.h>
+#include <string>
 namespace Hollowwake {
 // Call on the owning CoreWindow thread. window is the real CoreWindow IUnknown.
 HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CHAIN_DESC& desktop,IDXGISwapChain** result,IUnknown* virtualFactory=nullptr);
@@ -28,3 +29,5 @@ namespace Hollowwake {
 HRESULT UnwrapCoreAdapter(IDXGIAdapter* adapter,IDXGIAdapter** result);
 HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE software,UINT flags,const D3D_FEATURE_LEVEL* levels,UINT count,UINT sdk,ID3D11Device** device,D3D_FEATURE_LEVEL* chosen,ID3D11DeviceContext** context);
 }
+
+namespace Hollowwake { void SetPresentationLogger(void(*logger)(const std::string&)); }
