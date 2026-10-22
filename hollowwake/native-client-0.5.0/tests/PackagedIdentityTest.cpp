@@ -5,6 +5,8 @@
 #include <cstring>
 #include <string>
 #include <iostream>
+static std::string missingExport;
+static void CaptureMissing(const std::string& text){missingExport=text;SetLastError(621);}
 template<class T>T api(const char* name){auto p=Hollowwake::ResolvePackagedNamespaceImport("kernel32.dll",name);assert(p);return reinterpret_cast<T>(p);}
 int wmain(int argc,wchar_t** argv){
  assert(argc==2);wchar_t full[32768];assert(GetFullPathNameW(argv[1],32768,full,nullptr));
@@ -30,6 +32,9 @@ int wmain(int argc,wchar_t** argv){
  SetLastError(0);assert(filename(reinterpret_cast<HMODULE>(1),result,32768)==0&&GetLastError()==ERROR_INVALID_HANDLE);
  char expected[32768],narrow[32768];assert(WideCharToMultiByte(CP_ACP,0,path.c_str(),-1,expected,32768,nullptr,nullptr));
  assert(filenameA(nullptr,narrow,32768)==strlen(expected)&&!strcmp(narrow,expected));char shortA[4];assert(filenameA(owned,shortA,4)==4&&shortA[3]==0);
+ auto proc=api<decltype(&GetProcAddress)>("GetProcAddress");Hollowwake::ConfigurePackagedNamespaceLogger(CaptureMissing);
+ SetLastError(0);assert(!proc(owned,"OwnedMissingExport")&&GetLastError()==ERROR_PROC_NOT_FOUND);assert(missingExport.find("!OwnedMissingExport Win32=127")!=std::string::npos);
+ assert(proc(owned,"OwnedIdentity")==reinterpret_cast<FARPROC>(entry));
  // Guest aliasing must not change the host OS identity or the DLL's real bytes.
  assert(GetModuleFileNameW(owned,result,32768));assert(!_wcsicmp(result,physical.c_str()));assert(entry()==621);
  std::cout<<"PASS original logical EXE identity, real OS DLL ownership, W/A lengths and truncation, path aliases and invalid handles; desktop owned fixture only\n";

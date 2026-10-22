@@ -1,6 +1,7 @@
 param([Parameter(Mandatory=$true)][string]$GameData,[Parameter(Mandatory=$true)][string]$OutputDirectory)
 # Conditional comparison only: exact unchanged original EXE, real verified data,
 # no project/Epic credentials and a per-program outbound firewall block.
+$attemptStarted=[DateTime]::UtcNow
 $ErrorActionPreference='Stop';$process=$null;$junctions=@();$rule='HW-OriginalSource-'+[Guid]::NewGuid().ToString('N')
 $original=Join-Path $env:RUNNER_TEMP 'HollowwakePrivateInputs/6.21';$exe=Join-Path $original 'FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
 $pin='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
@@ -35,5 +36,6 @@ try{
  if($process-and !$process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
  Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
  foreach($link in $junctions){if((Get-Item -LiteralPath $link).Attributes-band [IO.FileAttributes]::ReparsePoint){[IO.Directory]::Delete($link,$false)}}
+ if($privateProfile){try{$logOutput=Join-Path $OutputDirectory 'OriginalSourceLogs';New-Item -ItemType Directory -Force $logOutput|Out-Null;& (Join-Path $PSScriptRoot 'Collect-GameLogs.ps1') -OutputDirectory $logOutput -Since $attemptStarted -Roots @{sourceProfile=(Join-Path $privateProfile 'FortniteGame/Saved/Logs');sourceTree=(Join-Path $original 'FortniteGame/Saved/Logs');windowsLocal=(Join-Path $env:LOCALAPPDATA 'FortniteGame/Saved/Logs')}}catch{$result.logCollectionFailure=$_.Exception.GetType().Name}}
  $result|ConvertTo-Json -Depth 9|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'original-source-with-data.json')
 }

@@ -11,6 +11,11 @@
 #include <vector>
 namespace {
 std::recursive_mutex gate;
+Hollowwake::PackagedNamespaceLogger namespaceLogger=nullptr;unsigned missingExports=0;
+void MissingExport(const std::string& module,LPCSTR name,DWORD error){
+ if(!namespaceLogger||missingExports>=32||!name||strnlen_s(name,221)>220)return;std::string safe;for(auto p=name;*p;++p){unsigned char c=*p;if(!((c>='a'&&c<='z')||(c>='A'&&c<='Z')||(c>='0'&&c<='9')||strchr("_?@$#.:~+<>-",c)))return;safe+=static_cast<char>(c);}
+ if(!safe.empty()){++missingExports;namespaceLogger("NATIVE_DYNAMIC_IMPORT_MISSING "+module+"!"+safe+" Win32="+std::to_string(error));}
+}
 std::wstring mainName,originalMainPath;std::string originalMainBase;std::wstring command;std::string commandA;
 struct Facade {std::string name;};std::map<std::string,Facade> facades;
 std::map<std::string,std::wstring> packaged;
@@ -53,8 +58,8 @@ HMODULE WINAPI LoadW(LPCWSTR name,HANDLE file,DWORD flags){std::lock_guard<std::
 HMODULE WINAPI LoadA(LPCSTR name,HANDLE file,DWORD flags){auto text=Wide(name);if(text.empty()){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}return LoadW(text.c_str(),file,flags);}
 HMODULE WINAPI LoadSimpleW(LPCWSTR name){return LoadW(name,nullptr,0);}HMODULE WINAPI LoadSimpleA(LPCSTR name){return LoadA(name,nullptr,0);}
 FARPROC WINAPI Proc(HMODULE h,LPCSTR name){std::lock_guard<std::recursive_mutex> lock(gate);if(!name){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}auto value=reinterpret_cast<ULONG_PTR>(name);std::string ordinal;if(value<=65535){ordinal="#"+std::to_string(value);name=ordinal.c_str();}
- if(auto module=Virtual(h)){auto p=HWResolvePackagedImport(module->name.c_str(),name);if(!p)SetLastError(ERROR_PROC_NOT_FOUND);return reinterpret_cast<FARPROC>(p);}
- if(Known(h))return ::GetProcAddress(h,value<=65535?reinterpret_cast<LPCSTR>(value):name);
+ if(auto module=Virtual(h)){auto p=HWResolvePackagedImport(module->name.c_str(),name);if(!p){MissingExport(module->name,name,ERROR_PROC_NOT_FOUND);SetLastError(ERROR_PROC_NOT_FOUND);}return reinterpret_cast<FARPROC>(p);}
+ if(Known(h)){auto p=::GetProcAddress(h,value<=65535?reinterpret_cast<LPCSTR>(value):name);auto error=GetLastError();if(!p){std::string module="main.exe";for(auto& item:packaged)if(h==NativeModule(item.first)){module=item.first;break;}MissingExport(module,name,error);}SetLastError(error);return p;}
  SetLastError(ERROR_INVALID_HANDLE);return nullptr;
 }
 BOOL WINAPI Release(HMODULE h){std::lock_guard<std::recursive_mutex> lock(gate);if(Virtual(h))return TRUE;
@@ -84,6 +89,7 @@ DWORD WINAPI FilenameA(HMODULE h,LPSTR output,DWORD capacity){
 LPWSTR WINAPI CommandW(){return command.empty()?nullptr:&command[0];}LPSTR WINAPI CommandA(){return commandA.empty()?nullptr:&commandA[0];}
 }
 namespace Hollowwake {
+void ConfigurePackagedNamespaceLogger(PackagedNamespaceLogger logger){std::lock_guard<std::recursive_mutex> lock(gate);namespaceLogger=logger;}
 char* __cdecl PackagedWinMainTail(){std::lock_guard<std::recursive_mutex> lock(gate);if(commandA.empty())return nullptr;size_t i=0;bool quoted=false;while(i<commandA.size()){char c=commandA[i];if(c=='"')quoted=!quoted;else if(!quoted&&(c==' '||c=='\t'))break;++i;}while(i<commandA.size()&&(commandA[i]==' '||commandA[i]=='\t'))++i;return &commandA[0]+i;}
 bool ConfigurePackagedRoot(const wchar_t* root){std::lock_guard<std::recursive_mutex> lock(gate);auto path=Canonical(root);if(path.empty()||(!packageRoot.empty()&&packageRoot!=path))return false;if(packageRoot.empty())packageRootDisplay=root;packageRoot=path;return true;}
 bool RegisterPackagedDependency(const wchar_t* module,const wchar_t* relative,const wchar_t* original){std::lock_guard<std::recursive_mutex> lock(gate);std::string key;if(!Normalize(module,key)||!relative||!relative[0]||wcsnlen_s(relative,512)==512||NativeSystemFacadeAvailable(key.c_str()))return false;std::wstring path(relative);if(path[0]==L'/'||path[0]==L'\\'||path.find(L':')!=std::wstring::npos||path.find(L"..")!=std::wstring::npos)return false;for(auto c:path)if(!((c>=L'a'&&c<=L'z')||(c>=L'A'&&c<=L'Z')||(c>=L'0'&&c<=L'9')||c==L'.'||c==L'-'||c==L'_'||c==L'/'||c==L'\\'))return false;if(packageRoot.empty()||!original||wcsnlen_s(original,512)==512)return false;auto origin=Canonical(original);if(origin.empty()||origin[0]==L'\\'||origin.find(L':')!=std::wstring::npos||origin.find(L"..")!=std::wstring::npos)return false;pathAliases[packageRoot+L"\\"+origin]=key;auto old=packaged.find(key);if(old!=packaged.end())return old->second==path;packaged[key]=path;return true;}
