@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
 $result=[ordered]@{stage='find-installed-package';windowsTest=$true;xboxTested=$false;launchButtonInvoked=$false;nativeThreadCreated=$false;originalLobbyObserved=$false;serverMenusVerified=$false;testAccount=$null;failure=$null}
-$applicationPid=0;$browser=$null;$data=$null;$attemptStarted=[DateTime]::UtcNow
+$applicationPid=0;$processObserver=$null;$executionTrace=$null;$browser=$null;$data=$null;$attemptStarted=[DateTime]::UtcNow
 function SaveResult { $result|ConvertTo-Json -Depth 7|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'integrated-windows-result.json') }
 function Post($path,$body){Invoke-RestMethod -Method Post -Uri ($origin+$path) -WebSession $browser -Headers @{Origin=$origin} -ContentType 'application/json' -Body ($body|ConvertTo-Json -Compress) -TimeoutSec 30}
 Add-Type -AssemblyName UIAutomationClient
@@ -35,7 +35,7 @@ using System;using System.Runtime.InteropServices;
 public class HwIntegratedActivation{public static uint Launch(string id){var m=(IHwIntegratedActivation)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")));uint p;Marshal.ThrowExceptionForHR(m.ActivateApplication(id,"",0,out p));return p;}}
 '@
  $result.stage='normal-app-activation-and-real-device-link';SaveResult
- $applicationPid=[HwIntegratedActivation]::Launch($package.PackageFamilyName+'!App');$deadline=[DateTime]::UtcNow.AddSeconds(90);$code=$null
+ $applicationPid=[HwIntegratedActivation]::Launch($package.PackageFamilyName+'!App');$processObserver=[Diagnostics.Process]::GetProcessById($applicationPid);$null=$processObserver.Handle;$deadline=[DateTime]::UtcNow.AddSeconds(90);$code=$null
  do{$e=Control 'CodeText';if($e){$candidate=$e.Current.Name.Replace(' ','').Replace('-','');if($candidate-match '^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$'){$code=$candidate;break}};if(!(Get-Process -Id $applicationPid -ErrorAction SilentlyContinue)){throw 'App exited before device approval'};Start-Sleep -Milliseconds 500}while([DateTime]::UtcNow-lt $deadline)
  if(!$code){throw 'Actual app did not display a current device-link code'}
  $null=Post '/api/link/verify' @{user_code=$code};$null=Post '/api/link/approve' @{user_code=$code};$code=$null
@@ -51,6 +51,17 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  }while([DateTime]::UtcNow-lt $deadline)
  if($tail-notmatch 'CONTENT_READY bytes=26449827840 total=139 missing=0'){throw 'Production app did not verify the complete selected data; game launch not attempted'}
  Screenshot 'Windows-verified-data-before-real-launch'
+ # Internal debugger: attach to this exact installed test package before its
+ # real launch action. It observes one measured transfer, preserves the OS
+ # exception path, and is never included in an Xbox delivery.
+ $traceExe=Join-Path $env:RUNNER_TEMP 'HWNativeExecutionTrace.exe';$traceLog=Join-Path $OutputDirectory 'native-execution-trace.log'
+ if(!(Test-Path $traceExe)){throw 'Internal execution trace was not compiled'}
+ $mainPath=Join-Path $package.InstallLocation '6.21/FortniteGame/Binaries/Win64/Fortnite621.imports.private.dll';$mainHash=(Get-FileHash $mainPath -Algorithm SHA256).Hash.ToLowerInvariant()
+ $executionTrace=Start-Process -FilePath $traceExe -ArgumentList @([string]$applicationPid,('"'+$package.InstallLocation+'"'),$mainHash,('"'+$traceLog+'"'),'230') -PassThru
+ $deadline=[DateTime]::UtcNow.AddSeconds(15)
+ do{if(Test-Path $traceLog){$traceText=Get-Content $traceLog -Raw;if($traceText-match '"event":"attached"'){break}};$executionTrace.Refresh();if($executionTrace.HasExited){break};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow-lt $deadline)
+ $result.debuggerAttached=[bool]($traceText-match '"event":"attached"')
+ if(!$result.debuggerAttached){$result.traceFailure='Windows debugger could not attach; inspect native-execution-trace.log. No guest behavior was inferred.'}
  $result.stage='invoke-actual-launch-button';SaveResult
  InvokeControl 'LaunchButton';$result.launchButtonInvoked=$true;$result.launchedAt=[DateTime]::UtcNow.ToString('o');SaveResult
  $native=Join-Path $data 'native-launch.log';$observations=@();$deadline=[DateTime]::UtcNow.AddMinutes(3);$tick=0
@@ -64,7 +75,12 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$texts=$dialog.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Text));$body=@();foreach($textControl in $texts){if($textControl.Current.Name.Length-lt 1000){$body+=$textControl.Current.Name}};$body=@($body|ForEach-Object{$_-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]'-replace '(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])','[REDACTED]'});$titles+=@{title=$title;text=$body};if(($body-join ' ')-match 'Failed to open descriptor file'){ $result.firstEngineError=($body-join ' ');$result.originalEngineStartupObserved=$true }}}
   $observations+=@{seconds=$tick*5;alive=$alive;windowTitles=$titles}
   if($result.firstEngineError){Screenshot 'Windows-original-client-engine-error';$result.stage='actual-client-engine-error';break}
-  if(!$alive){$result.stage='actual-client-process-exited';break}
+  if(!$alive){
+   $result.stage='actual-client-process-exited'
+   try{$result.processExitCode=$processObserver.ExitCode;$result.processExitCodeHex=('0x'+$processObserver.ExitCode.ToString('X8'))}catch{$result.processExitCodeUnavailable=$_.Exception.GetType().Name}
+   $result.failure='Actual client process exited during observation; this does not establish a loading screen or lobby.'
+   break
+  }
  }while([DateTime]::UtcNow-lt $deadline)
  $result.observations=$observations
  if($result.stage-eq 'invoke-actual-launch-button'){$result.stage='actual-client-observation-complete'}
@@ -81,6 +97,8 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  # Revoke only this temporary account's linked sessions, never another user's.
  if($browser-and $result.testAccount){try{$devices=Invoke-RestMethod -Uri ($origin+'/api/devices') -WebSession $browser -TimeoutSec 30;foreach($device in $devices.devices){$null=Post '/api/devices/revoke' @{id=$device.id}};$null=Post '/api/auth/sign-out' @{}}catch{Write-Host 'Temporary test-session cleanup could not complete; no credential was exported'}}
  if($applicationPid){Stop-Process -Id $applicationPid -Force -ErrorAction SilentlyContinue}
+ if($executionTrace){if(!$executionTrace.WaitForExit(10000)){$result.traceFailure='Internal debugger did not exit after app cleanup';Stop-Process -Id $executionTrace.Id -Force -ErrorAction SilentlyContinue};$executionTrace.Dispose()}
+ if($processObserver){$processObserver.Dispose()}
  SaveResult
 }
 if($data-and ($result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory -Variant normalized}
