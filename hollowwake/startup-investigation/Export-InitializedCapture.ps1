@@ -3,6 +3,7 @@ $ErrorActionPreference='Stop'
 $receipt=Get-Content (Join-Path $InputDirectory 'capture.json') -Raw|ConvertFrom-Json
 if(!$receipt.captureComplete-or !$receipt.comparisonEqual-or $receipt.clientChecksPatched-or $receipt.originalSha256-ne '9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'-or $receipt.phase-ne 'original_entry_first_call_return'){throw 'Complete exact-source original initialization capture required'}
 $allowed=@('capture.json','runtime-headers.bin','source-headers.bin')+@(0..8|ForEach-Object {'section-{0:D2}.bin'-f $_})
+if($receipt.threadTlsObservation){if($receipt.threadTlsObservation.bytes-ne 28){throw 'Unexpected private static TLS observation'};$allowed+=@('thread-tls.bin','thread-tls-template.bin');foreach($name in @('thread-tls.bin','thread-tls-template.bin')){if((Get-Item (Join-Path $InputDirectory $name)).Length-ne 28){throw 'Exact private static TLS bytes required'}}}
 $files=@(Get-ChildItem $InputDirectory -File)
 if($files.Count-ne $allowed.Count-or ($files|Where-Object {$_.Name-notin $allowed-or $_.Attributes-band [IO.FileAttributes]::ReparsePoint})){throw 'Unexpected private capture file'}
 $archive=Join-Path $env:RUNNER_TEMP ('HollowwakeInitialized-'+[Guid]::NewGuid().ToString('N')+'.zip')

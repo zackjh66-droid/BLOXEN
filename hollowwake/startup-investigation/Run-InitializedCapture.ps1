@@ -30,6 +30,10 @@ try {
  $receipt=Get-Content (Join-Path $CaptureDirectory 'capture.json') -Raw|ConvertFrom-Json
  if(!$receipt.captureComplete-or $receipt.originalSha256-ne $pin-or $receipt.phase-ne 'original_entry_first_call_return'-or !$receipt.comparisonEqual-or $receipt.clientChecksPatched-or $receipt.sections.Count-ne 9){throw 'Private initialization receipt incomplete or different scope'}
  if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 'Original source bytes changed during capture'}
+ $threadTls=$receipt.threadTlsObservation
+ if(!$threadTls-or $threadTls.bytes-ne 28-or $threadTls.nonzeroBytes-lt 0-or $threadTls.nonzeroBytes-gt 28-or $threadTls.differencesFromSourceTemplate-lt 0-or $threadTls.differencesFromSourceTemplate-gt 28-or $threadTls.differencesFromRuntimeTemplate-lt 0-or $threadTls.differencesFromRuntimeTemplate-gt 28-or $threadTls.rawStateCopiedToNewProcess){throw 'Original static TLS observation is incomplete'}
+ foreach($name in @('thread-tls.bin','thread-tls-template.bin')){if((Get-Item (Join-Path $CaptureDirectory $name)).Length-ne 28){throw 'Exact private TLS block length differs'}}
+ @{scope='Read-only original entry-thread static TLS observation; no state replay';originalSha256=$pin;phase=$receipt.phase;threadTlsObservation=$threadTls;debuggerObserved=$true;xboxTested=$false}|ConvertTo-Json -Depth 6|Set-Content -Encoding UTF8 "$OutputDirectory\initialization-thread-tls-state.json"
  $bss=$receipt.bssObservation
  if($bss){
   if($bss.rva-ne 0x54d5c00-or $bss.bytes-ne 0x300e78-or $bss.nonzeroAlignedQwords-lt 0-or $bss.ownImageOrDeltaReferences.Count-gt 4096-or $bss.rawStateCopiedToNewProcess){throw 'Unexpected zero-fill observation extent'}

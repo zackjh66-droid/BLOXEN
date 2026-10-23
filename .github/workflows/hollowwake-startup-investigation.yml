@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: hollowwake-startup-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   investigate:
     if: ${{ !contains(github.event.head_commit.message, '[capture-only]') && !contains(github.event.head_commit.message, '[startup-integrated]') }}
@@ -79,6 +82,7 @@ jobs:
             artifacts/startup-capture/*.log
             artifacts/startup-capture/capture-status.json
             artifacts/startup-capture/initialization-bss-state.json
+            artifacts/startup-capture/initialization-thread-tls-state.json
           if-no-files-found: error
           retention-days: 3
       - name: Preserve only recipient-encrypted game image

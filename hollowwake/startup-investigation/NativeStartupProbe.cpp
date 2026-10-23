@@ -164,7 +164,7 @@ void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,con
     <<",\"processPeb\":\""<<peb<<"\",\"pebImage\":\""<<pebImage<<"\",\"rcxMatchesPeb\":"<<(peb&&context.Rcx==peb?"true":"false")<<"}\n";out.flush();
 }
 #ifndef STARTUP_PROBE_LIBRARY
-bool CaptureInitializedImage(HANDLE process,ULONG_PTR base,const wchar_t* sourcePath,const wchar_t* outputPath){
+bool CaptureInitializedImage(HANDLE process,HANDLE initializedThread,ULONG_PTR base,const wchar_t* sourcePath,const wchar_t* outputPath){
  DWORD left=0,right=0;
  if(!Read(process,base+0xb1d80a,left)||!Read(process,base+0x39c8da,right)||left!=right){SetLastError(ERROR_INVALID_STATE);return false;}
  std::ifstream input(sourcePath,std::ios::binary|std::ios::ate);if(!input)return false;auto length=input.tellg();if(length!=100729744){SetLastError(ERROR_INVALID_DATA);return false;}
@@ -178,7 +178,29 @@ bool CaptureInitializedImage(HANDLE process,ULONG_PTR base,const wchar_t* source
  };
  if(!write(L"runtime-headers.bin",base,0x600))return false;
  {std::ofstream file(directory/L"source-headers.bin",std::ios::binary);file.write(reinterpret_cast<const char*>(raw.data()),0x600);if(!file)return false;}
- auto sections=IMAGE_FIRST_SECTION(nt);std::ofstream receipt(directory/L"capture.json");
+ auto sections=IMAGE_FIRST_SECTION(nt);
+ // Exact original static TLS: inspect only this module's 28-byte block on the
+ // stopped original entry thread. No other TLS slots or thread memory are dumped.
+ auto tlsRva=nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress;
+ auto rawOffset=[&](DWORD rva,SIZE_T count)->SIZE_T{for(unsigned i=0;i<9;++i){auto& section=sections[i];if(rva>=section.VirtualAddress&&rva-section.VirtualAddress<=section.SizeOfRawData&&count<=section.SizeOfRawData-(rva-section.VirtualAddress))return section.PointerToRawData+rva-section.VirtualAddress;}return raw.size();};
+ SIZE_T tlsOffset=rawOffset(tlsRva,sizeof(IMAGE_TLS_DIRECTORY64));if(tlsOffset>=raw.size())return false;
+ IMAGE_TLS_DIRECTORY64 tls={};memcpy(&tls,raw.data()+tlsOffset,sizeof(tls));auto preferred=nt->OptionalHeader.ImageBase;
+ if(tls.StartAddressOfRawData!=preferred+0x4bfc5b0||tls.EndAddressOfRawData-tls.StartAddressOfRawData!=28||tls.AddressOfIndex!=preferred+0x57d6278||tls.SizeOfZeroFill)return false;
+ struct ThreadBasic {NTSTATUS status;PVOID teb;HANDLE processId,threadId;ULONG_PTR affinity;LONG priority,basePriority;};
+ static_assert(sizeof(ThreadBasic)==48,"Exact x64 thread information layout required");
+ using QueryThread=NTSTATUS(NTAPI*)(HANDLE,ULONG,PVOID,ULONG,PULONG);
+ auto queryThread=reinterpret_cast<QueryThread>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"),"NtQueryInformationThread"));
+ ThreadBasic basic={};ULONG returned=0;DWORD tlsIndex=0;ULONG_PTR vector=0,block=0;
+ if(!queryThread||queryThread(initializedThread,0,&basic,sizeof(basic),&returned)<0||returned!=sizeof(basic)||!basic.teb||
+    !Read(process,base+0x57d6278,tlsIndex)||tlsIndex>=4096||!Read(process,reinterpret_cast<ULONG_PTR>(basic.teb)+0x58,vector)||!vector||!Read(process,vector+sizeof(ULONG_PTR)*tlsIndex,block)||!block)return false;
+ BYTE threadTls[28]={},runtimeTemplate[28]={};
+ if(!Read(process,block,threadTls)||!Read(process,base+0x4bfc5b0,runtimeTemplate))return false;
+ SIZE_T sourceTlsOffset=rawOffset(0x4bfc5b0,28);if(sourceTlsOffset>=raw.size())return false;
+ unsigned threadSourceDifferences=0,threadRuntimeDifferences=0,nonzeroTlsBytes=0;
+ for(unsigned i=0;i<28;++i){if(threadTls[i]!=raw[sourceTlsOffset+i])++threadSourceDifferences;if(threadTls[i]!=runtimeTemplate[i])++threadRuntimeDifferences;if(threadTls[i])++nonzeroTlsBytes;}
+ {std::ofstream file(directory/L"thread-tls.bin",std::ios::binary);file.write(reinterpret_cast<char*>(threadTls),28);if(!file)return false;}
+ {std::ofstream file(directory/L"thread-tls-template.bin",std::ios::binary);file.write(reinterpret_cast<char*>(runtimeTemplate),28);if(!file)return false;}
+ std::ofstream receipt(directory/L"capture.json");
  receipt<<"{\"format\":\"HollowwakeInitializedImage1\",\"originalSha256\":\""<<kClientSha<<"\",\"phase\":\"original_entry_first_call_return\",\"loadedBase\":\""<<base<<"\",\"preferredBase\":\""<<nt->OptionalHeader.ImageBase<<"\",\"originalEntryRva\":"<<kEntry<<",\"comparisonEqual\":true,\"sections\":[";
  for(unsigned i=0;i<9;++i){auto& section=sections[i];if(section.SizeOfRawData>128*1024*1024||section.PointerToRawData>raw.size()||section.SizeOfRawData>raw.size()-section.PointerToRawData){SetLastError(ERROR_INVALID_DATA);return false;}
   wchar_t name[32]={};swprintf_s(name,L"section-%02u.bin",i);if(!write(name,base+section.VirtualAddress,section.SizeOfRawData))return false;
@@ -194,7 +216,7 @@ bool CaptureInitializedImage(HANDLE process,ULONG_PTR base,const wchar_t* source
  unsigned nonzero=0,references=0;ULONGLONG delta=base-nt->OptionalHeader.ImageBase;
  for(SIZE_T at=0;at+8<=bss.size();at+=8){ULONGLONG value=0;memcpy(&value,bss.data()+at,8);if(value)++nonzero;if(value&&(value==delta||(value>=base&&value-base<nt->OptionalHeader.SizeOfImage)))++references;}
  if(references>4096){SetLastError(ERROR_INSUFFICIENT_BUFFER);return false;}
- receipt<<"],\"bssObservation\":{\"rva\":"<<bssRva<<",\"bytes\":"<<bssBytes<<",\"nonzeroAlignedQwords\":"<<nonzero<<",\"ownImageOrDeltaReferences\":[";
+ receipt<<"],\"threadTlsObservation\":{\"bytes\":28,\"index\":"<<tlsIndex<<",\"nonzeroBytes\":"<<nonzeroTlsBytes<<",\"differencesFromSourceTemplate\":"<<threadSourceDifferences<<",\"differencesFromRuntimeTemplate\":"<<threadRuntimeDifferences<<",\"rawStateCopiedToNewProcess\":false},\"bssObservation\":{\"rva\":"<<bssRva<<",\"bytes\":"<<bssBytes<<",\"nonzeroAlignedQwords\":"<<nonzero<<",\"ownImageOrDeltaReferences\":[";
  bool firstReference=true;
  for(SIZE_T at=0;at+8<=bss.size();at+=8){ULONGLONG value=0;memcpy(&value,bss.data()+at,8);
   bool own=value>=base&&value-base<nt->OptionalHeader.SizeOfImage;if(!value||(!own&&value!=delta))continue;
@@ -285,13 +307,14 @@ int wmain(int argc,wchar_t** argv){
    }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;ULONG_PTR address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
-   if(captureRequested&&record.ExceptionCode==EXCEPTION_SINGLE_STEP&&vectorAddEntry&&ObserveVectorCall(out,process.value,event.dwThreadId,imageBase,address)){
+   bool vectorObserved=captureRequested&&record.ExceptionCode==EXCEPTION_SINGLE_STEP&&vectorAddEntry&&ObserveVectorCall(out,process.value,event.dwThreadId,imageBase,address);
+   if(vectorObserved&&address!=imageBase+kInitializedBoundary){
     // The original API and its own return path run normally after observation.
    }else if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&address==imageBase+kInitializedBoundary){
-    Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"original_initialized_boundary");
+    Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT|(captureRequested?THREAD_QUERY_INFORMATION:0),FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"original_initialized_boundary");
     if(captureRequested){
      out<<"{\"event\":\"original_vector_boundary\",\"armed\":"<<(vectorAddEntry?"true":"false")<<",\"pendingCalls\":"<<vectorCalls.size()<<",\"observedLiveHandlers\":"<<observedVectorHandlers.size()<<"}\n";out.flush();
-     bool captured=false;try{captured=CaptureInitializedImage(process.value,imageBase,argv[1],argv[5]);}catch(...){SetLastError(ERROR_INVALID_DATA);}
+     bool captured=false;try{captured=CaptureInitializedImage(process.value,thread.value,imageBase,argv[1],argv[5]);}catch(...){SetLastError(ERROR_INVALID_DATA);}
      Event(out,captured?"initialized_image_captured":"initialized_capture_failed",captured?0:GetLastError());
      TerminateJobObject(job.value,WAIT_TIMEOUT);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;
     }
