@@ -1,9 +1,22 @@
 #include "../Native/ClientImageStartup.h"
 #include <iostream>
+#include <cstring>
 __declspec(noinline) int OwnedImageCode(){return 621;}
+static BOOL WINAPI DenyHeaderProtect(LPVOID,SIZE_T,DWORD,PDWORD){SetLastError(ERROR_ACCESS_DENIED);return FALSE;}
 int main(){
  HMODULE module=nullptr;if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,reinterpret_cast<LPCWSTR>(&OwnedImageCode),&module))return 1;
  auto base=reinterpret_cast<BYTE*>(module);auto nt=reinterpret_cast<IMAGE_NT_HEADERS64*>(base+reinterpret_cast<IMAGE_DOS_HEADER*>(base)->e_lfanew);
+ auto field=static_cast<DWORD>(reinterpret_cast<BYTE*>(&nt->OptionalHeader.ImageBase)-base);auto preferred=nt->OptionalHeader.ImageBase;
+ std::vector<BYTE> originalHeader(base,base+nt->OptionalHeader.SizeOfHeaders),expectedHeader=originalHeader;
+ auto current=reinterpret_cast<ULONGLONG>(module);memcpy(expectedHeader.data()+field,&current,sizeof(current));
+ bool denied=preferred==current||RestoreClientImageHeaderBase(module,nt->OptionalHeader.SizeOfImage,field,preferred,&VirtualQuery,&DenyHeaderProtect,nullptr)==E_ACCESSDENIED;
+ bool deniedUnchanged=memcmp(base,originalHeader.data(),originalHeader.size())==0;
+ bool wrongOffset=FAILED(RestoreClientImageHeaderBase(module,nt->OptionalHeader.SizeOfImage,field+8,preferred,&VirtualQuery,&VirtualProtect,nullptr));
+ auto headerResult=RestoreClientImageHeaderBase(module,nt->OptionalHeader.SizeOfImage,field,preferred,&VirtualQuery,&VirtualProtect,nullptr);
+ bool headerOnly=SUCCEEDED(headerResult)&&memcmp(base,expectedHeader.data(),expectedHeader.size())==0;
+ bool headerRepeat=SUCCEEDED(RestoreClientImageHeaderBase(module,nt->OptionalHeader.SizeOfImage,field,preferred,&VirtualQuery,&DenyHeaderProtect,nullptr));
+ DWORD headerOld=0,headerUnused=0;bool headerRestored=VirtualProtect(&nt->OptionalHeader.ImageBase,8,PAGE_READWRITE,&headerOld)!=FALSE;
+ if(headerRestored){nt->OptionalHeader.ImageBase=preferred;headerRestored=VirtualProtect(&nt->OptionalHeader.ImageBase,8,headerOld,&headerUnused)!=FALSE&&memcmp(base,originalHeader.data(),originalHeader.size())==0;}
  SYSTEM_INFO info={};GetNativeSystemInfo(&info);if(info.dwPageSize!=4096)return 2;
  auto address=reinterpret_cast<ULONG_PTR>(&OwnedImageCode),page=address&~static_cast<ULONG_PTR>(4095);auto rva=page-reinterpret_cast<ULONG_PTR>(module);
  MEMORY_BASIC_INFORMATION before={};if(!VirtualQuery(reinterpret_cast<void*>(page),&before,sizeof(before)))return 3;
@@ -28,6 +41,8 @@ int main(){
  auto privateMemory=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!privateMemory)return 4;
  ClientImageProtection privateRule={0,4096,PAGE_READWRITE};auto rejected=ApplyClientImageStartup(reinterpret_cast<HMODULE>(privateMemory),4096,&privateRule,1,&VirtualQuery,&VirtualProtect,nullptr);VirtualFree(privateMemory,0,MEM_RELEASE);
  std::cout<<"imageHr="<<static_cast<unsigned long>(result)<<" beforeWriteProtect="<<copyState.Protect<<" sameByteWrite="<<sameByteWrite<<" observed="<<observed<<" observedProtect="<<after.Protect<<" value="<<value<<" restored="<<restored<<" bounds="<<bounds<<" missing="<<missing<<" privateHr="<<static_cast<unsigned long>(rejected)<<" expectedPrivateHr="<<static_cast<unsigned long>(HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS))<<"\n";
- bool passed=SUCCEEDED(result)&&sameByteWrite&&observed&&value==621&&restored&&bounds&&missing&&rejected==HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
+ bool headerPassed=denied&&deniedUnchanged&&wrongOffset&&headerOnly&&headerRepeat&&headerRestored;
+ std::cout<<"headerHr="<<static_cast<unsigned long>(headerResult)<<" headerOnly="<<headerOnly<<" headerRepeat="<<headerRepeat<<" headerRestored="<<headerRestored<<" denied="<<denied<<" deniedUnchanged="<<deniedUnchanged<<" wrongOffset="<<wrongOffset<<"\n";
+ bool passed=headerPassed&&SUCCEEDED(result)&&sameByteWrite&&observed&&value==621&&restored&&bounds&&missing&&rejected==HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
  std::cout<<(passed?"PASS":"FAIL")<<" actual owned image page transition/execution/restoration, malformed range/provider and non-image rejection; no Fortnite or Xbox proof\n";return passed?0:5;
 }

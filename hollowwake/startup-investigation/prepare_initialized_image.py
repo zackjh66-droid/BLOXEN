@@ -25,7 +25,16 @@ def prepare(source,capture,destination,report):
  if not(m['captureComplete'] and m['comparisonEqual'] and m['normalOriginalInitializationExecuted']) or m['clientChecksPatched'] or m['originalSha256']!=PIN or m['phase']!='original_entry_first_call_return':raise ValueError('Completed normal original initialization required')
  p=pefile.PE(data=raw);base=int(m['loadedBase']);pref=p.OPTIONAL_HEADER.ImageBase;delta=base-pref
  if pref!=int(m['preferredBase']) or len(m['sections'])!=len(p.sections):raise ValueError('Capture layout/base mismatch')
- if (capture/'source-headers.bin').read_bytes()!=raw[:p.OPTIONAL_HEADER.SizeOfHeaders]:raise ValueError('Source header mismatch')
+ headers=raw[:p.OPTIONAL_HEADER.SizeOfHeaders]
+ if (capture/'source-headers.bin').read_bytes()!=headers:raise ValueError('Source header mismatch')
+ # The original initializer changes this field independently of PE DIR64
+ # relocations. Keep a loadable preferred-base file, but require the native
+ # startup path to reproduce the measured transformation using ITS own base.
+ field=p.DOS_HEADER.e_lfanew+24+24
+ runtime_headers=(capture/'runtime-headers.bin').read_bytes()
+ expected_headers=bytearray(headers);struct.pack_into('<Q',expected_headers,field,base)
+ if runtime_headers!=expected_headers:raise ValueError('Unrecognized original runtime-header transformation')
+ header_initialization={'field':'OptionalHeader.ImageBase','offset':field,'sourceValue':str(pref),'observedValue':str(base),'rule':'current-loaded-module-base','otherHeaderBytesUnchanged':True,'capturedAddressReplayed':False}
  data=bytearray(raw);starts=[];spans=[]
  for i,(s,c) in enumerate(zip(p.sections,m['sections'])):
   if (c['index'],c['rva'],c['rawOffset'],c['rawBytes'],c['virtualBytes'],c['characteristics'])!=(i,s.VirtualAddress,s.PointerToRawData,s.SizeOfRawData,s.Misc_VirtualSize,s.Characteristics):raise ValueError('Section receipt mismatch')
@@ -47,6 +56,8 @@ def prepare(source,capture,destination,report):
    off=offset(e.rva,8);before=struct.unpack_from('<Q',raw,off)[0];observed=struct.unpack_from('<Q',data,off)[0]
    if observed!=(before+delta)&MASK:raise ValueError(f'Runtime changed relocated field {e.rva:x}; no inferred correction allowed')
    struct.pack_into('<Q',data,off,before);relocations.add(e.rva)
+ if field in relocations:raise ValueError('Header initialization already belongs to the loader relocation plan')
+ header_initialization['outsideDir64']=True
  # The original initializer also copies 819 declared bindings into the compiler
  # IAT. Those addresses belong to the capture process and must be snapped again.
  compiler_groups=restore_tables(p,raw,data,0x3747000,0x3748b00,45,819,{'kernel32.dll':['AddVectoredExceptionHandler','RemoveVectoredExceptionHandler']},captured_base=base)
@@ -85,7 +96,7 @@ def prepare(source,capture,destination,report):
  if struct.unpack_from('<I',data,opt+16)[0]!=p.OPTIONAL_HEADER.AddressOfEntryPoint:raise AssertionError('Entry changed')
  compiler_imports=describe_restore_plan(compiler_groups)
  destination.write_bytes(data)
- receipt={'originalSha256':PIN,'outputSha256':hashlib.sha256(data).hexdigest(),'capturePhase':m['phase'],'originalInitializationExecuted':True,'dir64Restored':len(relocations),'normalIatBindingsRestored':restored,'delayIatBindingsRestored':delay,'entryCallRetained':True,'checksPatched':False,'uncapturedBss':True,'compilerImports':compiler_imports,'nativeExecutionTested':False,'xboxTested':False,'lobbyDemonstrated':False}
+ receipt={'originalSha256':PIN,'outputSha256':hashlib.sha256(data).hexdigest(),'capturePhase':m['phase'],'originalInitializationExecuted':True,'headerInitialization':header_initialization,'dir64Restored':len(relocations),'normalIatBindingsRestored':restored,'delayIatBindingsRestored':delay,'entryCallRetained':True,'checksPatched':False,'uncapturedBss':True,'compilerImports':compiler_imports,'nativeExecutionTested':False,'xboxTested':False,'lobbyDemonstrated':False}
  report.write_text(json.dumps(receipt,indent=2)+'\n');return receipt
 if __name__=='__main__':
  a=argparse.ArgumentParser();a.add_argument('source');a.add_argument('capture');a.add_argument('destination');a.add_argument('report');v=a.parse_args();print(json.dumps(prepare(v.source,v.capture,v.destination,v.report)))

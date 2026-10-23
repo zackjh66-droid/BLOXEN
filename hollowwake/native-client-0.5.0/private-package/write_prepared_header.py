@@ -31,6 +31,9 @@ def write(prepared,destination):
  from audit_original_code import audit_bytes as audit_code
  canonical=(root/'InitializedMain.private.exe').read_bytes()
  if plan.get('originalCodeAudit')!=audit_code(canonical,raw,m['outputSha256']):raise ValueError('Actual original executable bytes differ from audit')
+ header=m.get('headerInitialization',{})
+ if header.get('field')!='OptionalHeader.ImageBase' or header.get('offset')!=0x200 or header.get('sourceValue')!='5368709120' or header.get('rule')!='current-loaded-module-base' or header.get('otherHeaderBytesUnchanged') is not True or header.get('capturedAddressReplayed') is not False or header.get('outsideDir64') is not True:raise ValueError('Measured original header initialization required')
+ if not header.get('observedValue','').isdigit() or int(header['observedValue'])<=0x140000000:raise ValueError('Missing original ASLR header observation')
  imports=plan.get('mainOwnedImportMetadata',{})
  if not all(imports.get(k) is True for k in ('originalSectionBytesPreserved','originalDelayDescriptorsPreserved','lookupAndIatRvasRetained')) or imports.get('normalDescriptors')!=45 or imports.get('runtimeDelaySourceAliasesRequired')!=[]:raise ValueError('Original main import placement policy differs')
  regions=m.get('protections',[]);prior=0;lines=[]
@@ -45,6 +48,8 @@ def write(prepared,destination):
 static constexpr bool kPreparedClientAvailable=true;
 static constexpr SIZE_T kPreparedClientBytes=%d;
 static constexpr SIZE_T kPreparedOriginalImageBytes=0x6314000;
+static constexpr DWORD kPreparedImageBaseField=0x200;
+static constexpr ULONGLONG kPreparedPreferredImageBase=0x140000000ULL;
 static const BYTE kPreparedClientSha[32]={%s};
 static const ClientImageProtection kPreparedClientProtections[]={
 %s

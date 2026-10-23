@@ -238,7 +238,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.18.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.19.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   // Read the same real own-user known folder requested by the original main
@@ -299,6 +299,8 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   auto protectImage=reinterpret_cast<ClientImageProtect>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualProtect"));
   auto initialized=ApplyClientImageStartup(module,kPreparedOriginalImageBytes,kPreparedClientProtections,kPreparedClientProtectionCount,queryImage,protectImage,Log);
   if(FAILED(initialized)){Log("NATIVE_IMAGE_STARTUP_FAILED HRESULT="+std::to_string(static_cast<unsigned long>(initialized)));return initialized;}
+  auto headerInitialized=RestoreClientImageHeaderBase(module,kPreparedOriginalImageBytes,kPreparedImageBaseField,kPreparedPreferredImageBase,queryImage,&VirtualProtectFromApp,Log);
+  if(FAILED(headerInitialized)){Log("NATIVE_IMAGE_STARTUP_FAILED original header ImageBase HRESULT="+std::to_string(static_cast<unsigned long>(headerInitialized)));return headerInitialized;}
   auto compilerImports=RestoreClientImportCopies(module,kPreparedOriginalImageBytes,kPreparedCompilerImports,kPreparedCompilerImportCount,queryImage,&VirtualProtectFromApp,Log);if(FAILED(compilerImports))return compilerImports;
   auto realGetenv=QueryClientCrtImport(module,"api-ms-win-crt-environment-l1-1-0.dll","getenv",kPreparedCompilerImports,kPreparedCompilerImportCount);
   if(!realGetenv){auto error=GetLastError();Log("NATIVE_LOAD_BLOCKED actual loaded client CRT getenv binding unavailable Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error?error:ERROR_PROC_NOT_FOUND);}

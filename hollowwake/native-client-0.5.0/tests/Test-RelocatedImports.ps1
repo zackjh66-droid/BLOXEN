@@ -29,5 +29,9 @@ try{
  }
  & ./NativeImageTest.exe (Join-Path $work 'RelocatedFixture.dll')
  if($LASTEXITCODE){throw 'Relocated import fixture failed real OS entry/TLS/thread/unwind/export checks'}
+ & cl.exe /nologo /std:c++17 /EHsc /MD /W4 /DWIN32_LEAN_AND_MEAN /DNOMINMAX /DHW_RESTORE_HEADER_BASE (Join-Path $fixture 'NativeImageTest.cpp') kernel32.lib /Fe:HeaderInitializedHost.exe
+ if($LASTEXITCODE){throw 'Measured header-initialization host compilation failed'}
+ & ./HeaderInitializedHost.exe (Join-Path $work 'RelocatedFixture.dll')
+ if($LASTEXITCODE){throw 'Real OS entry/TLS/thread/unwind/unload changed after measured header initialization'}
  'PASS relocated import directory: real OS forwarded imports, original entry, thread/TLS/unwind and forwarded export; Windows fixture only.'
 }finally{Pop-Location}

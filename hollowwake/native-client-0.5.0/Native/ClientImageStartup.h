@@ -3,10 +3,46 @@
 #include <string>
 #include <initializer_list>
 #include <vector>
+#include <cstddef>
 struct ClientImageProtection {DWORD rva;SIZE_T bytes;DWORD protect;};
 using ClientImageQuery=SIZE_T(WINAPI*)(LPCVOID,PMEMORY_BASIC_INFORMATION,SIZE_T);
 using ClientImageProtect=BOOL(WINAPI*)(LPVOID,SIZE_T,DWORD,PDWORD);
 using ClientImageLogger=void(*)(const std::string&);
+// Reproduce the exact original initializer's observed ImageBase transition.
+// The signed on-disk image retains its preferred base for the OS loader. No
+// captured-process address, DLL flag, entry, checksum or check result is copied.
+inline HRESULT RestoreClientImageHeaderBase(HMODULE module,SIZE_T imageSize,DWORD fieldOffset,ULONGLONG preferred,ClientImageQuery query,ClientImageProtect protect,ClientImageLogger log){
+ if(!module||!imageSize||!preferred||reinterpret_cast<ULONG_PTR>(module)>~ULONG_PTR(0)-imageSize||fieldOffset%8||fieldOffset>imageSize||8>imageSize-fieldOffset)return E_INVALIDARG;
+ if(!query||!protect)return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+ auto base=reinterpret_cast<BYTE*>(module);
+ auto readable=[&](const void* address,SIZE_T bytes,MEMORY_BASIC_INFORMATION& page){
+  if(query(address,&page,sizeof(page))!=sizeof(page)||page.AllocationBase!=module||page.State!=MEM_COMMIT||page.Type!=MEM_IMAGE||(page.Protect&(PAGE_GUARD|PAGE_NOACCESS)))return false;
+  auto at=reinterpret_cast<ULONG_PTR>(address),start=reinterpret_cast<ULONG_PTR>(page.BaseAddress);
+  return at>=start&&at-start<=page.RegionSize&&bytes<=page.RegionSize-(at-start);
+ };
+ MEMORY_BASIC_INFORMATION dosPage={},ntPage={},fieldPage={};
+ if(imageSize<sizeof(IMAGE_DOS_HEADER)||!readable(base,sizeof(IMAGE_DOS_HEADER),dosPage))return HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
+ auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(base);
+ if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<64||static_cast<SIZE_T>(dos->e_lfanew)>imageSize||sizeof(IMAGE_NT_HEADERS64)>imageSize-static_cast<SIZE_T>(dos->e_lfanew))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+ auto nt=reinterpret_cast<const IMAGE_NT_HEADERS64*>(base+dos->e_lfanew);
+ if(!readable(nt,sizeof(*nt),ntPage))return HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
+ if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||nt->OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR64_MAGIC||nt->OptionalHeader.SizeOfHeaders>imageSize||static_cast<SIZE_T>(fieldOffset)+8>nt->OptionalHeader.SizeOfHeaders||fieldOffset!=static_cast<SIZE_T>(dos->e_lfanew)+offsetof(IMAGE_NT_HEADERS64,OptionalHeader)+offsetof(IMAGE_OPTIONAL_HEADER64,ImageBase))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
+ auto field=reinterpret_cast<volatile LONG64*>(base+fieldOffset);
+ if(!readable(const_cast<const LONG64*>(field),8,fieldPage))return HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
+ auto access=fieldPage.Protect&0xff;
+ if(access!=PAGE_READONLY&&access!=PAGE_READWRITE&&access!=PAGE_WRITECOPY)return E_ACCESSDENIED;
+ auto actual=reinterpret_cast<ULONGLONG>(module),before=static_cast<ULONGLONG>(*field);
+ if(before!=preferred&&before!=actual)return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+ if(before==actual){if(log)log("NATIVE_STARTUP original runtime header ImageBase already matches current module");return S_OK;}
+ DWORD old=0;if(!protect(const_cast<LONG64*>(field),8,PAGE_READWRITE,&old)){auto error=GetLastError();return HRESULT_FROM_WIN32(error?error:ERROR_GEN_FAILURE);}
+ auto observed=static_cast<ULONGLONG>(InterlockedCompareExchange64(field,static_cast<LONG64>(actual),static_cast<LONG64>(before)));
+ DWORD ignored=0;bool restored=protect(const_cast<LONG64*>(field),8,fieldPage.Protect,&ignored)!=FALSE;
+ if(!restored){auto error=GetLastError();InterlockedCompareExchange64(field,static_cast<LONG64>(before),static_cast<LONG64>(actual));protect(const_cast<LONG64*>(field),8,fieldPage.Protect,&ignored);return HRESULT_FROM_WIN32(error?error:ERROR_GEN_FAILURE);}
+ if(observed!=before)return HRESULT_FROM_WIN32(ERROR_RETRY);
+ if(static_cast<ULONGLONG>(*field)!=actual)return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+ if(log)log("NATIVE_STARTUP original runtime header ImageBase initialized to current loaded module; measured source rule, other header bytes unchanged");
+ return S_OK;
+}
 // Restore only the original initialization's measured image permissions. This
 // does not manufacture successful page transitions or modify guest code/state.
 inline HRESULT ApplyClientImageStartup(HMODULE module,SIZE_T imageSize,const ClientImageProtection* regions,unsigned count,ClientImageQuery query,ClientImageProtect protect,ClientImageLogger log){
