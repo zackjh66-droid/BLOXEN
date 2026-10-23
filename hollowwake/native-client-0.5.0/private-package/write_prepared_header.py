@@ -23,6 +23,11 @@ def write(prepared,destination):
  if rel!='6.21/FortniteGame/Binaries/Win64/Fortnite621.imports.private.dll':raise ValueError('Unexpected main image path')
  raw=(root/'GamePayload'/rel).read_bytes();sha=hashlib.sha256(raw).hexdigest()
  if len(raw)!=record['bytes'] or sha!=record['sha256'] or not re.fullmatch('[a-f0-9]{64}',sha):raise ValueError('Prepared client bytes/hash differ')
+ # Recheck the actual packaged instructions, not just a plan's claim. The native
+ # HWND route must retain all three original DXGI request instructions.
+ from patch_windowed_viewport import audit_bytes
+ viewport=audit_bytes(raw,sha)
+ if plan.get('windowedViewportPatch') is not None or plan.get('windowedViewportAudit')!=viewport:raise ValueError('Original DXGI request audit differs from actual prepared client')
  regions=m.get('protections',[]);prior=0;lines=[]
  if not regions or len(regions)>4096:raise ValueError('Measured page permission inventory required')
  for r in regions:

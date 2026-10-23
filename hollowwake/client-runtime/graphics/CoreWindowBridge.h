@@ -31,3 +31,4 @@ HRESULT CreateCoreDevice(IDXGIAdapter* adapter,D3D_DRIVER_TYPE type,HMODULE soft
 }
 
 namespace Hollowwake { void SetPresentationLogger(void(*logger)(const std::string&)); }
+namespace Hollowwake { void LogNativePresentation(const DXGI_SWAP_CHAIN_DESC&,const char* stage,HRESULT); }

@@ -12,7 +12,7 @@ SHORT.update({"imm32.dll":"HWIM.dll","opengl32.dll":"HWGL.dll","dwmapi.dll":"HWD
 from generate_native_proxy import emit
 from patch_service_hosts import patch as patch_service_hosts
 from patch_stack_address import patch as patch_stack_address
-from patch_windowed_viewport import patch as patch_windowed_viewport
+from patch_windowed_viewport import audit as audit_windowed_viewport
 PIN='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478'
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def metadata(path):
@@ -113,8 +113,9 @@ def prepare(source,out,initialized_capture=None):
    hostPatch=patch_service_hosts(dest,sha(dest)) if initialized else patch_service_hosts(dest);result['serviceHostPatch']=hostPatch
    (reports/'service-host-patch.json').write_text(json.dumps(hostPatch,indent=2))
    stackPatch=None if initialized else patch_stack_address(dest);result['stackAddressRepair']=stackPatch
-   viewportPatch=patch_windowed_viewport(dest,sha(dest)) if initialized else None;result['windowedViewportPatch']=viewportPatch
-   (reports/'windowed-viewport-patch.json').write_text(json.dumps(viewportPatch,indent=2))
+   viewportPatch=None;viewportAudit=audit_windowed_viewport(dest,sha(dest)) if initialized else None
+   result['windowedViewportPatch']=viewportPatch;result['windowedViewportAudit']=viewportAudit
+   (reports/'windowed-viewport-audit.json').write_text(json.dumps(viewportAudit,indent=2))
    result['outputSha256']=sha(dest);result['outputBytes']=dest.stat().st_size
    (reports/'stack-address-repair.json').write_text(json.dumps(stackPatch,indent=2))
   (reports/(str(i)+'.json')).write_text(json.dumps(result,indent=2))
@@ -130,7 +131,7 @@ def prepare(source,out,initialized_capture=None):
   # PE forwarder preserves the provider's actual object address and CRT ownership.
   if item['sourceDll'].lower()=='msvcrt.dll' and '_iob' in item['symbols']:item['dataSymbols']=['_iob']
   emit(item,proxyRoot/item['proxyDll'])
- manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'privateDependencyExportAudit':{'scope':'Pinned static private-provider exports; runtime behavior and Xbox remain unverified','bindings':privateBindings,'missing':0},'startupDynamicImages':dynamic,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'windowedViewportPatch':viewportPatch,'stackAddressRepair':stackPatch,'initializedClient':initialized}
+ manifest={'build':'6.21-CL-4526925','originalClientSha256':PIN,'files':records,'privateDependencyExportAudit':{'scope':'Pinned static private-provider exports; runtime behavior and Xbox remain unverified','bindings':privateBindings,'missing':0},'startupDynamicImages':dynamic,'externalPlatformDependencies':sorted(external),'duplicateIdenticalInputs':duplicates,'proxyDlls':list(proxies.values()),'sourceUnchanged':True,'executed':False,'contentPaksIncluded':False,'compatibilityEstablished':False,'serviceHostPatch':hostPatch,'windowedViewportPatch':viewportPatch,'windowedViewportAudit':viewportAudit,'stackAddressRepair':stackPatch,'initializedClient':initialized}
  (stage/'native-package-manifest.json').write_text(json.dumps(manifest,indent=2));(out/'plan.json').write_text(json.dumps(manifest,indent=2));return manifest
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('source');p.add_argument('output');p.add_argument('--initialized-capture');a=p.parse_args();m=prepare(a.source,a.output,a.initialized_capture);print(json.dumps({'images':len(m['files']),'proxies':len(m['proxyDlls']),'externalPlatformDependencies':len(m['externalPlatformDependencies']),'executed':False}))

@@ -19,11 +19,20 @@ static bool Guest(HWND window,ComPtr<IUnknown>& core){std::lock_guard<std::mutex
 static HRESULT STDMETHODCALLTYPE InterceptCreate(IDXGIFactory* factory,IUnknown* device,DXGI_SWAP_CHAIN_DESC* desc,IDXGISwapChain** result){
  auto original=reinterpret_cast<Create>(Original(factory,10));if(!original){if(result)*result=nullptr;return E_UNEXPECTED;}
  ComPtr<IUnknown> core;if(!desc||!Guest(desc->OutputWindow,core))return original(factory,device,desc,result);
+ // A real native HWND can request the original legacy windowed DXGI contract.
+ // Keep its native flags, buffer count, ResizeBuffers implementation and HRESULTs.
+ // Do not rewrite game instructions to turn that contract into a flip chain.
+ // A virtual/unsupported HWND is rejected by the actual OS factory.
+ if(desc->Windowed&&desc->Flags==DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH&&desc->SampleDesc.Count==1&&!desc->SampleDesc.Quality){
+  LogNativePresentation(*desc,"native-hwnd-request",S_OK);auto hr=original(factory,device,desc,result);LogNativePresentation(*desc,"native-hwnd-create",hr);return hr;
+ }
  return CreateCoreSwapChain(core.Get(),device,*desc,result,factory);
 }
 static HRESULT STDMETHODCALLTYPE InterceptHwnd(IDXGIFactory2* factory,IUnknown* device,HWND hwnd,const DXGI_SWAP_CHAIN_DESC1* desc,const DXGI_SWAP_CHAIN_FULLSCREEN_DESC* fullscreen,IDXGIOutput* restrictOutput,IDXGISwapChain1** result){
  auto original=reinterpret_cast<CreateHwnd>(Original(factory,15));if(!original){if(result)*result=nullptr;return E_UNEXPECTED;}
  ComPtr<IUnknown> core;if(!Guest(hwnd,core))return original(factory,device,hwnd,desc,fullscreen,restrictOutput,result);
+ if(desc&&(!fullscreen||fullscreen->Windowed)&&!restrictOutput&&desc->Flags==DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH&&desc->SampleDesc.Count==1&&!desc->SampleDesc.Quality)
+  return original(factory,device,hwnd,desc,fullscreen,restrictOutput,result);
  if(!result)return E_POINTER;*result=nullptr;if(!desc)return E_INVALIDARG;if(restrictOutput||(fullscreen&&!fullscreen->Windowed)||desc->Stereo||(desc->AlphaMode!=DXGI_ALPHA_MODE_IGNORE&&desc->AlphaMode!=DXGI_ALPHA_MODE_UNSPECIFIED)||desc->Scaling!=DXGI_SCALING_STRETCH)return DXGI_ERROR_UNSUPPORTED;
  DXGI_SWAP_CHAIN_DESC legacy={};legacy.BufferDesc.Width=desc->Width;legacy.BufferDesc.Height=desc->Height;legacy.BufferDesc.Format=desc->Format;legacy.SampleDesc=desc->SampleDesc;legacy.BufferUsage=desc->BufferUsage;legacy.BufferCount=desc->BufferCount;legacy.OutputWindow=hwnd;legacy.Windowed=TRUE;legacy.SwapEffect=desc->SwapEffect;legacy.Flags=desc->Flags;
  ComPtr<IDXGISwapChain> chain;auto hr=CreateCoreSwapChain(core.Get(),device,legacy,&chain,factory);return FAILED(hr)?hr:chain.CopyTo(result);

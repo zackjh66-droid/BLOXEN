@@ -15,6 +15,7 @@ static void PresentationEvent(const DXGI_SWAP_CHAIN_DESC& d,const char* stage,HR
  auto logger=presentationLogger.load();if(!logger||presentationEvents.fetch_add(1)>=16)return;auto error=GetLastError();
  logger(std::string("NATIVE_PRESENTATION stage=")+stage+" HRESULT="+std::to_string(static_cast<unsigned long>(result))+" width="+std::to_string(d.BufferDesc.Width)+" height="+std::to_string(d.BufferDesc.Height)+" format="+std::to_string(static_cast<unsigned>(d.BufferDesc.Format))+" buffers="+std::to_string(d.BufferCount)+" samples="+std::to_string(d.SampleDesc.Count)+" quality="+std::to_string(d.SampleDesc.Quality)+" flags="+std::to_string(d.Flags)+" windowed="+std::to_string(static_cast<unsigned>(!!d.Windowed)));SetLastError(error);
 }
+void LogNativePresentation(const DXGI_SWAP_CHAIN_DESC& d,const char* stage,HRESULT result){PresentationEvent(d,stage,result);}
 static HRESULT(*compositionAttach)(IDXGISwapChain*)=nullptr;
 void SetCompositionAttachment(HRESULT(*attach)(IDXGISwapChain*)){compositionAttach=attach;}
 HRESULT CreateCoreSwapChain(IUnknown* window,IUnknown* device,const DXGI_SWAP_CHAIN_DESC& d,IDXGISwapChain** result,IUnknown* virtualFactory){
