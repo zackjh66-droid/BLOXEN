@@ -74,7 +74,7 @@ namespace Hollowwake
             // Relative motion comes from the real host mouse device, never inferred from a warped cursor.
             var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
             if(mouse != null) mouse.MouseMoved += (s,e) => { if(policyReady) HWMouseDelta(e.MouseDelta.X,e.MouseDelta.Y); };
-            Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(ReferenceEquals(previous,selected))return;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
+            Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(ReferenceEquals(previous,selected))return;var old=previous;previous=selected;if(old!=null){old.ClearValue(Button.BackgroundProperty);old.ClearValue(Button.ForegroundProperty);}if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
             Loaded += async (s, e) => { if (!ready) await StartLauncherAsync(); };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; if(!loadBusy)await CancelLinkAsync(); };
