@@ -1,7 +1,7 @@
 # Hollowwake actual-client startup status — 23 October 2026
 
 Status: blocked in converted-client startup. No verified Hollowwake lobby or
-working Xbox game package is claimed. The failed private 0.6.15 candidate and the untested 0.6.16 graphics candidate
+working Xbox game package is claimed. The failed private 0.6.15 candidate and the 0.6.16/0.6.17 candidates
 are not replacements for the live download.
 
 The Windows desktop used here is a temporary Microsoft-hosted GitHub Actions
@@ -49,8 +49,7 @@ The exact original executable remains SHA-256
 The actual converted client reached its original entry thread, initialized its
 engine, created a real D3D11 composition chain and completed loading
 `/Game/Maps/Frontend`. It then exited with `0xC0000005` before visible menus or
-a lobby were established. The game exchange was issued but was not consumed;
-Fortnite-compatible login has not been demonstrated by this execution.
+a lobby were established. Fortnite-compatible login has not been demonstrated by this execution.
 
 The loaded main image base was `140712188575744`. The fatal execute target was
 `140717581884128`, exactly image base plus `0x141775ae0` (preferred image base
@@ -181,8 +180,43 @@ it does not establish that those writes caused the transfer failure. No client
 branch, HRESULT check or authentication check is removed. An extended owned
 fixture exercises genuine HWND creation, flags/count reporting, count-one resize,
 GPU readback, Present and an invalid native resize failure. Local read-only audit
-and negative-modification checks passed; Windows validation is pending in run
-`40008449820`. Native HWND/DXGI behavior on Xbox remains unverified.
+and negative-modification checks passed. The Windows owned-code fixture also
+passed actual native HWND creation, original flag/count reporting, count-one
+resize, GPU readback, Present and invalid-resize failure checks in run
+`40008449820`. That run closed during production-app content verification, before Launch was
+invoked. Its actual-client result is therefore **unexecuted**, not a success or
+failure of the native graphics route. All 139 staged files and the whole source
+archive passed their hashes; the launcher logged an unhandled managed
+`0x80004005` exception at `launcher-ready`. It did not record an exception
+message or stack in that build. The earlier native fault in 0.6.15 remains the
+latest actual Fortnite execution failure. Native HWND/DXGI behavior on Xbox
+remains unverified.
+
+Evidence artifact `12526666568`, ZIP SHA-256
+`1c09132d5298c5fded382e1b3c33f91c48939cbbc4be04a5c2b550c235d7cdb2`,
+preserves that prelaunch failure. The signed recipient-encrypted candidate is
+artifact `12525887903`, ZIP SHA-256
+`0e1498abba0e95d94ef6412d0d900e59cd65e228f30829016280f6670f140f01`.
+It was not promoted.
+
+## Managed startup gate under test
+
+Source `2031ace997f731f4c683110f368216133b2ac2d8`, candidate 0.6.17, retains
+the original-instruction/native-DXGI work. Launch and manual verification remain
+disabled until account/startup completion; the handlers also check that state.
+The focus handler records ownership before changing properties and ignores
+repeated focus events for the same button. The test
+harness waits for completed startup and an enabled Launch control before manual
+verification; all 139 content hashes and the independent Windows storage checks
+remain required. This corrects an observable startup race but does not yet prove
+the cause of the managed closure.
+
+A bounded managed failure reporter adds only known error categories, static
+managed frame names, exception types and HRESULTs. Raw messages, arguments,
+URLs, credentials and paths are excluded. The original exception remains
+unhandled. Local C# tests passed category extraction, secret/path exclusion and
+unavailable-stack-metadata fallback. Windows/AOT and full-client checks are
+pending in run `40013633784`; no public diagnostic-only package is released.
 
 ## Preserved evidence and releases
 
