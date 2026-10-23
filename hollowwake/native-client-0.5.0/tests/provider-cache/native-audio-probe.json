@@ -1,0 +1,1 @@
+{"scope":"Original hosted UWP audio implementation test; no game/Xbox execution","hresult":0,"stage":"Provider loading and PCM mixing complete; endpoint result recorded","loadError":0,"pcmMixed":true,"directSoundCreateHresult":-2005401480,"captureCreateHresult":-2005401480,"captureEnumerateHresult":0,"captureCallbacks":0,"gameExecuted":false,"xboxTested":false}

@@ -43,26 +43,36 @@ jobs:
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
           msbuild hollowwake\native-client-0.5.0\Native\Native.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /p:GenerateAppxPackageOnBuild=false /nologo
+      - name: Create one-run private input delivery key
+        id: input_key
+        if: ${{ contains(github.event.head_commit.message, '[integrated-windows]') && steps.public_build.outcome == 'success' }}
+        shell: pwsh
+        run: ./hollowwake/native-client-0.5.0/tests/WindowsInputKey.ps1 -Directory "$env:RUNNER_TEMP/HollowwakeInputPublicKey"
+      - name: Publish only the one-run public input key
+        if: ${{ steps.input_key.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-windows-input-public-key
+          path: ${{ runner.temp }}/HollowwakeInputPublicKey/input-public-key.json
+          retention-days: 1
+      - name: Receive recipient-encrypted operator-authorized private input lease
+        id: input_lease
+        if: ${{ steps.input_key.outcome == 'success' }}
+        timeout-minutes: 22
+        shell: pwsh
+        run: ./hollowwake/native-client-0.5.0/tests/Receive-WindowsInputLease.ps1 -OutputPath "$env:RUNNER_TEMP/hw-private-input-lease.json"
       - name: Reuse exact previously tested licensed providers
         id: reuse_providers
-        if: ${{ contains(github.event.head_commit.message, '[reuse-providers]') && steps.public_build.outcome == 'success' }}
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          artifact-ids: '12280182348'
-          merge-multiple: true
-          run-id: '39454362155'
-          github-token: ${{ github.token }}
-          path: artifacts/native-client-050
+        if: ${{ contains(github.event.head_commit.message, '[reuse-providers]') && steps.input_lease.outcome == 'success' }}
+        shell: powershell
+        run: python hollowwake/native-client-0.5.0/tests/RestoreLicensedProviders.py "$env:RUNNER_TEMP/hw-private-input-lease.json" artifacts/native-client-050
       - name: Retrieve original provider behavior receipts
         id: reuse_receipts
         if: ${{ steps.reuse_providers.outcome == 'success' }}
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          artifact-ids: '12279788622'
-          merge-multiple: true
-          run-id: '39454362155'
-          github-token: ${{ github.token }}
-          path: ${{ runner.temp }}/HollowwakePriorEvidence
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$env:RUNNER_TEMP/HollowwakePriorEvidence"|Out-Null
+          Copy-Item hollowwake/native-client-0.5.0/tests/provider-cache/native-*-probe.json "$env:RUNNER_TEMP/HollowwakePriorEvidence/"
       - name: Validate reused provider files against their original inventories
         id: reuse_verified
         if: ${{ steps.reuse_receipts.outcome == 'success' }}
@@ -79,7 +89,7 @@ jobs:
           }
           Copy-Item (Join-Path $env:RUNNER_TEMP 'HollowwakePriorEvidence/native-wgl-probe.json') artifacts/native-client-050/native-wgl-probe.json
           Copy-Item (Join-Path $env:RUNNER_TEMP 'HollowwakePriorEvidence/native-audio-probe.json') artifacts/native-client-050/native-audio-probe.json
-          @{sourceCommit='d17120872a3e3ef03445fa2e12f603e195b7acd0';run=39454362155;providerArtifact=12280182348;receiptArtifact=12279788622;recompiled=$false;gameExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/reused-provider-provenance.json
+          @{sourceCommit='d17120872a3e3ef03445fa2e12f603e195b7acd0';run=39454362155;providerArchiveSha256='233ed20ffcf8d87230c126453e6a99d36060dddb5f32ac994ec9ba6619f200dd';originalProviderArtifact=12280182348;originalReceiptArtifact=12279788622;recompiled=$false;gameExecuted=$false;xboxTested=$false}|ConvertTo-Json|Set-Content artifacts/native-client-050/reused-provider-provenance.json
       - name: Compile reviewed Mesa UWP WGL candidate
         id: mesa_candidate
         if: ${{ always() && contains(github.event.head_commit.message, '[mesa-uwp]') }}
@@ -168,24 +178,6 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 1
-      - name: Create one-run private input delivery key
-        id: input_key
-        if: ${{ contains(github.event.head_commit.message, '[integrated-windows]') && steps.public_build.outcome == 'success' }}
-        shell: pwsh
-        run: ./hollowwake/native-client-0.5.0/tests/WindowsInputKey.ps1 -Directory "$env:RUNNER_TEMP/HollowwakeInputPublicKey"
-      - name: Publish only the one-run public input key
-        if: ${{ steps.input_key.outcome == 'success' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: hollowwake-windows-input-public-key
-          path: ${{ runner.temp }}/HollowwakeInputPublicKey/input-public-key.json
-          retention-days: 1
-      - name: Receive recipient-encrypted operator-authorized private input lease
-        id: input_lease
-        if: ${{ steps.input_key.outcome == 'success' }}
-        timeout-minutes: 22
-        shell: pwsh
-        run: ./hollowwake/native-client-0.5.0/tests/Receive-WindowsInputLease.ps1 -OutputPath "$env:RUNNER_TEMP/hw-private-input-lease.json"
       - name: Private game-input packaging check; never upload its files
         id: private_source
         if: ${{ !contains(github.event.head_commit.message, '[ui-only]') && !contains(github.event.head_commit.message, '[no-private-inputs]') && steps.public_build.outcome == 'success' && (steps.reuse_verified.outcome == 'success' || (steps.audio_behavior.outcome == 'success' && (!contains(github.event.head_commit.message, '[mesa-uwp]') || steps.mesa_behavior.outcome == 'success'))) }}
