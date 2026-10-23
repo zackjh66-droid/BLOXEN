@@ -179,6 +179,7 @@ namespace Hollowwake
                 ApplicationData.Current.LocalSettings.Values["BackendOrigin"] = api.Origin;
                 App.StartupStage("protected-session-read");
                 sessionToken = await store.LoadAsync(api.Origin);
+                App.StartupStage("protected-session-complete");
                 if (sessionToken != null) await ValidateSessionAsync(true); else await StartLinkAsync();
             }
             catch { if (api != candidate) candidate.Dispose(); throw; }
@@ -201,6 +202,7 @@ namespace Hollowwake
         }
         private async Task StartLinkAsync()
         {
+            App.StartupStage("account-link-begin");
             if (api == null) { Show(SetupPanel); return; }
             ResetOperation(); heartbeat.Stop(); var ticket = generation; var cancellation = operation.Token;
             await CancelPendingAsync();
@@ -209,7 +211,9 @@ namespace Hollowwake
             RetryButton.Focus(FocusState.Programmatic);
             try
             {
+                App.StartupStage("device-code-request");
                 var issued = await api.SendAsync("/api/device/code", ApiClient.Body("client_id", "hollowwake-uwp"), null, cancellation);
+                App.StartupStage("device-code-response");
                 if (ticket != generation) return;
                 pendingDeviceCode = issued.GetNamedString("device_code");
                 var code = issued.GetNamedString("user_code");

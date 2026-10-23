@@ -1,6 +1,22 @@
 param([Parameter(Mandatory=$true)][string]$PackagePath,[Parameter(Mandatory=$true)][string]$OutputDirectory)
 $ErrorActionPreference='Stop'
 $activationEvidenceSince=[DateTime]::UtcNow
+$script:activationRetries=@()
+function Invoke-StartupActivation([string]$AppId){
+ for($activationAttempt=1;$activationAttempt-le 2;$activationAttempt++){
+  try{return [HwStartupActivation]::Launch($AppId)}catch{
+   $problem=$_.Exception;$retryable=$false;$codes=@()
+   while($problem){$code=$problem.HResult.ToString('X8');$codes+=('0x'+$code);if($code-eq '80040905'){$retryable=$true};$problem=$problem.InnerException}
+   $stage=$null;if($data-and (Test-Path (Join-Path $data 'launcher-startup.log'))){$stage=Get-Content (Join-Path $data 'launcher-startup.log') -Tail 1}
+   $script:activationRetries+=@{attempt=$activationAttempt;time=[DateTime]::UtcNow.ToString('o');hresults=$codes;lastStartupStage=$stage;operation='Actual ActivateApplication; no simulated success'}
+   $script:activationRetries|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'launcher-activation-retries.json')
+   if(!$retryable-or $activationAttempt-ge 2){throw}
+   # A single repeat of the same ordinary OS activation, preserving the first
+   # error. All actual interactive-menu/survival/reopen checks still run.
+   Start-Sleep -Milliseconds 1500
+  }
+ }
+}
 trap {
  $failureRecord=$_;$chain=@();$exception=$failureRecord.Exception
  while($exception){$chain+=@{type=$exception.GetType().FullName;hresult=('0x'+$exception.HResult.ToString('X8'));message=$exception.Message};$exception=$exception.InnerException}
@@ -12,8 +28,9 @@ trap {
   }}catch{}
  }
  New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
- @{operation='Signed private package ordinary activation/startup check';failure=$chain;events=$events;fortniteEntryEstablished=$false}|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'launcher-activation-failure.json')
+ @{operation='Signed private package ordinary activation/startup check';failure=$chain;activationFailures=$script:activationRetries;events=$events;fortniteEntryEstablished=$false}|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'launcher-activation-failure.json')
  if($data){$startup=Join-Path $data 'launcher-startup.log';if(Test-Path $startup){Copy-Item $startup (Join-Path $OutputDirectory 'launcher-startup.log')}}
+ if($data){$managed=Join-Path $data 'managed-launch.log';if(Test-Path $managed){$text=(Get-Content $managed -Tail 80)-join "`n";$text=$text-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]'-replace '(?i)(Bearer\s+)[^\s"<>]+','$1[REDACTED]'-replace '(?i)((?:exchange_code|access_token|refresh_token|session_token|device_code)["\s:=]+)[^\s",;&<>]+','$1[REDACTED]'-replace '(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])','[REDACTED]';$text|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'launcher-startup-managed.log')}}
  Write-Host ('ACTUAL_LAUNCHER_FAILURE '+($chain|ConvertTo-Json -Compress))
  throw $failureRecord
 }
@@ -37,7 +54,7 @@ for($attempt=1;$attempt-le 2;$attempt++){
  if(Test-Path $nativeLog){$offset=(Get-Item $nativeLog).Length}
  $startupLog=Join-Path $data 'launcher-startup.log'
  $before='';if(Test-Path $startupLog){$before=Get-Content $startupLog -Raw}
- $applicationPid=[HwStartupActivation]::Launch($package.PackageFamilyName+'!App')
+ $applicationPid=Invoke-StartupActivation ($package.PackageFamilyName+'!App')
  try{
   $deadline=[DateTime]::UtcNow.AddSeconds(50);$visible=$null
   do{
@@ -75,7 +92,7 @@ $policy=Join-Path $data 'runtime-policy.txt';$backup=Join-Path $data ('owned-pol
 try{
  if(Test-Path $policy -PathType Leaf){Move-Item -LiteralPath $policy -Destination $backup}
  New-Item -ItemType Directory -Path $policy|Out-Null;$ownedDirectory=$true
- $applicationPid=[HwStartupActivation]::Launch($package.PackageFamilyName+'!App');$deadline=[DateTime]::UtcNow.AddSeconds(50);$failureButton=$null
+ $applicationPid=Invoke-StartupActivation ($package.PackageFamilyName+'!App');$deadline=[DateTime]::UtcNow.AddSeconds(50);$failureButton=$null
  do{
   $failureButton=[Windows.Automation.AutomationElement]::RootElement.FindFirst([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::AutomationIdProperty,'StartupRetryButton'))
   if($failureButton-and !$failureButton.Current.IsOffscreen){break}
@@ -102,5 +119,5 @@ try{
  if($ownedDirectory-and (Test-Path $policy -PathType Container)){Remove-Item -LiteralPath $policy}
  if(Test-Path $backup){Move-Item -LiteralPath $backup -Destination $policy}
 }
-@{result='PASS signed private launcher ordinary opening/reopening and real managed startup I/O recovery';packageVersion=$package.Version.ToString();runs=$results;scope='Windows AppContainer installation and ordinary activation of the actual game-containing deliverable';xboxTested=$false;fortniteExecuted=$false}|ConvertTo-Json -Depth 6|Set-Content (Join-Path $OutputDirectory 'launcher-startup-results.json')
+@{result='PASS signed private launcher ordinary opening/reopening and real managed startup I/O recovery';packageVersion=$package.Version.ToString();activationFailures=$script:activationRetries;runs=$results;scope='Windows AppContainer installation and ordinary activation of the actual game-containing deliverable';xboxTested=$false;fortniteExecuted=$false}|ConvertTo-Json -Depth 6|Set-Content (Join-Path $OutputDirectory 'launcher-startup-results.json')
 Copy-Item $startupLog (Join-Path $OutputDirectory 'launcher-startup.log')

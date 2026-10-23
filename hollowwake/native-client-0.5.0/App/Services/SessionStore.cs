@@ -21,14 +21,18 @@ namespace Hollowwake.Services
         {
             try
             {
+                Hollowwake.App.StartupStage("session-file-open");
                 var file = await ApplicationData.Current.LocalFolder.GetFileAsync(Filename);
+                Hollowwake.App.StartupStage("session-buffer-read");
                 var data = await FileIO.ReadBufferAsync(file);
+                Hollowwake.App.StartupStage("session-unprotect");
                 var decrypted = await new DataProtectionProvider().UnprotectAsync(data);
+                Hollowwake.App.StartupStage("session-json-read");
                 var json = JsonObject.Parse(CryptographicBuffer.ConvertBinaryToString(BinaryStringEncoding.Utf8, decrypted));
                 if (!String.Equals(json.GetNamedString("origin"), origin, StringComparison.Ordinal)) return null;
                 return json.GetNamedString("token");
             }
-            catch { return null; } // Expired user protection context/corrupt store => re-link, never expose data.
+            catch (Exception error) { Hollowwake.App.StartupStage("session-read-unavailable-"+error.HResult.ToString("X8"));return null; } // Re-link without exporting protected data.
         }
         public async Task ClearAsync()
         {
