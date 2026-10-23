@@ -36,8 +36,8 @@ int main(int argc,char** argv){
  bool bound=BindClientCrtImport(consumer,"api-ms-win-crt-environment-l1-1-0.dll","getenv",realEnvironment,reinterpret_cast<void*>(&GuestEnvironment));
  auto selected=bound?environment("OPENSSL_ia32cap"):nullptr;
  bool clientOnly=selected&&!strcmp(selected,":~0x20000000")&&getenv("OPENSSL_ia32cap")==nullptr;
- bool restored=_putenv_s("OPENSSL_ia32cap",hadPrior?saved.c_str():"")==0;
- if(!bound||!clientOnly||!restored)return Fail(6,"real-module-getenv-call-or-host-isolation",GetLastError());
+ bool environmentRestored=_putenv_s("OPENSSL_ia32cap",hadPrior?saved.c_str():"")==0;
+ if(!bound||!clientOnly||!environmentRestored)return Fail(6,"real-module-getenv-call-or-host-isolation",GetLastError());
  puts("PASS actual OS-loaded consumer CRT getenv binding configured through its real IAT; unexpected binding rejected; host getenv unchanged.");
  puts("PASS actual OS-loaded provider, real current-process copied-import restoration, rejection before restoration, both real WinMain call sites rebound; original provider unchanged. No game/Xbox execution.");return 0;
 }
