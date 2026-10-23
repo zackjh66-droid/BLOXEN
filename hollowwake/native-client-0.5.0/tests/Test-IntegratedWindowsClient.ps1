@@ -86,11 +86,15 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   $alive=[bool](Get-Process -Id $applicationPid -ErrorAction SilentlyContinue)
   $nativeText='';if(Test-Path $native){$nativeText=Get-Content $native -Raw}
   if($nativeText-match 'NATIVE_THREAD original entry is OS start address'){$result.nativeThreadCreated=$true}
+  $managedNow='';if(Test-Path $managed){$managedNow=Get-Content $managed -Raw}
+  $nativeReturns=[regex]::Matches($managedNow,'Native loading returned (-?\d+)\.')
+  if($nativeReturns.Count){$nativeReturn=[int]$nativeReturns[$nativeReturns.Count-1].Groups[1].Value;$result.nativeReturnCode=$nativeReturn;$result.nativeReturnCodeHex=('0x'+$nativeReturn.ToString('X8'));if($nativeReturn-lt 0){$result.stage='actual-native-launch-returned-error';$result.failure=('Actual native startup returned '+$result.nativeReturnCodeHex+'; original entry and lobby are not established.');Screenshot 'Windows-native-launch-returned-error';break}}
+
   if($tick-in @(2,4,6,8,10,12,24,36)-or !$alive){Screenshot ('Windows-actual-client-after-launch-'+$tick)}
   $dialogs=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
   $titles=@();foreach($dialog in $dialogs){$title=$dialog.Current.Name;if($title-match 'Fortnite|Error|Message|Hollowwake'){$texts=$dialog.FindAll([Windows.Automation.TreeScope]::Descendants,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Text));$body=@();foreach($textControl in $texts){if($textControl.Current.Name.Length-lt 1000){$body+=$textControl.Current.Name}};$body=@($body|ForEach-Object{$_-replace '(?i)(-AUTH_PASSWORD=)[^\s]+','$1[REDACTED]'-replace '(?<![A-Za-z0-9_-])[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])','[REDACTED]'});$titles+=@{title=$title;text=$body};if(($body-join ' ')-match 'Failed to open descriptor file'){ $result.firstEngineError=($body-join ' ');$result.originalEngineStartupObserved=$true }}}
   $observations+=@{seconds=$tick*5;alive=$alive;windowTitles=$titles}
-  if($result.firstEngineError){Screenshot 'Windows-original-client-engine-error';$result.stage='actual-client-engine-error';break}
+  if($result.firstEngineError){Screenshot 'Windows-original-client-engine-error';$result.stage='actual-client-engine-error';$result.failure=$result.firstEngineError;break}
   if(!$alive){
    $result.stage='actual-client-process-exited'
    try{$result.processExitCode=$processObserver.ExitCode;$result.processExitCodeHex=('0x'+$processObserver.ExitCode.ToString('X8'))}catch{$result.processExitCodeUnavailable=$_.Exception.GetType().Name}
@@ -99,6 +103,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   }
  }while([DateTime]::UtcNow-lt $deadline)
  $result.observations=$observations
+ if(!$result.failure-and !$result.nativeThreadCreated){$result.stage='actual-client-entry-not-observed';$result.failure='Actual original entry thread was not observed; surviving launcher UI is not client startup.'}
  if($result.stage-eq 'invoke-actual-launch-button'){$result.stage='actual-client-observation-complete'}
  # No screenshot classifier or successful helper build asserts a lobby/menu connection.
  $result.scope='Real signed app, complete verified data, approved normal account, actual launch action. Native thread creation alone is not proof of a loading screen or lobby.'
@@ -117,6 +122,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
   if($engineText-match 'LogInit: Display: Game Engine Initialized\.'){$result.engineInitializationObserved=$true}
   if($engineText-match 'LogLoad: Took [0-9.]+ seconds to LoadMap\(/Game/Maps/Frontend\)'){$result.frontendMapLoadObserved=$true}
  }
+ if(!$result.failure-and !$result.engineInitializationObserved){$result.stage='actual-engine-initialization-not-observed';$result.failure='Original game engine initialization was not observed in the actual game logs.'}
  # Revoke only this temporary account's linked sessions, never another user's.
  if($browser-and $result.testAccount){try{$devices=Invoke-RestMethod -Uri ($origin+'/api/devices') -WebSession $browser -TimeoutSec 30;foreach($device in $devices.devices){$null=Post '/api/devices/revoke' @{id=$device.id}};$null=Post '/api/auth/sign-out' @{}}catch{Write-Host 'Temporary test-session cleanup could not complete; no credential was exported'}}
  if($applicationPid){Stop-Process -Id $applicationPid -Force -ErrorAction SilentlyContinue}

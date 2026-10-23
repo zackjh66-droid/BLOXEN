@@ -269,7 +269,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   crashRead=reinterpret_cast<Hollowwake::CrashReadMemory>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","ReadProcessMemory"));
   crashQuery=reinterpret_cast<Hollowwake::CrashQueryMemory>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualQuery"));
   using AddHandler=PVOID(WINAPI*)(ULONG,PVECTORED_EXCEPTION_HANDLER);auto addHandler=reinterpret_cast<AddHandler>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","AddVectoredExceptionHandler"));if(!addHandler||!addHandler(1,NativeCrashRecord))Log("NATIVE_DIAGNOSTIC vectored crash recorder unavailable");
-  Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
+  Log("NATIVE_PACKAGE_NAMESPACE_BEGIN validating signed dependency and proxy aliases");
   std::wstring manifestPath=std::wstring(location->Data())+L"\\native-package-manifest.json";std::ifstream metadata(manifestPath,std::ios::binary);if(!metadata){Log("NATIVE_LOAD_BLOCKED private dependency manifest missing");return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);}
   std::string text((std::istreambuf_iterator<char>(metadata)),std::istreambuf_iterator<char>());if(text.size()>1024*1024)return E_INVALIDARG;std::wstring wide(text.begin(),text.end());auto manifest=Windows::Data::Json::JsonObject::Parse(ref new Platform::String(wide.c_str()));auto files=manifest->GetNamedArray(L"files");if(files->Size>200)return E_INVALIDARG;
   if(!Hollowwake::ConfigurePackagedRoot(location->Data()))return E_INVALIDARG;
@@ -284,14 +284,12 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
    // Dynamic callers use the original DLL name while static/delay descriptors
    // name the signed proxy. Both must identify that same real package image.
    // Core OS facades retain their explicit routing and real-handle policies.
-   std::wstring original(item->GetNamedString(L"sourceDll")->Data());std::string originalA(original.begin(),original.end());
-   if(!Hollowwake::NativeSystemFacadeAvailable(originalA.c_str())){
-    auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+original;
-    if(!Hollowwake::RegisterPackagedDependency(original.c_str(),name.c_str(),logical.c_str())){Log("NATIVE_LOAD_BLOCKED invalid signed proxy source alias");return E_INVALIDARG;}
-   }
+   auto original=item->GetNamedString(L"sourceDll");
+   if(!Hollowwake::RegisterPackagedProxySource(original->Data(),name.c_str())){Log("NATIVE_LOAD_BLOCKED invalid signed proxy source alias");return E_INVALIDARG;}
   }
   if(!Hollowwake::RegisterPackagedDependency(L"dsound.dll",L"HWAUD.dll",L"6.21/FortniteGame/Binaries/Win64/dsound.dll"))return E_INVALIDARG;
   for(auto pair: {std::make_pair(L"imm32.dll",L"HWIM.dll"),std::make_pair(L"opengl32.dll",L"HWGL.dll"),std::make_pair(L"dwmapi.dll",L"HWDWM.dll"),std::make_pair(L"d3d9.dll",L"HWD9.dll")}){auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+pair.first;if(!Hollowwake::RegisterPackagedDependency(pair.first,pair.second,logical.c_str()))return E_INVALIDARG;}
+  Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
   auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   Log("NATIVE_IMAGE_IDENTITY loadedBase="+std::to_string(reinterpret_cast<ULONG_PTR>(module))+" originalImageBytes="+std::to_string(kPreparedOriginalImageBytes));
   auto queryImage=reinterpret_cast<ClientImageQuery>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualQuery"));

@@ -83,9 +83,18 @@ int wmain(int argc,wchar_t** argv){
  assert(module(L"../../../Engine/OwnedPhysics.dll")==proxy&&module(L"6.21/Engine/OwnedPhysics.dll")==proxy);
  // The signed proxy manifest also has original system DLL basenames. Dynamic
  // source-name lookup must use the same already-loaded compatibility image.
- assert(Hollowwake::RegisterPackagedDependency(L"USER32.dll",L"HWOwnedIdentity.dll",L"6.21/FortniteGame/Binaries/Win64/USER32.dll"));
+ assert(Hollowwake::RegisterPackagedProxySource(L"USER32.dll",L"HWOwnedIdentity.dll"));
  assert(module(L"user32.dll")==proxy&&module(L"HWOwnedIdentity.dll")==proxy);
  assert(::GetModuleHandleW(L"user32.dll")!=proxy);
+ // Exercise the actual dedicated-provider precedence against a different
+ // generated proxy. This owned DLL exports only OwnedIdentity, no game APIs.
+ auto audioPath=root+L"\\HWAUD.dll";assert(CopyFileW(full,audioPath.c_str(),TRUE));
+ HMODULE audio=::LoadLibraryW(audioPath.c_str());assert(audio&&audio!=proxy);
+ assert(Hollowwake::RegisterPackagedProxySource(L"DSOUND.dll",L"HWOwnedIdentity.dll"));
+ assert(Hollowwake::RegisterPackagedDependency(L"dsound.dll",L"HWAUD.dll",L"6.21/FortniteGame/Binaries/Win64/dsound.dll"));
+ assert(module(L"DSOUND.dll")==audio&&module(L"DSOUND.dll")!=proxy);
+ auto audioIdentity=reinterpret_cast<int(__cdecl*)()>(proc(audio,"OwnedIdentity"));assert(audioIdentity&&audioIdentity()==621);
+ assert(::FreeLibrary(audio)&&DeleteFileW(audioPath.c_str()));
  assert(!module(L"../../../../outside/OwnedPhysics.dll"));
  auto ownedProxyEntry=reinterpret_cast<int(__cdecl*)()>(proc(proxy,"OwnedIdentity"));assert(ownedProxyEntry&&ownedProxyEntry()==621);
  assert(!Hollowwake::RegisterPackagedDependency(L"HWOutside.dll",L"../HWOutside.dll",L"HWOutside.dll"));
