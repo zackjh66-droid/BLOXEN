@@ -58,13 +58,15 @@ void Location(std::ofstream& output,DWORD pid,ULONG_PTR address){
 }
 }
 int wmain(int argc,wchar_t** argv){
- if(argc!=6)return 2;
+ bool original=argc==7&&!wcscmp(argv[6],L"--original-source");if(argc!=6&&!original)return 2;
  wchar_t* end=nullptr;auto parsed=wcstoul(argv[1],&end,10);if(!parsed||!end||*end)return 2;DWORD pid=parsed;
- std::wstring root=argv[2],expectedPath=root+L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll";
+ std::wstring root=argv[2],expectedPath=root+(original?L"\\FortniteGame\\Binaries\\Win64\\FortniteClient-Win64-Shipping.exe":L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll");
  std::wstring wideHash=argv[3];std::string hash(wideHash.begin(),wideHash.end());if(hash.size()!=64||hash.find_first_not_of("0123456789abcdef")!=std::string::npos||!Hash(expectedPath.c_str(),hash))return 3;
+ if(original&&hash!="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478")return 3;
  Handle process;process.value=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION|PROCESS_VM_READ|SYNCHRONIZE,FALSE,pid);if(!process.value)return 4;
  wchar_t image[32768]={};DWORD length=32768;if(!QueryFullProcessImageNameW(process.value,0,image,&length))return 4;
  std::wstring actual(image,length);if(actual.size()<=root.size()||_wcsnicmp(actual.c_str(),root.c_str(),root.size())||actual[root.size()]!=L'\\')return 4;
+ if(original&&_wcsicmp(actual.c_str(),expectedPath.c_str()))return 4;
  auto seconds=wcstoul(argv[5],&end,10);if(!end||*end||seconds<10||seconds>300)return 2;
  std::ofstream output(argv[4],std::ios::binary);if(!output)return 5;
  if(!DebugActiveProcess(pid)){output<<"{\"event\":\"attach_failed\",\"error\":"<<GetLastError()<<"}\n";return 6;}
@@ -76,6 +78,7 @@ int wmain(int argc,wchar_t** argv){
   DWORD disposition=DBG_CONTINUE;
   if(event.dwDebugEventCode==CREATE_PROCESS_DEBUG_EVENT){
    output<<"{\"event\":\"host_image\",\"base\":"<<reinterpret_cast<ULONG_PTR>(event.u.CreateProcessInfo.lpBaseOfImage)<<"}\n";
+   if(original){main=reinterpret_cast<ULONG_PTR>(event.u.CreateProcessInfo.lpBaseOfImage);output<<"{\"event\":\"original_source_image\",\"base\":"<<main<<",\"sha256\":\""<<hash<<"\"}\n";}
    if(event.u.CreateProcessInfo.hFile)CloseHandle(event.u.CreateProcessInfo.hFile);
    if(event.u.CreateProcessInfo.hProcess)CloseHandle(event.u.CreateProcessInfo.hProcess);
    if(event.u.CreateProcessInfo.hThread)CloseHandle(event.u.CreateProcessInfo.hThread);
@@ -96,10 +99,14 @@ int wmain(int argc,wchar_t** argv){
    }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;auto address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
-   if(record.ExceptionCode==EXCEPTION_BREAKPOINT&&initial){initial=false;}
+   if(record.ExceptionCode==EXCEPTION_BREAKPOINT&&initial){initial=false;if(original&&main)Threads(pid,main,false);}
    else if(!measured&&main&&record.ExceptionCode==EXCEPTION_SINGLE_STEP&&address==main+transferRva){
     Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);CONTEXT context={};context.ContextFlags=CONTEXT_CONTROL|CONTEXT_INTEGER|CONTEXT_DEBUG_REGISTERS;
     if(thread.value&&GetThreadContext(thread.value,&context)&&(context.Dr6&1)){
+     BYTE instruction[11]={};SIZE_T received=0;const BYTE expected[]={0x48,0x8b,0x45,0x38,0x48,0x03,0x05,0xfc,0x52,0x3b,0xfb};
+     if(!ReadProcessMemory(process.value,reinterpret_cast<void*>(address),instruction,sizeof(instruction),&received)||received!=sizeof(instruction)||memcmp(instruction,expected,sizeof(instruction))){
+      output<<"{\"event\":\"transfer_instruction_mismatch\"}\n";measured=true;Clear(thread.value,main);Threads(pid,main,true);output.flush();ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);continue;
+     }
      ULONG_PTR operand=0,constant=0,headerBase=0,sourceBase=0;bool a=Read(process.value,context.Rbp+0x38,operand),b=Read(process.value,main+constantRva,constant);
      output<<"{\"event\":\"observed_transfer_calculation\",\"mainBase\":"<<main<<",\"operandReadable\":"<<(a?"true":"false")<<",\"constantReadable\":"<<(b?"true":"false");
      if(a&&b){auto target=operand+constant;output<<",\"operand\":"<<operand<<",\"constant\":"<<constant<<",\"computedTarget\":"<<target<<",\"matchesCurrentImageDelta\":"<<(operand==main-0x140000000ULL?"true":"false");Location(output,pid,target);}

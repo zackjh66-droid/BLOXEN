@@ -7,36 +7,6 @@ struct ClientImageProtection {DWORD rva;SIZE_T bytes;DWORD protect;};
 using ClientImageQuery=SIZE_T(WINAPI*)(LPCVOID,PMEMORY_BASIC_INFORMATION,SIZE_T);
 using ClientImageProtect=BOOL(WINAPI*)(LPVOID,SIZE_T,DWORD,PDWORD);
 using ClientImageLogger=void(*)(const std::string&);
-// Replay only the original initializer's measured header ImageBase update.
-// The file retains its preferred base so the real OS loader relocates normally;
-// this operation happens afterwards and never edits a relocation or instruction.
-inline HRESULT RestoreClientRuntimeImageBase(HMODULE module,SIZE_T imageSize,ULONGLONG preferred,ClientImageQuery query,ClientImageProtect protect,ClientImageLogger log){
- if(!module||imageSize<sizeof(IMAGE_DOS_HEADER)||!preferred||!query||!protect)return E_INVALIDARG;
- auto base=reinterpret_cast<BYTE*>(module);
- auto readable=[&](SIZE_T offset,SIZE_T size)->bool{
-  if(offset>=imageSize||size>imageSize-offset)return false;
-  MEMORY_BASIC_INFORMATION page={};if(query(base+offset,&page,sizeof(page))!=sizeof(page)||page.AllocationBase!=module||page.State!=MEM_COMMIT||page.Type!=MEM_IMAGE||(page.Protect&(PAGE_GUARD|PAGE_NOACCESS)))return false;
-  auto start=reinterpret_cast<ULONG_PTR>(page.BaseAddress),here=reinterpret_cast<ULONG_PTR>(base+offset);return start<=here&&page.RegionSize>=here-start&&size<=page.RegionSize-(here-start);
- };
- if(!readable(0,sizeof(IMAGE_DOS_HEADER)))return HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
- auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(base);if(dos->e_magic!=IMAGE_DOS_SIGNATURE||dos->e_lfanew<sizeof(IMAGE_DOS_HEADER)||!readable(static_cast<SIZE_T>(dos->e_lfanew),sizeof(IMAGE_NT_HEADERS64)))return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
- auto nt=reinterpret_cast<IMAGE_NT_HEADERS64*>(base+dos->e_lfanew);
- if(nt->Signature!=IMAGE_NT_SIGNATURE||nt->FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||nt->OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR64_MAGIC||nt->FileHeader.SizeOfOptionalHeader!=sizeof(IMAGE_OPTIONAL_HEADER64)||nt->OptionalHeader.SizeOfHeaders>imageSize)return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
- auto field=&nt->OptionalHeader.ImageBase;auto offset=reinterpret_cast<BYTE*>(field)-base;
- if(reinterpret_cast<ULONG_PTR>(field)%8||offset+sizeof(*field)>nt->OptionalHeader.SizeOfHeaders)return HRESULT_FROM_WIN32(ERROR_BAD_EXE_FORMAT);
- ULONGLONG loaded=reinterpret_cast<ULONG_PTR>(module),before=*field;
- if(before!=preferred&&before!=loaded)return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
- if(before!=loaded){
-  MEMORY_BASIC_INFORMATION page={};if(query(field,&page,sizeof(page))!=sizeof(page))return HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
-  auto access=page.Protect&0xff;bool writable=access==PAGE_READWRITE||access==PAGE_WRITECOPY||access==PAGE_EXECUTE_READWRITE||access==PAGE_EXECUTE_WRITECOPY;
-  DWORD old=0;if(!writable&&!protect(field,sizeof(*field),PAGE_READWRITE,&old)){auto e=GetLastError();return HRESULT_FROM_WIN32(e?e:ERROR_GEN_FAILURE);}
-  auto observed=static_cast<ULONGLONG>(InterlockedCompareExchange64(reinterpret_cast<volatile LONG64*>(field),static_cast<LONG64>(loaded),static_cast<LONG64>(before)));
-  DWORD ignored=0;bool restored=writable||protect(field,sizeof(*field),page.Protect,&ignored);auto error=GetLastError();
-  if(!restored||observed!=before){if(observed==before)InterlockedExchange64(reinterpret_cast<volatile LONG64*>(field),static_cast<LONG64>(before));return HRESULT_FROM_WIN32(!restored?(error?error:ERROR_GEN_FAILURE):ERROR_RETRY);}
- }
- if(*field!=loaded)return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
- if(log)log("NATIVE_IMAGE_STARTUP original measured runtime header ImageBase restored to current loaded module; preferred file base and original instructions/checks retained");return S_OK;
-}
 // Restore only the original initialization's measured image permissions. This
 // does not manufacture successful page transitions or modify guest code/state.
 inline HRESULT ApplyClientImageStartup(HMODULE module,SIZE_T imageSize,const ClientImageProtection* regions,unsigned count,ClientImageQuery query,ClientImageProtect protect,ClientImageLogger log){

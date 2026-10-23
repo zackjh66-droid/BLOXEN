@@ -70,6 +70,9 @@ if($LASTEXITCODE){throw 'Native entry-thread compilation failed'}
 & cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'tests\ClientImageStartupTest.cpp') kernel32.lib /Fe:"$OutputDirectory\ClientImageStartupTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'image-startup-build.log')
 if($LASTEXITCODE){throw 'Production image startup state compilation failed'}
 & "$OutputDirectory\ClientImageStartupTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'image-startup-test.log');if($LASTEXITCODE){throw 'Actual image page transition or bounds/provider validation failed'}
+& cl.exe /nologo /std:c++17 /EHsc /MD (Join-Path $source 'tests\ClientCryptoEnvironmentTest.cpp') /Fe:"$OutputDirectory\ClientCryptoEnvironmentTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'crypto-environment-build.log')
+if($LASTEXITCODE){throw 'Client crypto configuration compilation failed'}
+& "$OutputDirectory\ClientCryptoEnvironmentTest.exe" 2>&1|Tee-Object (Join-Path $OutputDirectory 'crypto-environment-test.log');if($LASTEXITCODE){throw 'Real CRT configuration/delegation behavior failed'}
 # Focused production window/network checks; no game code or repeated graphics demos.
 # The historical return-address repair is not used by the initialized route.
 # Do not accept its constructed-frame fixture as original-client startup proof.
@@ -137,7 +140,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.11.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.12.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')

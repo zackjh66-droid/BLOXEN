@@ -2,7 +2,7 @@ param([Parameter(Mandatory=$true)][string]$GameData,[Parameter(Mandatory=$true)]
 # Conditional comparison only: exact unchanged original EXE, real verified data,
 # no project/Epic credentials and a per-program outbound firewall block.
 $attemptStarted=[DateTime]::UtcNow
-$ErrorActionPreference='Stop';$process=$null;$junctions=@();$rule='HW-OriginalSource-'+[Guid]::NewGuid().ToString('N')
+$ErrorActionPreference='Stop';$process=$null;$sourceTrace=$null;$junctions=@();$rule='HW-OriginalSource-'+[Guid]::NewGuid().ToString('N')
 $original=Join-Path $env:RUNNER_TEMP 'HollowwakePrivateInputs/6.21';$exe=Join-Path $original 'FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe'
 $sourcePin='9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478';$pin=$sourcePin
 $sourceExe=$exe
@@ -34,9 +34,16 @@ try{
  New-NetFirewallRule -DisplayName $rule -Direction Outbound -Program $exe -Action Block -Profile Any|Out-Null;$result.outboundBlocked=$true
  $info=[Diagnostics.ProcessStartInfo]::new();$info.FileName=$exe;$info.Arguments='-windowed -d3d11 -AllowSoftwareRendering -ResX=1280 -ResY=720 -abslog="'+(Join-Path $logDirectory 'engine.log')+'"';$info.WorkingDirectory=Split-Path $exe;$info.UseShellExecute=$false;$info.EnvironmentVariables.Clear()
  foreach($key in @('SystemRoot','WINDIR','PATH','TEMP','TMP')){$info.EnvironmentVariables[$key]=[Environment]::GetEnvironmentVariable($key)}
+ # Documented OpenSSL configuration selects existing software/SIMD fallback;
+ # retain the unchanged executable and its original PAK/signature verification.
+ $info.EnvironmentVariables['OPENSSL_ia32cap']=':~0x20000000';$result.cryptoDispatchDefault=':~0x20000000'
  $privateProfile=Join-Path $env:RUNNER_TEMP ('HollowwakeSourceProfile-'+$Variant);New-Item -ItemType Directory -Force $privateProfile|Out-Null
  foreach($key in @('USERPROFILE','LOCALAPPDATA','APPDATA')){$info.EnvironmentVariables[$key]=$privateProfile}
  $process=[Diagnostics.Process]::Start($info)
+ if($Variant-eq 'original'){
+  $traceExe=Join-Path $env:RUNNER_TEMP 'HWNativeExecutionTrace.exe'
+  if(Test-Path $traceExe){$traceLog=Join-Path $OutputDirectory 'native-original-execution-trace.log';$sourceTrace=Start-Process -FilePath $traceExe -ArgumentList @([string]$process.Id,('"'+$original+'"'),$sourcePin,('"'+$traceLog+'"'),'230','--original-source') -PassThru;$result.nativeTraceRequested=$true}
+ }
  for($tick=1;$tick-le 36;$tick++){
   Start-Sleep -Seconds 5;$process.Refresh();$rows=@()
   foreach($window in [Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))){
@@ -49,6 +56,7 @@ try{
  if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 'Original executable changed during comparison'}
 }catch{$result.failure=$_.Exception.Message}finally{
  if($process-and !$process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
+ if($sourceTrace){if(!$sourceTrace.WaitForExit(10000)){Stop-Process -Id $sourceTrace.Id -Force -ErrorAction SilentlyContinue};$sourceTrace.Dispose()}
  Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
  foreach($link in $junctions){if((Get-Item -LiteralPath $link).Attributes-band [IO.FileAttributes]::ReparsePoint){[IO.Directory]::Delete($link,$false)}}
  if($privateProfile){try{$logOutput=$logDirectory;New-Item -ItemType Directory -Force $logOutput|Out-Null;& (Join-Path $PSScriptRoot 'Collect-GameLogs.ps1') -OutputDirectory $logOutput -Since $attemptStarted -Roots @{sourceProfile=(Join-Path $privateProfile 'FortniteGame/Saved/Logs');sourceTree=(Join-Path $original 'FortniteGame/Saved/Logs');profileLocal=(Join-Path $privateProfile 'AppData/Local/FortniteGame/Saved/Logs');windowsLocal=(Join-Path $env:LOCALAPPDATA 'FortniteGame/Saved/Logs')}}catch{$result.logCollectionFailure=$_.Exception.GetType().Name}}

@@ -9,7 +9,9 @@ if(Test-Path $CaptureDirectory){throw 'Fresh private capture directory required'
 if($LASTEXITCODE){throw 'Native capture probe compilation failed'}
 $inputs=if($ExistingInputDirectory){(Resolve-Path $ExistingInputDirectory).Path}else{Join-Path $env:RUNNER_TEMP 'HollowwakeCaptureInputs'}
 $rule='Hollowwake-Capture-'+[Guid]::NewGuid().ToString('N')
+$previousCryptoPolicy=[Environment]::GetEnvironmentVariable('OPENSSL_ia32cap','Process')
 try {
+ if(!$previousCryptoPolicy){[Environment]::SetEnvironmentVariable('OPENSSL_ia32cap',':~0x20000000','Process')}
  if(!$ExistingInputDirectory){
  python -u (Join-Path $repo 'hollowwake/native-client-0.5.0/private-package/fetch_inputs.py') (Join-Path $repo 'hollowwake/native-client-0.5.0/App/boot-inputs.json') $inputs 2>&1|Tee-Object "$OutputDirectory\capture-inputs.log"
  if($LASTEXITCODE){throw 'Exact private source acquisition failed; no runtime conclusion'}
@@ -26,8 +28,9 @@ try {
  if(!$receipt.captureComplete-or $receipt.originalSha256-ne $pin-or $receipt.phase-ne 'original_entry_first_call_return'-or !$receipt.comparisonEqual-or $receipt.clientChecksPatched-or $receipt.sections.Count-ne 9){throw 'Private initialization receipt incomplete or different scope'}
  if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 'Original source bytes changed during capture'}
  foreach($section in $receipt.sections){$name=('section-{0:D2}.bin'-f $section.index);if((Get-Item (Join-Path $CaptureDirectory $name)).Length-ne $section.rawBytes){throw 'Private capture section length mismatch'}}
- @{originalInputSha256=$pin;nativeWindowsExecution=$true;originalInitializationBoundaryReached=$true;captureComplete=$true;gameStartupChecksPatched=$false;fullGameAssetsStaged=$false;accountCredentialsSupplied=$false;outboundNetworkBlocked=$true;xboxTested=$false;lobbyDemonstrated=$false;plaintextCapturePublic=$false}|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\capture-status.json"
+ @{originalInputSha256=$pin;cryptoDispatchDefaultApplied=(!$previousCryptoPolicy);cryptoDispatchDefault=':~0x20000000';nativeWindowsExecution=$true;originalInitializationBoundaryReached=$true;captureComplete=$true;gameStartupChecksPatched=$false;fullGameAssetsStaged=$false;accountCredentialsSupplied=$false;outboundNetworkBlocked=$true;xboxTested=$false;lobbyDemonstrated=$false;plaintextCapturePublic=$false}|ConvertTo-Json|Set-Content -Encoding UTF8 "$OutputDirectory\capture-status.json"
 } finally {
+ [Environment]::SetEnvironmentVariable('OPENSSL_ia32cap',$previousCryptoPolicy,'Process')
  Remove-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue
  if(!$ExistingInputDirectory){Remove-Item $inputs -Recurse -Force -ErrorAction SilentlyContinue}
 }
