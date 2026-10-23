@@ -1,7 +1,7 @@
 # Hollowwake actual-client startup status — 23 October 2026
 
 Status: blocked in converted-client startup. No verified Hollowwake lobby or
-working Xbox game package is claimed. Private 0.6.15–0.6.18 candidates
+working Xbox game package is claimed. Private 0.6.15–0.6.20 candidates
 are not replacements for the live download.
 
 The Windows desktop used here is a temporary Microsoft-hosted GitHub Actions
@@ -10,7 +10,7 @@ the Linux cloud workspace. Neither machine is the user's PC or Xbox.
 
 ## Current implementation
 
-Latest actual-tested source: `051ea6a65219a571f9ef4a15ca165338216f2f60` on
+Latest actual-tested source: `4b7bfa78c8e2dfa3d939bc4816badf834f82cb1a` on
 `hollowwake/native-system-route`, repository `zackjh66-droid/BLOXEN`.
 
 - Client-local OpenSSL configuration delegates to the real already-loaded CRT
@@ -31,7 +31,46 @@ Latest actual-tested source: `051ea6a65219a571f9ef4a15ca165338216f2f60` on
   not a successful startup check. Engine and Frontend milestones are separate
   from visible menus and lobby verification.
 
-## Latest ordinary actual execution
+## Latest integrated execution — private 0.6.20
+
+[Windows run 40031157902](https://github.com/zackjh66-droid/BLOXEN/actions/runs/40031157902)
+compiled and signed the private package, verified all 139 selected data files
+(26,449,827,840 bytes) and 53 code files, completed normal account linking and
+invoked the actual Launch button without a debugger. Fortnite's original entry
+thread, engine initialization and `/Game/Maps/Frontend` load were observed.
+The original native HWND/DXGI request returned HRESULT 0. Visible original menus,
+Fortnite login and the lobby were not demonstrated. Xbox remains untested.
+
+The process exited with `0xC0000005`. Its loaded base was `140734150213632`.
+The retained indirect-jump target was `140739543522016`, exactly loaded base
+plus `0x141775ae0`. This target is noncanonical under the machine's x64 address
+layout, so Windows reported a read of `UINT64_MAX` at the original
+`jmp [rsp-8]`, RVA `0x609753b`, rather than an execute fault at the target.
+The invalid transfer remains unresolved. No jump or decision is changed.
+
+The header-state operation logged **already matches current module**. It did
+not change the actual client's header in this run and did not resolve the
+transfer. Correcting its ordering removed 0.6.19's pre-entry access denial; that
+is separate from repairing the actual game failure. All four unchanged Windows
+binding inventories below again had zero unresolved entries. No reduction of
+these inventories or Xbox compatibility is claimed.
+
+Evidence artifact `12536033207`, 9,456,438 bytes, has ZIP SHA-256
+`71f188cba9a295ac20b422b27f202a64281bc13c3fad6f1718a0897633055af1`.
+The failed signed candidate is retained recipient-encrypted in artifact
+`12536805512`, ZIP SHA-256
+`9ee6ed20c0072a506c898b4bbe3a82c6d4c615b1caf0e7eaf14841deebce0b0e`.
+It is not promoted to the live download. The unchanged original control stayed
+alive for all 180 seconds; its isolated Epic sign-in is not Hollowwake login.
+
+The next internal investigation expands the read-only post-fault capture to this
+validated noncanonical branch form, with retained source-table RVAs and recognized
+normalization-base identities. It changes no execution state and is not a
+client-startup repair or requested Xbox release. Owned tests exercise a real
+Windows noncanonical exception, bounded high-address mappings and rejection of
+mismatched records, instructions and retained stack targets.
+
+## Earlier ordinary actual execution — private 0.6.18
 
 [Windows run 40020543600](https://github.com/zackjh66-droid/BLOXEN/actions/runs/40020543600)
 uses private version 0.6.18, including section-preserving import preparation,
@@ -296,3 +335,46 @@ The private signed 0.6.18 candidate remains recipient encrypted in artifact
 `12531053951`, ZIP SHA-256
 `91d3729b0d98426ad5555369034212ce689f15a36c1c12d47f2185ee21b16e4a`.
 It was not promoted as a working game or offered for another Xbox retry.
+
+## Measured initialization repair under test — private 0.6.19
+
+Source `a306a08acc75dd7c7ff1babbca68d1e2e458d276`, run
+`40027567703`, adds validation of an observed original initialized-header state to native
+client startup. The preserved original runtime header is exactly the source header
+with `OptionalHeader.ImageBase` (offset `0x200`) changed from preferred address
+`0x140000000` to that original process's loaded module address. All other
+header bytes are identical. No header DIR64 relocation exists, so the OS
+relocation table does not describe that field transformation. This does not
+identify its writer or prove that the native OS loader leaves it incorrect.
+
+The normalizer now verifies that complete observed header contract and records
+the rule rather than replaying a captured address. After the real packaged DLL
+is loaded, production startup validates the live image/header and atomically
+sets only that field to the current module address, restoring actual page
+permissions and propagating failures. Already-correct state is accepted. The
+original instructions, DLL flag, entry, checksums, check results and exception
+dispositions are unchanged. The signed disk image retains its preferred base
+for normal OS loading. This records a measured initialized-state rule. The later 0.6.20 run confirmed
+that the native-loaded header was already correct; it did not fix the transfer.
+
+Existing owned Windows tests now cover exact header-byte preservation, real
+protection failure, idempotence, offset rejection and restoration. The real
+converted-DLL lifecycle fixture also tests original entry, static TLS, threads,
+unwind, module identity, forwarded exports and unload after this transformation.
+Python and PowerShell syntax checks and the original owned Windows checks
+passed. The integrated 0.6.19 run then returned `0x80070005` before creating
+Fortnite’s entry thread: captured executable-copy header permissions had been
+applied before the non-executable header write. This run did not test whether
+the header-state repair resolves the earlier game crash. No new public download
+is claimed.
+
+The 0.6.20 correction moves header initialization before permission replay and
+shares that complete production sequence with the converted-DLL regression
+test. The regression reproduces the denied late write under the actual source
+header protection (`PAGE_EXECUTE_WRITECOPY`), then verifies the correct sequence
+and subsequent native lifecycle. It keeps the access check intact. Startup
+failures now use the existing `NATIVE_STARTUP_FAILED` diagnostic event so their
+HRESULT is accepted by the current report schema. The complete fresh 0.6.20
+execution test completed with the unresolved actual-game failure above. The header transformation is an observed
+initialized-state contract; the capture does not independently establish which
+initialization component originally wrote that field.
