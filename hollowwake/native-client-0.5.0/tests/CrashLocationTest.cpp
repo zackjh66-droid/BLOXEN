@@ -16,5 +16,13 @@ int main(){
  auto unknown=Hollowwake::DescribeCrash(absent,nullptr,nullptr);if(unknown.find("RVA=")!=std::string::npos||unknown.find("caller=")!=std::string::npos)return 2;
  RunNullCall();if(observed.find("access=execute target=0")==std::string::npos||candidates.find("stack_index=0 caller=CrashLocationTest.exe RVA=")==std::string::npos||candidates.find(":\\")!=std::string::npos)return 3;
  CONTEXT context={};context.Rsp=1;if(!Hollowwake::DescribeCrashStackCandidates(&context,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery).empty())return 4;
+ BYTE instruction[]={0xff,0x64,0x24,0xf8};ULONG_PTR target=reinterpret_cast<ULONG_PTR>(&CallOwnedNull);
+ CONTEXT branch={};branch.Rip=reinterpret_cast<DWORD64>(instruction);branch.Rsp=reinterpret_cast<DWORD64>(&target)+8;
+ auto control=Hollowwake::DescribeCrashControlTransfer(&branch,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery);
+ if(control.find("instruction=jmp_stack_minus_8")==std::string::npos||control.find("canonical=true caller=CrashLocationTest.exe RVA=")==std::string::npos||control.find(":\\")!=std::string::npos)return 5;
+ target=0x1234567890abcdefULL;control=Hollowwake::DescribeCrashControlTransfer(&branch,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery);
+ if(control.find("canonical=false")==std::string::npos||control.find("caller=")!=std::string::npos)return 6;
+ instruction[0]=0x90;if(!Hollowwake::DescribeCrashControlTransfer(&branch,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery).empty())return 7;
+ instruction[0]=0xc3;branch.Rsp=1;if(!Hollowwake::DescribeCrashControlTransfer(&branch,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery).empty())return 8;
  std::cout<<observed<<candidates<<"\nPASS actual original-code access violation identifies module/RVA and access kind; bounded executable-address stack candidates include the actual null-call return location; unreadable stack fails closed; no filesystem path or raw memory contents collected. No Fortnite/Xbox execution.\n";
 }

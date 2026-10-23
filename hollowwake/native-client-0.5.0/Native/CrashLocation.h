@@ -4,7 +4,8 @@
 namespace Hollowwake {
 // Providers are resolved before guest loading. Stack inspection is bounded to
 // 64 pointer slots and exports only executable module/RVA candidates, never
-// raw stack data, registers, paths, command lines or memory contents.
+// general stack/register data, paths, command lines or memory contents.
+// An exact decoded stack branch may additionally report its single code target.
 using CrashModuleLookup=BOOL(WINAPI*)(DWORD,LPCWSTR,HMODULE*);
 using CrashModuleFilename=DWORD(WINAPI*)(HMODULE,LPWSTR,DWORD);
 using CrashReadMemory=BOOL(WINAPI*)(HANDLE,LPCVOID,LPVOID,SIZE_T,SIZE_T*);
@@ -43,6 +44,29 @@ inline std::string DescribeCrashStackCandidates(CONTEXT const* context,CrashModu
   text+="\nNATIVE_CRASH_STACK_CANDIDATE stack_index="+std::to_string(i)+" "+location;++count;
  }
  return text;
+#else
+ return {};
+#endif
+}
+}
+
+namespace Hollowwake {
+// Diagnose only an actual ret or the observed jmp [rsp-8]. Do not export an
+// arbitrary stack/register dump, change the context, or continue execution.
+inline std::string DescribeCrashControlTransfer(CONTEXT const* context,CrashModuleLookup lookup,CrashModuleFilename filename,CrashReadMemory read,CrashQueryMemory query){
+#if defined(_M_X64)
+ if(!context||!read||!query)return {};
+ BYTE instruction[4]={};SIZE_T received=0;auto process=reinterpret_cast<HANDLE>(static_cast<LONG_PTR>(-1));
+ if(!read(process,reinterpret_cast<LPCVOID>(context->Rip),instruction,sizeof(instruction),&received)||received!=sizeof(instruction))return {};
+ bool indirect=instruction[0]==0xff&&instruction[1]==0x64&&instruction[2]==0x24&&instruction[3]==0xf8;
+ bool ret=instruction[0]==0xc3;if(!indirect&&!ret)return {};
+ if(indirect&&context->Rsp<sizeof(ULONG_PTR))return {};
+ ULONG_PTR cell=context->Rsp-(indirect?sizeof(ULONG_PTR):0),target=0;MEMORY_BASIC_INFORMATION info={};
+ if(query(reinterpret_cast<LPCVOID>(cell),&info,sizeof(info))!=sizeof(info)||info.State!=MEM_COMMIT||(info.Protect&(PAGE_GUARD|PAGE_NOACCESS)))return {};
+ if(!read(process,reinterpret_cast<LPCVOID>(cell),&target,sizeof(target),&received)||received!=sizeof(target))return {};
+ bool canonical=(target>>47)==0||(target>>47)==0x1ffff;
+ auto location=CrashCodeLocation(target,lookup,filename);
+ return std::string("\nNATIVE_CRASH_CONTROL_TRANSFER instruction=")+(indirect?"jmp_stack_minus_8":"ret")+" stackAlignment="+std::to_string(context->Rsp%16)+" target="+std::to_string(target)+" canonical="+(canonical?"true":"false")+(location.empty()?"":" "+location);
 #else
  return {};
 #endif
