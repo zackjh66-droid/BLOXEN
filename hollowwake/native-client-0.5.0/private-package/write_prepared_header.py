@@ -28,6 +28,11 @@ def write(prepared,destination):
  from patch_windowed_viewport import audit_bytes
  viewport=audit_bytes(raw,sha)
  if plan.get('windowedViewportPatch') is not None or plan.get('windowedViewportAudit')!=viewport:raise ValueError('Original DXGI request audit differs from actual prepared client')
+ from audit_original_code import audit_bytes as audit_code
+ canonical=(root/'InitializedMain.private.exe').read_bytes()
+ if plan.get('originalCodeAudit')!=audit_code(canonical,raw,m['outputSha256']):raise ValueError('Actual original executable bytes differ from audit')
+ imports=plan.get('mainOwnedImportMetadata',{})
+ if not all(imports.get(k) is True for k in ('originalSectionBytesPreserved','originalDelayDescriptorsPreserved','lookupAndIatRvasRetained')) or imports.get('normalDescriptors')!=45 or imports.get('runtimeDelaySourceAliasesRequired')!=[]:raise ValueError('Original main import placement policy differs')
  regions=m.get('protections',[]);prior=0;lines=[]
  if not regions or len(regions)>4096:raise ValueError('Measured page permission inventory required')
  for r in regions:
