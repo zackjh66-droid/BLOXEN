@@ -81,6 +81,11 @@ int wmain(int argc,wchar_t** argv){
  assert(module(L"HWOwnedIdentity.dll")==proxy&&module(proxyPath.c_str())==proxy);
  assert(Hollowwake::RegisterPackagedDependency(L"OwnedPhysics.dll",L"HWOwnedIdentity.dll",L"6.21/Engine/OwnedPhysics.dll"));
  assert(module(L"../../../Engine/OwnedPhysics.dll")==proxy&&module(L"6.21/Engine/OwnedPhysics.dll")==proxy);
+ // The signed proxy manifest also has original system DLL basenames. Dynamic
+ // source-name lookup must use the same already-loaded compatibility image.
+ assert(Hollowwake::RegisterPackagedDependency(L"USER32.dll",L"HWOwnedIdentity.dll",L"6.21/FortniteGame/Binaries/Win64/USER32.dll"));
+ assert(module(L"user32.dll")==proxy&&module(L"HWOwnedIdentity.dll")==proxy);
+ assert(::GetModuleHandleW(L"user32.dll")!=proxy);
  assert(!module(L"../../../../outside/OwnedPhysics.dll"));
  auto ownedProxyEntry=reinterpret_cast<int(__cdecl*)()>(proc(proxy,"OwnedIdentity"));assert(ownedProxyEntry&&ownedProxyEntry()==621);
  assert(!Hollowwake::RegisterPackagedDependency(L"HWOutside.dll",L"../HWOutside.dll",L"HWOutside.dll"));

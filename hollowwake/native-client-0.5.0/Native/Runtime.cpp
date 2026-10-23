@@ -278,7 +278,18 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   // Register them before loading the main image so the original delay helper
   // can perform a genuine package-only OS load and query its real exports.
   auto proxyFiles=manifest->GetNamedArray(L"proxyDlls");if(proxyFiles->Size>64)return E_INVALIDARG;
-  for(unsigned proxyIndex=0;proxyIndex<proxyFiles->Size;++proxyIndex){auto proxy=proxyFiles->GetAt(proxyIndex)->GetObject()->GetNamedString(L"proxyDll");std::wstring name(proxy->Data());if(name.size()<7||name.size()>96||name.compare(0,2,L"HW")!=0||name.find_first_of(L"/\\:")!=std::wstring::npos||!Hollowwake::RegisterPackagedDependency(name.c_str(),name.c_str(),name.c_str())){Log("NATIVE_LOAD_BLOCKED invalid signed proxy namespace");return E_INVALIDARG;}}
+  for(unsigned proxyIndex=0;proxyIndex<proxyFiles->Size;++proxyIndex){
+   auto item=proxyFiles->GetAt(proxyIndex)->GetObject();std::wstring name(item->GetNamedString(L"proxyDll")->Data());
+   if(name.size()<7||name.size()>96||name.compare(0,2,L"HW")!=0||name.find_first_of(L"/\\:")!=std::wstring::npos||!Hollowwake::RegisterPackagedDependency(name.c_str(),name.c_str(),name.c_str())){Log("NATIVE_LOAD_BLOCKED invalid signed proxy namespace");return E_INVALIDARG;}
+   // Dynamic callers use the original DLL name while static/delay descriptors
+   // name the signed proxy. Both must identify that same real package image.
+   // Core OS facades retain their explicit routing and real-handle policies.
+   std::wstring original(item->GetNamedString(L"sourceDll")->Data());std::string originalA(original.begin(),original.end());
+   if(!Hollowwake::NativeSystemFacadeAvailable(originalA.c_str())){
+    auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+original;
+    if(!Hollowwake::RegisterPackagedDependency(original.c_str(),name.c_str(),logical.c_str())){Log("NATIVE_LOAD_BLOCKED invalid signed proxy source alias");return E_INVALIDARG;}
+   }
+  }
   if(!Hollowwake::RegisterPackagedDependency(L"dsound.dll",L"HWAUD.dll",L"6.21/FortniteGame/Binaries/Win64/dsound.dll"))return E_INVALIDARG;
   for(auto pair: {std::make_pair(L"imm32.dll",L"HWIM.dll"),std::make_pair(L"opengl32.dll",L"HWGL.dll"),std::make_pair(L"dwmapi.dll",L"HWDWM.dll"),std::make_pair(L"d3d9.dll",L"HWD9.dll")}){auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+pair.first;if(!Hollowwake::RegisterPackagedDependency(pair.first,pair.second,logical.c_str()))return E_INVALIDARG;}
   auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
