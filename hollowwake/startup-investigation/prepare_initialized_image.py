@@ -26,6 +26,14 @@ def prepare(source,capture,destination,report):
  p=pefile.PE(data=raw);base=int(m['loadedBase']);pref=p.OPTIONAL_HEADER.ImageBase;delta=base-pref
  if pref!=int(m['preferredBase']) or len(m['sections'])!=len(p.sections):raise ValueError('Capture layout/base mismatch')
  if (capture/'source-headers.bin').read_bytes()!=raw[:p.OPTIONAL_HEADER.SizeOfHeaders]:raise ValueError('Source header mismatch')
+ # The real original initializer publishes its loaded base in the runtime PE
+ # header. This is not a DIR64 fixup and is lost by a raw-section-only capture.
+ # Keep the on-disk preferred base for the next native loader, then require the
+ # host to replay this exact measured header side effect after that load.
+ runtime_headers=(capture/'runtime-headers.bin').read_bytes()
+ image_base_offset=p.OPTIONAL_HEADER.get_field_absolute_offset('ImageBase')
+ expected_headers=bytearray(raw[:p.OPTIONAL_HEADER.SizeOfHeaders]);struct.pack_into('<Q',expected_headers,image_base_offset,base)
+ if runtime_headers!=expected_headers:raise ValueError('Runtime header differs beyond the measured loaded ImageBase field; no inferred restoration allowed')
  data=bytearray(raw);starts=[];spans=[]
  for i,(s,c) in enumerate(zip(p.sections,m['sections'])):
   if (c['index'],c['rva'],c['rawOffset'],c['rawBytes'],c['virtualBytes'],c['characteristics'])!=(i,s.VirtualAddress,s.PointerToRawData,s.SizeOfRawData,s.Misc_VirtualSize,s.Characteristics):raise ValueError('Section receipt mismatch')
@@ -85,7 +93,7 @@ def prepare(source,capture,destination,report):
  if struct.unpack_from('<I',data,opt+16)[0]!=p.OPTIONAL_HEADER.AddressOfEntryPoint:raise AssertionError('Entry changed')
  compiler_imports=describe_restore_plan(compiler_groups)
  destination.write_bytes(data)
- receipt={'originalSha256':PIN,'outputSha256':hashlib.sha256(data).hexdigest(),'capturePhase':m['phase'],'originalInitializationExecuted':True,'dir64Restored':len(relocations),'normalIatBindingsRestored':restored,'delayIatBindingsRestored':delay,'entryCallRetained':True,'checksPatched':False,'uncapturedBss':True,'compilerImports':compiler_imports,'nativeExecutionTested':False,'xboxTested':False,'lobbyDemonstrated':False}
+ receipt={'originalSha256':PIN,'outputSha256':hashlib.sha256(data).hexdigest(),'capturePhase':m['phase'],'originalInitializationExecuted':True,'dir64Restored':len(relocations),'normalIatBindingsRestored':restored,'delayIatBindingsRestored':delay,'entryCallRetained':True,'checksPatched':False,'uncapturedBss':True,'compilerImports':compiler_imports,'runtimeHeader':{'imageBaseOffset':image_base_offset,'preferredBase':pref,'measuredImageBaseEqualsLoadedBase':True,'onlyImageBaseChanged':True,'nativeHostRestorationRequired':True},'nativeExecutionTested':False,'xboxTested':False,'lobbyDemonstrated':False}
  report.write_text(json.dumps(receipt,indent=2)+'\n');return receipt
 if __name__=='__main__':
  a=argparse.ArgumentParser();a.add_argument('source');a.add_argument('capture');a.add_argument('destination');a.add_argument('report');v=a.parse_args();print(json.dumps(prepare(v.source,v.capture,v.destination,v.report)))

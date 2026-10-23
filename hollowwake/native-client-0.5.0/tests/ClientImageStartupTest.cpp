@@ -4,6 +4,17 @@ __declspec(noinline) int OwnedImageCode(){return 621;}
 int main(){
  HMODULE module=nullptr;if(!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,reinterpret_cast<LPCWSTR>(&OwnedImageCode),&module))return 1;
  auto base=reinterpret_cast<BYTE*>(module);auto nt=reinterpret_cast<IMAGE_NT_HEADERS64*>(base+reinterpret_cast<IMAGE_DOS_HEADER*>(base)->e_lfanew);
+ auto preferred=nt->OptionalHeader.ImageBase;MEMORY_BASIC_INFORMATION headerBefore={};VirtualQuery(&nt->OptionalHeader.ImageBase,&headerBefore,sizeof(headerBefore));
+ auto kernel=GetModuleHandleW(L"kernel32.dll");auto kernelBytes=reinterpret_cast<BYTE*>(kernel);auto kernelNt=reinterpret_cast<IMAGE_NT_HEADERS64*>(kernelBytes+reinterpret_cast<IMAGE_DOS_HEADER*>(kernelBytes)->e_lfanew);auto kernelPreferred=kernelNt->OptionalHeader.ImageBase;
+ bool headerInvalid=RestoreClientRuntimeImageBase(module,nt->OptionalHeader.SizeOfImage,0,&VirtualQuery,&VirtualProtect,nullptr)==E_INVALIDARG;
+ auto headerHr=RestoreClientRuntimeImageBase(module,nt->OptionalHeader.SizeOfImage,preferred,&VirtualQuery,&VirtualProtect,nullptr);
+ auto secondHeaderHr=RestoreClientRuntimeImageBase(module,nt->OptionalHeader.SizeOfImage,preferred,&VirtualQuery,&VirtualProtect,nullptr);
+ MEMORY_BASIC_INFORMATION headerAfter={};VirtualQuery(&nt->OptionalHeader.ImageBase,&headerAfter,sizeof(headerAfter));
+ bool headerObserved=SUCCEEDED(headerHr)&&SUCCEEDED(secondHeaderHr)&&nt->OptionalHeader.ImageBase==reinterpret_cast<ULONG_PTR>(module)&&headerBefore.Protect==headerAfter.Protect&&kernelNt->OptionalHeader.ImageBase==kernelPreferred&&GetModuleHandleW(nullptr)==module&&OwnedImageCode()==621;
+ // Restore only this test executable's own header after observing real COW,
+ // loader identity, unchanged code execution and unchanged OS module metadata.
+ DWORD headerOld=0,headerIgnored=0;bool headerRestored=VirtualProtect(&nt->OptionalHeader.ImageBase,sizeof(ULONGLONG),PAGE_READWRITE,&headerOld)!=FALSE;
+ if(headerRestored){InterlockedExchange64(reinterpret_cast<volatile LONG64*>(&nt->OptionalHeader.ImageBase),static_cast<LONG64>(preferred));headerRestored=VirtualProtect(&nt->OptionalHeader.ImageBase,sizeof(ULONGLONG),headerBefore.Protect,&headerIgnored)!=FALSE;}
  SYSTEM_INFO info={};GetNativeSystemInfo(&info);if(info.dwPageSize!=4096)return 2;
  auto address=reinterpret_cast<ULONG_PTR>(&OwnedImageCode),page=address&~static_cast<ULONG_PTR>(4095);auto rva=page-reinterpret_cast<ULONG_PTR>(module);
  MEMORY_BASIC_INFORMATION before={};if(!VirtualQuery(reinterpret_cast<void*>(page),&before,sizeof(before)))return 3;
@@ -28,6 +39,7 @@ int main(){
  auto privateMemory=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE);if(!privateMemory)return 4;
  ClientImageProtection privateRule={0,4096,PAGE_READWRITE};auto rejected=ApplyClientImageStartup(reinterpret_cast<HMODULE>(privateMemory),4096,&privateRule,1,&VirtualQuery,&VirtualProtect,nullptr);VirtualFree(privateMemory,0,MEM_RELEASE);
  std::cout<<"imageHr="<<static_cast<unsigned long>(result)<<" beforeWriteProtect="<<copyState.Protect<<" sameByteWrite="<<sameByteWrite<<" observed="<<observed<<" observedProtect="<<after.Protect<<" value="<<value<<" restored="<<restored<<" bounds="<<bounds<<" missing="<<missing<<" privateHr="<<static_cast<unsigned long>(rejected)<<" expectedPrivateHr="<<static_cast<unsigned long>(HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS))<<"\n";
- bool passed=SUCCEEDED(result)&&sameByteWrite&&observed&&value==621&&restored&&bounds&&missing&&rejected==HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
+ bool passed=headerInvalid&&headerObserved&&headerRestored&&SUCCEEDED(result)&&sameByteWrite&&observed&&value==621&&restored&&bounds&&missing&&rejected==HRESULT_FROM_WIN32(ERROR_INVALID_ADDRESS);
+ std::cout<<"runtimeHeaderHr="<<static_cast<unsigned long>(headerHr)<<" measuredHeaderObserved="<<headerObserved<<" ownedHeaderRestored="<<headerRestored<<" otherModuleHeaderUnchanged="<<(kernelNt->OptionalHeader.ImageBase==kernelPreferred)<<"\n";
  std::cout<<(passed?"PASS":"FAIL")<<" actual owned image page transition/execution/restoration, malformed range/provider and non-image rejection; no Fortnite or Xbox proof\n";return passed?0:5;
 }

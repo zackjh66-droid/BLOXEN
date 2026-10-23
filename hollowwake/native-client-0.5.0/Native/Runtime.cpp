@@ -233,7 +233,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.10.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.11.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   // Read the same real own-user known folder requested by the original main
@@ -282,6 +282,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   Log("NATIVE_IMAGE_IDENTITY loadedBase="+std::to_string(reinterpret_cast<ULONG_PTR>(module))+" originalImageBytes="+std::to_string(kPreparedOriginalImageBytes));
   auto queryImage=reinterpret_cast<ClientImageQuery>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualQuery"));
   auto protectImage=reinterpret_cast<ClientImageProtect>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualProtect"));
+  auto runtimeHeader=RestoreClientRuntimeImageBase(module,kPreparedOriginalImageBytes,kPreparedPreferredImageBase,queryImage,&VirtualProtectFromApp,Log);if(FAILED(runtimeHeader)){Log("NATIVE_IMAGE_RUNTIME_HEADER_FAILED HRESULT="+std::to_string(static_cast<unsigned long>(runtimeHeader)));return runtimeHeader;}
   auto initialized=ApplyClientImageStartup(module,kPreparedOriginalImageBytes,kPreparedClientProtections,kPreparedClientProtectionCount,queryImage,protectImage,Log);
   if(FAILED(initialized)){Log("NATIVE_IMAGE_STARTUP_FAILED HRESULT="+std::to_string(static_cast<unsigned long>(initialized)));return initialized;}
   auto compilerImports=RestoreClientImportCopies(module,kPreparedOriginalImageBytes,kPreparedCompilerImports,kPreparedCompilerImportCount,queryImage,&VirtualProtectFromApp,Log);if(FAILED(compilerImports))return compilerImports;

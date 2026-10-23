@@ -100,14 +100,16 @@ int wmain(int argc,wchar_t** argv){
    else if(!measured&&main&&record.ExceptionCode==EXCEPTION_SINGLE_STEP&&address==main+transferRva){
     Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);CONTEXT context={};context.ContextFlags=CONTEXT_CONTROL|CONTEXT_INTEGER|CONTEXT_DEBUG_REGISTERS;
     if(thread.value&&GetThreadContext(thread.value,&context)&&(context.Dr6&1)){
-     ULONG_PTR operand=0,constant=0;bool a=Read(process.value,context.Rbp+0x38,operand),b=Read(process.value,main+constantRva,constant);
+     ULONG_PTR operand=0,constant=0,headerBase=0,sourceBase=0;bool a=Read(process.value,context.Rbp+0x38,operand),b=Read(process.value,main+constantRva,constant);
      output<<"{\"event\":\"observed_transfer_calculation\",\"mainBase\":"<<main<<",\"operandReadable\":"<<(a?"true":"false")<<",\"constantReadable\":"<<(b?"true":"false");
      if(a&&b){auto target=operand+constant;output<<",\"operand\":"<<operand<<",\"constant\":"<<constant<<",\"computedTarget\":"<<target<<",\"matchesCurrentImageDelta\":"<<(operand==main-0x140000000ULL?"true":"false");Location(output,pid,target);}
+     if(Read(process.value,main+0x200,headerBase))output<<",\"runtimeHeaderImageBase\":"<<headerBase;
+     if(Read(process.value,main+0x159d368,sourceBase))output<<",\"sourcePreferredBaseField\":"<<sourceBase;
      output<<"}\n";measured=true;Clear(thread.value,main);Threads(pid,main,true);
     }else disposition=DBG_EXCEPTION_NOT_HANDLED;
    }else{
     disposition=DBG_EXCEPTION_NOT_HANDLED;
-    if(exceptions++<32){output<<"{\"event\":\"exception\",\"code\":"<<record.ExceptionCode<<",\"address\":"<<address<<",\"firstChance\":"<<(info.dwFirstChance?"true":"false");Location(output,pid,address);
+    if(record.ExceptionCode==EXCEPTION_ACCESS_VIOLATION||!info.dwFirstChance||exceptions++<8){output<<"{\"event\":\"exception\",\"code\":"<<record.ExceptionCode<<",\"address\":"<<address<<",\"firstChance\":"<<(info.dwFirstChance?"true":"false");Location(output,pid,address);
      if(record.ExceptionCode==EXCEPTION_ACCESS_VIOLATION&&record.NumberParameters>=2)output<<",\"operation\":"<<record.ExceptionInformation[0]<<",\"target\":"<<record.ExceptionInformation[1];output<<"}\n";}
    }
   }else if(event.dwDebugEventCode==EXIT_PROCESS_DEBUG_EVENT){output<<"{\"event\":\"process_exit\",\"code\":"<<event.u.ExitProcess.dwExitCode<<"}\n";exited=true;}

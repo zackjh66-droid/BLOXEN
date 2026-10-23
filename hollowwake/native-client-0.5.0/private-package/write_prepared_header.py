@@ -7,6 +7,8 @@ def write(prepared,destination):
  if plan.get('originalClientSha256')!=PIN or not isinstance(m,dict):raise ValueError('Verified normal initialization preparation required')
  if not m.get('originalInitializationExecuted') or not m.get('entryCallRetained') or m.get('checksPatched') is not False or m.get('historicalStackRepairApplied') is not False or plan.get('stackAddressRepair') is not None:raise ValueError('Original initialization/entry/check provenance differs')
  if (m.get('dir64Restored'),m.get('normalIatBindingsRestored'),m.get('delayIatBindingsRestored'),m.get('originalImageBytes'))!=(1018761,821,260,0x6314000):raise ValueError('Exact original loader inventory differs')
+ header=m.get('runtimeHeader')
+ if header!={'imageBaseOffset':0x200,'preferredBase':0x140000000,'measuredImageBaseEqualsLoadedBase':True,'onlyImageBaseChanged':True,'nativeHostRestorationRequired':True}:raise ValueError('Exact measured runtime header restoration provenance required')
  copies=m.get('compilerImports',{});groups=copies.get('groups',[])
  if copies.get('nativeHostRebindingRequired') is not True or copies.get('tables')!=45 or copies.get('bindings')!=819 or copies.get('capturedImportAddressesRetained') is not False or copies.get('instructionsChanged') is not False or len(groups)!=45:raise ValueError('Complete native compiler import-table restoration required')
  copy_lines=[];seen=set()
@@ -35,6 +37,7 @@ def write(prepared,destination):
 static constexpr bool kPreparedClientAvailable=true;
 static constexpr SIZE_T kPreparedClientBytes=%d;
 static constexpr SIZE_T kPreparedOriginalImageBytes=0x6314000;
+static constexpr ULONGLONG kPreparedPreferredImageBase=0x140000000ULL;
 static const BYTE kPreparedClientSha[32]={%s};
 static const ClientImageProtection kPreparedClientProtections[]={
 %s
