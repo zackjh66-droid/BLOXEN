@@ -74,7 +74,7 @@ namespace Hollowwake
             // Relative motion comes from the real host mouse device, never inferred from a warped cursor.
             var mouse = Windows.Devices.Input.MouseDevice.GetForCurrentView();
             if(mouse != null) mouse.MouseMoved += (s,e) => { if(policyReady) HWMouseDelta(e.MouseDelta.X,e.MouseDelta.Y); };
-            Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
+            Button previous=null;GotFocus+=(s,e)=>{var selected=FocusManager.GetFocusedElement() as Button;if(ReferenceEquals(previous,selected))return;if(previous!=null){previous.ClearValue(Button.BackgroundProperty);previous.ClearValue(Button.ForegroundProperty);}previous=selected;if(selected!=null){selected.Background=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255,255,155,0));selected.Foreground=new Windows.UI.Xaml.Media.SolidColorBrush(Windows.UI.Colors.Black);}};
             Loaded += async (s, e) => { if (!ready) await StartLauncherAsync(); };
             heartbeat.Tick += async (s, e) => { if (!heartbeatBusy && sessionToken != null) { heartbeatBusy = true; try { await ValidateSessionAsync(false); } finally { heartbeatBusy = false; } } };
             SystemNavigationManager.GetForCurrentView().BackRequested += async (s, e) => { e.Handled = true; if(!loadBusy)await CancelLinkAsync(); };
@@ -99,7 +99,7 @@ namespace Hollowwake
         private void ResetOperation() { contentReady=false;runtimeAudited=false;generation++; operation.Cancel(); operation.Dispose(); operation = new CancellationTokenSource(); }
         private async Task StartLauncherAsync()
         {
-            if(startupBusy)return;startupBusy=true;
+            if(startupBusy)return;startupBusy=true;LaunchButton.IsEnabled=false;ImportButton.IsEnabled=false;
             try{ready=true;App.StartupStage("page-loaded");await InitializeAsync();recovery.CompleteBoot();App.StartupStage("launcher-ready");}
             catch(Exception error){
                 // Handle only this managed initialization operation. Game/native
@@ -110,7 +110,7 @@ namespace Hollowwake
                 StartupFailureText.Text="Stage: "+stage+"\nError: 0x"+error.HResult.ToString("X8")+"\n"+error.GetType().Name;
                 Show(StartupFailurePanel);StatusText.Text="Launcher initialization stopped. Game startup has not been attempted. Existing files are retained.";
                 StartupRetryButton.Focus(FocusState.Programmatic);
-            }finally{startupBusy=false;}
+            }finally{startupBusy=false;LaunchButton.IsEnabled=!importBusy&&!loadBusy;ImportButton.IsEnabled=!importBusy&&!loadBusy;if(ready&&!App.NativePreflight&&LinkedPanel.Visibility==Visibility.Visible&&!importBusy&&!loadBusy)LaunchButton.Focus(FocusState.Programmatic);}
         }
         private async void StartupRetry_Click(object sender,RoutedEventArgs e){if(startupBusy)return;ResetOperation();await StartLauncherAsync();}
         private async Task InitializeAsync()
@@ -281,7 +281,7 @@ namespace Hollowwake
                 if(focus){
                     var receipt=await ClientDiagnostics.SubmitAsync(api,token,"next_start");
                     if(receipt!=null)StatusText.Text+=" Failure report uploaded: "+receipt;
-                    if(!recoveryMode)await PrepareContentAsync();if(!importBusy)LaunchButton.Focus(FocusState.Programmatic);
+                    if(!recoveryMode)await PrepareContentAsync();if(!startupBusy&&!importBusy)LaunchButton.Focus(FocusState.Programmatic);
                 }else{var ignored=ClientDiagnostics.FlushAsync(api,token);}
 
             }
@@ -311,10 +311,10 @@ namespace Hollowwake
                     if(!result.Complete||result.OnDiskBytes!=26449827840L)throw new IOException("Installed data audit is incomplete.");cancel.Token.ThrowIfCancellationRequested();if(ticket!=generation||token!=sessionToken)return false;contentReady=true;recoveryMode=false;StatusText.Text="Selected data on disk: "+(result.OnDiskBytes/1000000000.0).ToString("F2")+" GB; this session downloaded "+(result.NetworkBytes/1000000000.0).ToString("F2")+" GB. Native client login/lobby remain unfinished.";await ManagedLog("CONTENT_READY bytes="+result.OnDiskBytes+" total="+result.VerifiedFiles+" missing=0");await ClientDiagnostics.SubmitAsync(api,token,"manual");return true;}
                 catch(OperationCanceledException){if(ticket==generation)StatusText.Text="Download paused. Verified files are retained; Retry restarts only unfinished files.";return false;}
                 catch(Exception ex){if(ticket==generation)StatusText.Text=ex is ApiException?"Game download stopped: "+((ApiException)ex).Code+" (HTTP "+(int)((ApiException)ex).Status+"). Check the launch log.":(ex is IOException||ex is InvalidDataException)?ex.Message:"Content download stopped (HRESULT "+ex.HResult.ToString("X8")+"). Check the launch log.";await ManagedLog("CONTENT_FAILED HRESULT="+ex.HResult.ToString("X8"));var receipt=await ClientDiagnostics.SubmitAsync(api,token,"preflight");return false;}
-                finally{recovery.EndVerification(contentReady);App.ExecutionStage="launcher";contentOperation=null;importBusy=false;ContentRing.IsActive=false;PauseContentButton.IsEnabled=false;ImportButton.IsEnabled=true;LaunchButton.IsEnabled=true;}
+                finally{recovery.EndVerification(contentReady);App.ExecutionStage="launcher";contentOperation=null;importBusy=false;ContentRing.IsActive=false;PauseContentButton.IsEnabled=false;ImportButton.IsEnabled=!startupBusy;LaunchButton.IsEnabled=!startupBusy;}
             }
         }
-        private async void ContentRetry_Click(object sender,RoutedEventArgs e){if(importBusy||loadBusy)return;contentReady=false;await PrepareContentAsync();}
+        private async void ContentRetry_Click(object sender,RoutedEventArgs e){if(startupBusy||importBusy||loadBusy)return;contentReady=false;await PrepareContentAsync();}
         private void ContentPause_Click(object sender,RoutedEventArgs e){if(contentOperation!=null)contentOperation.Cancel();}
         private async Task ManagedLog(string text){await FileIO.AppendTextAsync(await ApplicationData.Current.LocalFolder.CreateFileAsync("managed-launch.log",CreationCollisionOption.OpenIfExists),DateTimeOffset.UtcNow.ToString("o")+" "+text+"\n");}
         private async void Import_Click(object sender,RoutedEventArgs e){await ImportFiles(false);}
@@ -329,7 +329,7 @@ namespace Hollowwake
             catch(Exception ex){await ManagedLog("Import failed HRESULT="+ex.HResult.ToString("X8")+(ex is IOException?" "+ex.Message:""));StatusText.Text=ex is IOException?ex.Message:"Import failed. Show managed-launch.log; no launcher was executed.";}finally{importBusy=false;}
         }
         private async void Launch_Click(object sender,RoutedEventArgs e){
-            if(loadBusy||importBusy)return;if(sessionToken!=null&&!contentReady&&!await PrepareContentAsync())return;if(!await EnsureNativeReadyAsync()){StatusText.Text="Native graphics window binding failed. Open launch logs.";await ManagedLog("NATIVE_STARTUP_FAILED window binding unavailable");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}
+            if(startupBusy||loadBusy||importBusy)return;if(sessionToken!=null&&!contentReady&&!await PrepareContentAsync())return;if(!await EnsureNativeReadyAsync()){StatusText.Text="Native graphics window binding failed. Open launch logs.";await ManagedLog("NATIVE_STARTUP_FAILED window binding unavailable");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}
             if(sessionToken==null){StatusText.Text="Link your project account first.";return;}loadBusy=true;
             try{ClientDiagnostics.BeginAttempt();await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);StatusText.Text="Attempting real client initialization. The app may close at the first unsupported API. Reopen it to retrieve launch logs.";await ManagedLog("USER_REQUESTED native packaged-client path; no long-lived project session is passed into guest code.");var origin=new Uri(api.Origin);if(!HWConfigureNetwork(origin.DnsSafeHost,(ushort)origin.Port))throw new InvalidOperationException("Native backend host configuration rejected");var compatibility=await Task.Run(()=>HWPreflightClient());if(compatibility<0){StatusText.Text="Native imports remain incomplete. Downloaded content is retained; the failure report contains exact names.";await ManagedLog("CLIENT_NOT_READY import preflight blocked content transfer and native entry");var receipt=await ClientDiagnostics.SubmitAsync(api,sessionToken,"preflight");if(receipt!=null)StatusText.Text+=" Report uploaded: "+receipt;return;}if(!contentReady)throw new IOException("Game content verification is not complete.");await api.SendAsync("/api/device/profile",null,sessionToken,operation.Token);await ManagedLog("CONTENT_READY authenticated manifest and all selected content hashes verified");await ClientDiagnostics.SubmitAsync(api,sessionToken,"before_entry");
                 var gameGrant=await api.SendAsync("/api/client-adapter/exchange",new JsonObject(),sessionToken,operation.Token);

@@ -140,7 +140,7 @@ if($PrivatePreparedDirectory){
  $codePaths=@($privatePlan.files|ForEach-Object {$_.packageRelativePath})+@($privatePlan.proxyDlls|ForEach-Object {$_.proxyDll})+@('HollowwakeClientRuntime.dll','HWAUD.dll','dsoal-aldrv.dll')+$extraCode
  $codeRecords=@(foreach($relative in $codePaths){$file=Get-Item (Join-Path (Join-Path $source 'App') $relative);@{path=$relative;bytes=$file.Length;sha256=(Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}})
  @{schema=1;build='6.21-CL-4526925';providerVariant=$(if($PrivateMesaDirectory){'audio-mesa'}else{'audio'});files=$codeRecords}|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $source 'App\package-code-index.json')
- $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.16.0"')|Set-Content -Encoding UTF8 $privateManifest
+ $privateManifest=Join-Path $source 'App\Package.appxmanifest';(Get-Content $privateManifest -Raw).Replace('Version="0.5.0.0"','Version="0.6.17.0"')|Set-Content -Encoding UTF8 $privateManifest
 }
 if($PrivateContentDirectory){
  python (Join-Path $source 'private-package\bundle_content.py') --prepared $PrivateContentDirectory --copy-to (Join-Path $source 'App') --manifest (Join-Path $source 'App\ContentPlan621.json')
@@ -154,7 +154,7 @@ $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
 & $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'CodeInventoryTest.exe')) (Join-Path $source 'App\Services\CodeInventory.cs') (Join-Path $source 'tests\CodeInventoryTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'code-inventory-build.log')
 if($LASTEXITCODE){throw 'Signed code inventory test build failed'}
 & (Join-Path $OutputDirectory 'CodeInventoryTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'code-inventory-test.log');if($LASTEXITCODE){throw 'Exact signed dependency/provider set checks failed'}
-& $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe')) (Join-Path $source 'App\Services\DiagnosticSanitizer.cs') (Join-Path $source 'tests\DiagnosticSanitizerTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-build.log')
+& $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe')) (Join-Path $source 'App\Services\DiagnosticSanitizer.cs') (Join-Path $source 'App\Services\ManagedFailure.cs') (Join-Path $source 'tests\DiagnosticSanitizerTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-build.log')
 if($LASTEXITCODE){throw 'Diagnostic sanitizer compilation failed'}
 & (Join-Path $OutputDirectory 'DiagnosticSanitizerTest.exe') 2>&1|Tee-Object (Join-Path $OutputDirectory 'diagnostic-sanitizer-test.log');if($LASTEXITCODE){throw 'Diagnostic secret/field boundary tests failed'}
 & $csc /nologo /langversion:7.3 ("/out:"+(Join-Path $OutputDirectory 'LauncherRecoveryTest.exe')) (Join-Path $source 'App\Services\LauncherRecovery.cs') (Join-Path $source 'tests\LauncherRecoveryTest.cs') 2>&1|Tee-Object (Join-Path $OutputDirectory 'launcher-recovery-build.log')

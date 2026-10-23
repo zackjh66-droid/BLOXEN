@@ -1,9 +1,9 @@
-"""Exact 6.21 private port: request supported windowed composition buffers.
+"""Exact 6.21 DXGI request audit and historical rollback preparation helper.
 
-Changes only three DXGI request immediate operands. Does not modify a branch,
-HRESULT check, framebuffer operation, import check or authentication behavior.
-The runtime still rejects exclusive fullscreen, mode-switch and unsupported
-buffer requests. Original game input remains unchanged.
+The current native-HWND route calls audit(), preserving all three original
+request instructions. The historical patch() remains for older preparation
+recipes; current integrated packaging rejects its rewritten operands.
+Neither operation removes a branch, HRESULT check or authentication check.
 """
 from pathlib import Path
 import hashlib

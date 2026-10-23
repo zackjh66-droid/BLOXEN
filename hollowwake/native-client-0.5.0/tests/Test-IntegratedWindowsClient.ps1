@@ -53,7 +53,15 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  do{$e=Control 'CodeText';if($e){$candidate=$e.Current.Name.Replace(' ','').Replace('-','');if($candidate-match '^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$'){$code=$candidate;break}};if(!(Get-Process -Id $applicationPid -ErrorAction SilentlyContinue)){throw 'App exited before device approval'};Start-Sleep -Milliseconds 500}while([DateTime]::UtcNow-lt $deadline)
  if(!$code){throw 'Actual app did not display a current device-link code'}
  $null=Post '/api/link/verify' @{user_code=$code};$null=Post '/api/link/approve' @{user_code=$code};$code=$null
- $deadline=[DateTime]::UtcNow.AddSeconds(90);do{$e=Control 'LaunchButton';if($e){break};Start-Sleep -Seconds 1}while([DateTime]::UtcNow-lt $deadline);if(!$e){throw 'Approved device did not reach linked menu'}
+ # Visibility alone occurs before account/startup completion. Respect the same
+ # enabled control and completed startup gate required by a real user.
+ $startupLog=Join-Path $data 'launcher-startup.log'
+ $deadline=[DateTime]::UtcNow.AddMinutes(10);do{
+  $e=Control 'LaunchButton';$startupText='';if(Test-Path $startupLog){$startupText=Get-Content $startupLog -Raw}
+  if($e-and $e.Current.IsEnabled-and $startupText-match 'stage=launcher-ready'){break}
+  if(!(Get-Process -Id $applicationPid -ErrorAction SilentlyContinue)){throw 'App exited before account/startup completion'}
+  Start-Sleep -Seconds 1
+ }while([DateTime]::UtcNow-lt $deadline);if(!$e-or !$e.Current.IsEnabled-or $startupText-notmatch 'stage=launcher-ready'){throw 'Approved device did not complete account/startup before exposing enabled launch controls'}
  $result.stage='production-app-independent-content-verification';SaveResult
  $managed=Join-Path $data 'managed-launch.log';$deadline=[DateTime]::UtcNow.AddMinutes(10);$retried=$false
  do{
@@ -109,6 +117,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  $result.scope='Real signed app, complete verified data, approved normal account, actual launch action. Native thread creation alone is not proof of a loading screen or lobby.'
 }catch{
  $result.failure=$_.Exception.Message;Write-Host ('INTEGRATED FAILURE stage='+$result.stage+' reason='+$result.failure)
+ if($processObserver){try{if($processObserver.HasExited){$result.processExitCode=$processObserver.ExitCode;$result.processExitCodeHex=('0x'+$processObserver.ExitCode.ToString('X8'))}}catch{}}
  if($applicationPid){try{Screenshot 'Windows-actual-test-failure'}catch{}}
 }finally{
  Remove-Item $PrivateInputLeasePath -ErrorAction SilentlyContinue
