@@ -40,12 +40,22 @@ bool NormalizeKnown(LPCWSTR value,std::string& key){if(Normalize(value,key))retu
 std::wstring Wide(LPCSTR text){if(!text)return {};std::wstring out;for(unsigned i=0;i<256;++i){unsigned char c=text[i];if(!c)return out;if(c>127)return {};out+=c;}return {};}
 HMODULE Main(){if(mainName.empty())return nullptr;using Get=HMODULE(WINAPI*)(LPCWSTR);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));return get?get(mainName.c_str()):nullptr;}
 HMODULE NativeModule(const std::string& name){using Get=HMODULE(WINAPI*)(LPCWSTR);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleW"));std::wstring wide(name.begin(),name.end());auto alias=packaged.find(name);if(alias!=packaged.end()){auto slash=alias->second.find_last_of(L"/\\");wide=alias->second.substr(slash==std::wstring::npos?0:slash+1);}return get?get(wide.c_str()):nullptr;}
-bool Known(HMODULE handle){if(!handle)return false;if(handle==Main())return true;for(auto& item:packaged)if(handle==NativeModule(item.first))return true;return false;}
+const char* CoreModuleName(HMODULE handle){
+ if(!handle)return nullptr;
+ for(auto name:{"kernel32.dll","kernelbase.dll","ntdll.dll","msvcrt.dll"})
+  if(Hollowwake::NativeSystemFacadeAvailable(name)&&handle==NativeModule(name))return name;
+ return nullptr;
+}
+bool CoreModuleName(const std::string& name){return name=="kernel32.dll"||name=="kernelbase.dll"||name=="ntdll.dll"||name=="msvcrt.dll";}
+bool Known(HMODULE handle){if(!handle)return false;if(handle==Main()||CoreModuleName(handle))return true;for(auto& item:packaged)if(handle==NativeModule(item.first))return true;return false;}
 Facade* Virtual(HMODULE handle){for(auto& entry:facades)if(reinterpret_cast<HMODULE>(&entry.second)==handle)return &entry.second;return nullptr;}
 HMODULE WINAPI ModuleW(LPCWSTR name){std::lock_guard<std::recursive_mutex> lock(gate);if(!name)return Main();std::string key;if(!NormalizeKnown(name,key)){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
  std::string main;if(Normalize(mainName.c_str(),main)&&(main==key||originalMainBase==key))return Main();
  if(packaged.count(key))return NativeModule(key);
  if(!Hollowwake::NativeSystemFacadeAvailable(key.c_str())){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}
+ // Concrete OS DLL handles must remain usable by native filename, PSAPI,
+ // image-header and FROM_ADDRESS consumers. Keep export policy in Proc.
+ if(CoreModuleName(key)){auto native=NativeModule(key);if(!native)SetLastError(ERROR_MOD_NOT_FOUND);return native;}
  auto& entry=facades[key];entry.name=key;return reinterpret_cast<HMODULE>(&entry);
 }
 HMODULE WINAPI ModuleA(LPCSTR name){if(!name)return ModuleW(nullptr);auto text=Wide(name);if(text.empty()){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}return ModuleW(text.c_str());}
@@ -59,6 +69,13 @@ BOOL WINAPI ModuleExW(DWORD flags,LPCWSTR name,HMODULE* output){std::lock_guard<
 BOOL WINAPI ModuleExA(DWORD flags,LPCSTR name,HMODULE* output){if(flags&4)return ModuleExW(flags,reinterpret_cast<LPCWSTR>(name),output);if(!name)return ModuleExW(flags,nullptr,output);auto text=Wide(name);if(text.empty()){if(output)*output=nullptr;SetLastError(ERROR_MOD_NOT_FOUND);return FALSE;}return ModuleExW(flags,text.c_str(),output);}
 HMODULE WINAPI LoadW(LPCWSTR name,HANDLE file,DWORD flags){std::lock_guard<std::recursive_mutex> lock(gate);if(!name||file||flags&~0x1a00){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}std::string key;if(!NormalizeKnown(name,key)){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}auto item=packaged.find(key);if(item!=packaged.end()){if(flags&0x800){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}return LoadPackagedLibrary(item->second.c_str(),0);}HMODULE h=ModuleW(name);if(!h)return nullptr;
  if(Virtual(h))return h;
+ if(CoreModuleName(h)){
+  // The permitted system image is already loaded. Acquire a real reference;
+  // never substitute the guest main image or search a writable directory.
+  using Get=BOOL(WINAPI*)(DWORD,LPCWSTR,HMODULE*);auto get=reinterpret_cast<Get>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleExW"));HMODULE held=nullptr;
+  if(!get||!get(4,reinterpret_cast<LPCWSTR>(h),&held))return nullptr;
+  if(held!=h){::FreeLibrary(held);SetLastError(ERROR_INVALID_HANDLE);return nullptr;}return held;
+ }
  // This phase permits already-loaded main identity only. Arbitrary dependencies
  // cannot be loaded from LocalState or pulled into the package implicitly.
  if(flags&0x800){SetLastError(ERROR_MOD_NOT_FOUND);return nullptr;}HMODULE held=nullptr;return ModuleExW(0,mainName.c_str(),&held)?held:nullptr;
@@ -67,6 +84,7 @@ HMODULE WINAPI LoadA(LPCSTR name,HANDLE file,DWORD flags){auto text=Wide(name);i
 HMODULE WINAPI LoadSimpleW(LPCWSTR name){return LoadW(name,nullptr,0);}HMODULE WINAPI LoadSimpleA(LPCSTR name){return LoadA(name,nullptr,0);}
 FARPROC WINAPI Proc(HMODULE h,LPCSTR name){std::lock_guard<std::recursive_mutex> lock(gate);if(!name){SetLastError(ERROR_INVALID_PARAMETER);return nullptr;}auto value=reinterpret_cast<ULONG_PTR>(name);std::string ordinal;if(value<=65535){ordinal="#"+std::to_string(value);name=ordinal.c_str();}
  if(auto module=Virtual(h)){auto p=HWResolvePackagedImport(module->name.c_str(),name);if(!p){MissingExport(module->name,name,ERROR_PROC_NOT_FOUND);SetLastError(ERROR_PROC_NOT_FOUND);}return reinterpret_cast<FARPROC>(p);}
+ if(auto module=CoreModuleName(h)){auto p=HWResolvePackagedImport(module,name);if(!p){MissingExport(module,name,ERROR_PROC_NOT_FOUND);SetLastError(ERROR_PROC_NOT_FOUND);}return reinterpret_cast<FARPROC>(p);}
  if(Known(h)){auto p=::GetProcAddress(h,value<=65535?reinterpret_cast<LPCSTR>(value):name);auto error=GetLastError();if(!p){std::string module="main.exe";for(auto& item:packaged)if(h==NativeModule(item.first)){module=item.first;break;}MissingExport(module,name,error);}SetLastError(error);return p;}
  SetLastError(ERROR_INVALID_HANDLE);return nullptr;
 }

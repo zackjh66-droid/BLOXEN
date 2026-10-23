@@ -39,6 +39,21 @@ int wmain(int argc,wchar_t** argv){
  auto proc=api<decltype(&GetProcAddress)>("GetProcAddress");Hollowwake::ConfigurePackagedNamespaceLogger(CaptureMissing);
  SetLastError(0);assert(!proc(owned,"OwnedMissingExport")&&GetLastError()==ERROR_PROC_NOT_FOUND);assert(missingExport.find("!OwnedMissingExport Win32=127")!=std::string::npos);
  assert(proc(owned,"OwnedIdentity")==reinterpret_cast<FARPROC>(entry));
+ // Concrete core-library handles identify actual MEM_IMAGE allocations and
+ // support filename, image metadata, FROM_ADDRESS and real reference release.
+ auto hold=api<decltype(&GetModuleHandleExW)>("GetModuleHandleExW");auto release=api<decltype(&FreeLibrary)>("FreeLibrary");auto load=api<decltype(&LoadLibraryExW)>("LoadLibraryExW");
+ for(auto name:{L"kernel32.dll",L"kernelbase.dll",L"ntdll.dll"}){
+  HMODULE real=::GetModuleHandleW(name);assert(real&&module(name)==real);MEMORY_BASIC_INFORMATION image={};assert(VirtualQuery(real,&image,sizeof(image))&&image.Type==MEM_IMAGE&&image.AllocationBase==real);
+  assert(reinterpret_cast<IMAGE_DOS_HEADER*>(real)->e_magic==IMAGE_DOS_SIGNATURE);
+  wchar_t actual[32768];assert(::GetModuleFileNameW(real,actual,32768)&&filename(real,result,32768)&&!_wcsicmp(actual,result));
+  HMODULE byAddress=nullptr;assert(hold(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,reinterpret_cast<LPCWSTR>(real),&byAddress)&&byAddress==real);
+  HMODULE held=load(name,nullptr,LOAD_LIBRARY_SEARCH_SYSTEM32);assert(held==real&&release(held));
+ }
+ auto kernel=module(L"kernel32.dll");auto tick=reinterpret_cast<decltype(&GetTickCount64)>(proc(kernel,"GetTickCount64"));assert(tick);auto before=::GetTickCount64();auto observed=tick();auto after=::GetTickCount64();assert(observed>=before&&observed<=after);
+ // Keep explicit loader/identity policy even with a real underlying HMODULE.
+ assert(proc(kernel,"GetModuleHandleW")==reinterpret_cast<FARPROC>(module));
+ SetLastError(0);assert(!proc(kernel,"GetFileInformationByHandleExW")&&GetLastError()==ERROR_PROC_NOT_FOUND);
+ SetLastError(0);assert(!proc(kernel,"SetFileInformationByHandleW")&&GetLastError()==ERROR_PROC_NOT_FOUND);
  // Exact dynamic PSAPI call that crashed the actual client: first query
  // required module-array bytes, then enumerate genuine OS module handles.
  auto psapi=api<decltype(&LoadLibraryW)>("LoadLibraryW")(L"PSAPI.DLL");assert(psapi);
