@@ -40,17 +40,30 @@ jobs:
   capture:
     if: ${{ contains(github.event.head_commit.message, '[capture-only]') }}
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Create one-run read-only capture input recipient
+        shell: pwsh
+        run: ./hollowwake/native-client-0.5.0/tests/WindowsInputKey.ps1 -Directory "$env:RUNNER_TEMP/HollowwakeInputPublicKey"
+      - name: Publish capture public input key only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-windows-input-public-key
+          path: ${{ runner.temp }}/HollowwakeInputPublicKey/input-public-key.json
+          retention-days: 1
+      - name: Receive exact private archive read-only lease
+        timeout-minutes: 22
+        shell: pwsh
+        run: ./hollowwake/native-client-0.5.0/tests/Receive-WindowsInputLease.ps1 -OutputPath "$env:RUNNER_TEMP/hw-private-input-lease.json"
       - name: Run original initialization without editing checks or instructions
         id: capture
         shell: cmd
         run: |
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath`) do call "%%i\Common7\Tools\VsDevCmd.bat" -arch=x64
-          powershell -NoProfile -File hollowwake\startup-investigation\Run-InitializedCapture.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\startup-capture" -CaptureDirectory "%RUNNER_TEMP%\HollowwakeInitializedCapture"
+          powershell -NoProfile -File hollowwake\startup-investigation\Run-InitializedCapture.ps1 -OutputDirectory "%GITHUB_WORKSPACE%\artifacts\startup-capture" -CaptureDirectory "%RUNNER_TEMP%\HollowwakeInitializedCapture" -PrivateInputLeasePath "%RUNNER_TEMP%\hw-private-input-lease.json"
       - name: Encrypt private initialized-image inputs for existing recipient
         if: ${{ steps.capture.outcome == 'success' }}
         id: encrypt
@@ -65,6 +78,7 @@ jobs:
             artifacts/startup-capture/*.jsonl
             artifacts/startup-capture/*.log
             artifacts/startup-capture/capture-status.json
+            artifacts/startup-capture/initialization-bss-state.json
           if-no-files-found: error
           retention-days: 3
       - name: Preserve only recipient-encrypted game image

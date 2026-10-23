@@ -136,7 +136,25 @@ bool CaptureInitializedImage(HANDLE process,ULONG_PTR base,const wchar_t* source
   wchar_t name[32]={};swprintf_s(name,L"section-%02u.bin",i);if(!write(name,base+section.VirtualAddress,section.SizeOfRawData))return false;
   if(i)receipt<<',';receipt<<"{\"index\":"<<i<<",\"rva\":"<<section.VirtualAddress<<",\"rawOffset\":"<<section.PointerToRawData<<",\"rawBytes\":"<<section.SizeOfRawData<<",\"virtualBytes\":"<<section.Misc.VirtualSize<<",\"characteristics\":"<<section.Characteristics<<"}";
  }
- receipt<<"],\"protections\":[";bool firstRegion=true;ULONG_PTR cursor=base,end=base+nt->OptionalHeader.SizeOfImage;
+ // Inspect only the exact build's zero-fill tail. Keep raw state private and
+ // publish only bounded numeric own-image/delta references, never heap pointers.
+ auto& dataSection=sections[2];
+ if(memcmp(dataSection.Name,".data",5)||dataSection.VirtualAddress!=0x4f16000||dataSection.SizeOfRawData!=0x5bfc00||dataSection.Misc.VirtualSize!=0x8c0a78){SetLastError(ERROR_INVALID_DATA);return false;}
+ DWORD bssRva=dataSection.VirtualAddress+dataSection.SizeOfRawData,bssBytes=dataSection.Misc.VirtualSize-dataSection.SizeOfRawData;
+ std::vector<BYTE> bss(bssBytes);SIZE_T bssRead=0;
+ if(!ReadProcessMemory(process,reinterpret_cast<void*>(base+bssRva),bss.data(),bss.size(),&bssRead)||bssRead!=bss.size())return false;
+ unsigned nonzero=0,references=0;ULONGLONG delta=base-nt->OptionalHeader.ImageBase;
+ for(SIZE_T at=0;at+8<=bss.size();at+=8){ULONGLONG value=0;memcpy(&value,bss.data()+at,8);if(value)++nonzero;if(value&&(value==delta||(value>=base&&value-base<nt->OptionalHeader.SizeOfImage)))++references;}
+ if(references>4096){SetLastError(ERROR_INSUFFICIENT_BUFFER);return false;}
+ receipt<<"],\"bssObservation\":{\"rva\":"<<bssRva<<",\"bytes\":"<<bssBytes<<",\"nonzeroAlignedQwords\":"<<nonzero<<",\"ownImageOrDeltaReferences\":[";
+ bool firstReference=true;
+ for(SIZE_T at=0;at+8<=bss.size();at+=8){ULONGLONG value=0;memcpy(&value,bss.data()+at,8);
+  bool own=value>=base&&value-base<nt->OptionalHeader.SizeOfImage;if(!value||(!own&&value!=delta))continue;
+  if(!firstReference)receipt<<',';firstReference=false;
+  receipt<<"{\"rva\":"<<bssRva+at<<",\"kind\":\""<<(own?"own-image":"image-delta")<<"\"";
+  if(own)receipt<<",\"targetRva\":"<<value-base;receipt<<'}';
+ }
+ receipt<<"],\"rawStateCopiedToNewProcess\":false},\"protections\":[";bool firstRegion=true;ULONG_PTR cursor=base,end=base+nt->OptionalHeader.SizeOfImage;
  while(cursor<end){
   MEMORY_BASIC_INFORMATION region={};if(VirtualQueryEx(process,reinterpret_cast<void*>(cursor),&region,sizeof(region))!=sizeof(region)){SetLastError(ERROR_INVALID_DATA);return false;}
   auto start=reinterpret_cast<ULONG_PTR>(region.BaseAddress),limit=start+region.RegionSize;
