@@ -1,4 +1,5 @@
 #include "../Native/CrashLocation.h"
+#include "../Native/ClientTransferFailure.h"
 #include <iostream>
 #include <stdexcept>
 #include <intrin.h>
@@ -24,5 +25,25 @@ int main(){
  if(control.find("canonical=false")==std::string::npos||control.find("caller=")!=std::string::npos)return 6;
  instruction[0]=0x90;if(!Hollowwake::DescribeCrashControlTransfer(&branch,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery).empty())return 7;
  instruction[0]=0xc3;branch.Rsp=1;if(!Hollowwake::DescribeCrashControlTransfer(&branch,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory,VirtualQuery).empty())return 8;
+ // An owned, nonexecuted image/frame models only the retained post-fault
+ // evidence. Exercise real bounded process-memory reads, refusal of an
+ // unproven frame, and signed/out-of-range index handling.
+ auto image=static_cast<BYTE*>(VirtualAlloc(nullptr,0x6314000,MEM_RESERVE|MEM_COMMIT,PAGE_READWRITE));if(!image)return 9;
+ const BYTE helper[]={0x48,0x8b,0x45,0x38,0x48,0x03,0x05,0xfc,0x52,0x3b,0xfb};
+ const BYTE tail[]={0xff,0x64,0x24,0xf8};memcpy(image+0x6097501,helper,sizeof(helper));memcpy(image+0x609753b,tail,sizeof(tail));
+ *reinterpret_cast<ULONG_PTR*>(image+0x144c808)=0x141775ae0ULL;
+ ULONG_PTR frame[18]={};DWORD left[]={0,621},right[]={0,620};
+ auto base=reinterpret_cast<ULONG_PTR>(image),failed=base+0x141775ae0ULL;
+ frame[0]=frame[17]=failed;frame[7]=base;frame[9]=reinterpret_cast<ULONG_PTR>(left);frame[10]=reinterpret_cast<ULONG_PTR>(right);frame[14]=1;
+ CONTEXT actual={};actual.Rip=failed;actual.Rsp=reinterpret_cast<ULONG_PTR>(frame)+sizeof(frame);
+ EXCEPTION_RECORD av={};av.ExceptionCode=EXCEPTION_ACCESS_VIOLATION;av.NumberParameters=2;av.ExceptionInformation[0]=8;av.ExceptionInformation[1]=failed;
+ EXCEPTION_POINTERS fault={&av,&actual};
+ auto describe=[&](){return Hollowwake::DescribeClientTransferFailure(&fault,reinterpret_cast<HMODULE>(image),0x6314000,GetModuleHandleExW,GetModuleFileNameW,ReadProcessMemory);};
+ auto measured=describe();if(measured.find("observedAfterFault=true debuggerRequired=false")==std::string::npos||measured.find("leftValue=621 rightValue=620")==std::string::npos||measured.find(":\\")!=std::string::npos)return 10;
+ frame[0]=0;if(!describe().empty())return 11;frame[0]=failed;
+ frame[14]=static_cast<DWORD>(-1);if(describe().find("indexedValuesReadable=false")==std::string::npos)return 12;
+ frame[14]=65536;if(describe().find("indexedValuesReadable=false")==std::string::npos)return 13;
+ frame[14]=1;image[0x609753b]=0x90;if(!describe().empty())return 14;
+ VirtualFree(image,0,MEM_RELEASE);
  std::cout<<observed<<candidates<<"\nPASS actual original-code access violation identifies module/RVA and access kind; bounded executable-address stack candidates include the actual null-call return location; unreadable stack fails closed; no filesystem path or raw memory contents collected. No Fortnite/Xbox execution.\n";
 }

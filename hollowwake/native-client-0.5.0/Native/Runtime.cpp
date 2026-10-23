@@ -1,6 +1,7 @@
 #include "ClientLaunchIdentity.h"
 #include "ClientCryptoEnvironment.h"
 #include "CrashLocation.h"
+#include "ClientTransferFailure.h"
 #include "LegacyCrt.h"
 #include "LegacyStartup.h"
 #include "KernelStartup.h"
@@ -223,7 +224,8 @@ static Hollowwake::CrashModuleLookup crashLookup=nullptr;
 static Hollowwake::CrashModuleFilename crashFilename=nullptr;
 static Hollowwake::CrashReadMemory crashRead=nullptr;
 static Hollowwake::CrashQueryMemory crashQuery=nullptr;
-static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD&&code!=1)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{auto description=Hollowwake::DescribeCrash(*data->ExceptionRecord,crashLookup,crashFilename);if(code==1)description.replace(0,12,"NATIVE_CLIENT_EXCEPTION");Log(description+"; exception continues to OS"+Hollowwake::DescribeCrashStackCandidates(data->ContextRecord,crashLookup,crashFilename,crashRead,crashQuery)+Hollowwake::DescribeCrashControlTransfer(data->ContextRecord,crashLookup,crashFilename,crashRead,crashQuery));}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}
+static HMODULE crashClientImage=nullptr;
+static LONG CALLBACK NativeCrashRecord(EXCEPTION_POINTERS* data){static std::atomic_flag writing=ATOMIC_FLAG_INIT;if(!data||!data->ExceptionRecord)return EXCEPTION_CONTINUE_SEARCH;auto code=data->ExceptionRecord->ExceptionCode;if(code!=0xC0000005&&code!=0xC000001D&&code!=0xC00000FD&&code!=1)return EXCEPTION_CONTINUE_SEARCH;if(!writing.test_and_set()){try{auto description=Hollowwake::DescribeCrash(*data->ExceptionRecord,crashLookup,crashFilename);if(code==1)description.replace(0,12,"NATIVE_CLIENT_EXCEPTION");Log(description+"; exception continues to OS"+Hollowwake::DescribeCrashStackCandidates(data->ContextRecord,crashLookup,crashFilename,crashRead,crashQuery)+Hollowwake::DescribeCrashControlTransfer(data->ContextRecord,crashLookup,crashFilename,crashRead,crashQuery)+Hollowwake::DescribeClientTransferFailure(data,crashClientImage,kPreparedOriginalImageBytes,crashLookup,crashFilename,crashRead));}catch(...){}writing.clear();}return EXCEPTION_CONTINUE_SEARCH;}
 
 // Explicit native-loader experiment. It accepts no download URL, credentials,
 // arbitrary DLL path or user command line. The UI's existing mapper is unchanged.
@@ -291,6 +293,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   for(auto pair: {std::make_pair(L"imm32.dll",L"HWIM.dll"),std::make_pair(L"opengl32.dll",L"HWGL.dll"),std::make_pair(L"dwmapi.dll",L"HWDWM.dll"),std::make_pair(L"d3d9.dll",L"HWD9.dll")}){auto logical=std::wstring(L"6.21/FortniteGame/Binaries/Win64/")+pair.first;if(!Hollowwake::RegisterPackagedDependency(pair.first,pair.second,logical.c_str()))return E_INVALIDARG;}
   Log("NATIVE_LOAD calling real LoadPackagedLibrary; dependency TLS/DllMain can execute here");
   auto module=LoadPackagedLibrary(L"6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll",0);if(!module){auto error=GetLastError();Log("NATIVE_LOAD_FAILED Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
+  crashClientImage=module;
   Log("NATIVE_IMAGE_IDENTITY loadedBase="+std::to_string(reinterpret_cast<ULONG_PTR>(module))+" originalImageBytes="+std::to_string(kPreparedOriginalImageBytes));
   auto queryImage=reinterpret_cast<ClientImageQuery>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualQuery"));
   auto protectImage=reinterpret_cast<ClientImageProtect>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","VirtualProtect"));
