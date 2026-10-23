@@ -220,7 +220,8 @@ jobs:
           if(!(Test-Path $audit)-or !(Test-Path $results)){throw 'No fully hash-audited and signature-verified private candidate exists; client execution is blocked'}
           $a=Get-Content $audit -Raw|ConvertFrom-Json;$r=Get-Content $results -Raw|ConvertFrom-Json
           if($a.result-ne 'PASS private signed APPX contents match prepared hashes'-or $r.result-ne 'PASS compiled and development signature verified'-or !$r.gamePayloadIncluded){throw 'Private candidate verification did not pass; client execution is blocked'}
-          ./hollowwake/native-client-0.5.0/tests/Test-IntegratedWindowsClient.ps1 -OutputDirectory artifacts/native-client-050/IntegratedWindows -PrivateInputLeasePath "$env:RUNNER_TEMP/hw-private-input-lease.json"
+          $traceRequested='${{ contains(github.event.head_commit.message, '[native-trace]') }}' -eq 'true'
+          ./hollowwake/native-client-0.5.0/tests/Test-IntegratedWindowsClient.ps1 -OutputDirectory artifacts/native-client-050/IntegratedWindows -PrivateInputLeasePath "$env:RUNNER_TEMP/hw-private-input-lease.json" -AttachNativeTrace:$traceRequested
       - name: Preserve recipient-encrypted signed candidate for private analysis
         id: private_encrypt
         if: ${{ always() && steps.public_build.outcome == 'success' }}

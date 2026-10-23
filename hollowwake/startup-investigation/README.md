@@ -110,3 +110,12 @@ retains the original OS entry RVA and exact original section bytes, comparing
 certificate/checksum metadata only against all existing conversion metadata.
 Each candidate is SHA-pinned for its own bounded native execution. This profile
 is a main-process Windows experiment, not an Xbox application launch method.
+
+The integrated Windows launch and unchanged-source full-data comparison now run
+without debugger attachment by default. Explicit `[native-trace]` workflow
+requests opt into the existing bounded debugger for investigation; results
+record whether it was requested and attached. Debugger traces change OS-visible
+process state and cannot be treated as an ordinary launch control. Captured
+initialized input still comes from the separately documented debug observation;
+its process-specific initialization equivalence remains unproven. No debug
+checks or process metadata are patched to make either route pass.

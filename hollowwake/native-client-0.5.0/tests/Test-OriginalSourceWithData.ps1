@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$GameData,[Parameter(Mandatory=$true)][string]$OutputDirectory,[ValidateSet("original","normalized")][string]$Variant="original")
+param([Parameter(Mandatory=$true)][string]$GameData,[Parameter(Mandatory=$true)][string]$OutputDirectory,[ValidateSet("original","normalized")][string]$Variant="original",[switch]$AttachNativeTrace)
 # Conditional comparison only: exact unchanged original EXE, real verified data,
 # no project/Epic credentials and a per-program outbound firewall block.
 $attemptStarted=[DateTime]::UtcNow
@@ -40,7 +40,8 @@ try{
  $privateProfile=Join-Path $env:RUNNER_TEMP ('HollowwakeSourceProfile-'+$Variant);New-Item -ItemType Directory -Force $privateProfile|Out-Null
  foreach($key in @('USERPROFILE','LOCALAPPDATA','APPDATA')){$info.EnvironmentVariables[$key]=$privateProfile}
  $process=[Diagnostics.Process]::Start($info)
- if($Variant-eq 'original'){
+ $result.debuggerRequested=[bool]$AttachNativeTrace
+ if($Variant-eq 'original'-and $AttachNativeTrace){
   $traceExe=Join-Path $env:RUNNER_TEMP 'HWNativeExecutionTrace.exe'
   if(Test-Path $traceExe){$traceLog=Join-Path $OutputDirectory 'native-original-execution-trace.log';$sourceTrace=Start-Process -FilePath $traceExe -ArgumentList @([string]$process.Id,('"'+$original+'"'),$sourcePin,('"'+$traceLog+'"'),'230','--original-source') -PassThru;$result.nativeTraceRequested=$true}
  }

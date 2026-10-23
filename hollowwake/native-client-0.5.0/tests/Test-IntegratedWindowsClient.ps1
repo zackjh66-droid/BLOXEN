@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[Parameter(Mandatory=$true)][string]$PrivateInputLeasePath)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[Parameter(Mandatory=$true)][string]$PrivateInputLeasePath,[switch]$AttachNativeTrace)
 $ErrorActionPreference='Stop'
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
@@ -65,9 +65,10 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  }while([DateTime]::UtcNow-lt $deadline)
  if($tail-notmatch 'CONTENT_READY bytes=26449827840 total=139 missing=0'){throw 'Production app did not verify the complete selected data; game launch not attempted'}
  Screenshot 'Windows-verified-data-before-real-launch'
- # Internal debugger: attach to this exact installed test package before its
- # real launch action. It observes one measured transfer, preserves the OS
- # exception path, and is never included in an Xbox delivery.
+ # Debug attachment changes OS-visible process state. Normal integration runs
+ # use no debugger; the narrow trace is explicit opt-in investigation only.
+ $result.debuggerRequested=[bool]$AttachNativeTrace;$result.debuggerAttached=$false
+ if($AttachNativeTrace){
  $traceExe=Join-Path $env:RUNNER_TEMP 'HWNativeExecutionTrace.exe';$traceLog=Join-Path $OutputDirectory 'native-execution-trace.log'
  if(!(Test-Path $traceExe)){throw 'Internal execution trace was not compiled'}
  $mainPath=Join-Path $package.InstallLocation '6.21/FortniteGame/Binaries/Win64/Fortnite621.imports.private.dll';$mainHash=(Get-FileHash $mainPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -76,6 +77,7 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  do{if(Test-Path $traceLog){$traceText=Get-Content $traceLog -Raw;if($traceText-match '"event":"attached"'){break}};$executionTrace.Refresh();if($executionTrace.HasExited){break};Start-Sleep -Milliseconds 100}while([DateTime]::UtcNow-lt $deadline)
  $result.debuggerAttached=[bool]($traceText-match '"event":"attached"')
  if(!$result.debuggerAttached){$result.traceFailure='Windows debugger could not attach; inspect native-execution-trace.log. No guest behavior was inferred.'}
+ }
  $result.stage='invoke-actual-launch-button';SaveResult
  InvokeControl 'LaunchButton';$result.launchButtonInvoked=$true;$result.launchedAt=[DateTime]::UtcNow.ToString('o');SaveResult
  $native=Join-Path $data 'native-launch.log';$observations=@();$deadline=[DateTime]::UtcNow.AddMinutes(3);$tick=0
@@ -115,5 +117,5 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  if($processObserver){$processObserver.Dispose()}
  SaveResult
 }
-if($verifiedData-and ($result.failure-or $result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -Variant normalized}
+if($verifiedData-and ($result.failure-or $result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -AttachNativeTrace:$AttachNativeTrace;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -Variant normalized}
 if($result.failure){exit 1}
