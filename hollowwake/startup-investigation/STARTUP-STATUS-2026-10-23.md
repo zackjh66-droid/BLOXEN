@@ -1,8 +1,8 @@
 # Hollowwake actual-client startup status — 23 October 2026
 
 Status: blocked in converted-client startup. No verified Hollowwake lobby or
-working Xbox game package is claimed. The private 0.6.15 candidate is not a
-replacement for the live download.
+working Xbox game package is claimed. The failed private 0.6.15 candidate and the untested 0.6.16 graphics candidate
+are not replacements for the live download.
 
 The Windows desktop used here is a temporary Microsoft-hosted GitHub Actions
 Windows Server 2022 machine in the project's repository. Source editing uses
@@ -33,9 +33,9 @@ Source: `ed044de8f5ff52bcc03b23084cec9e5673441b6c` on
 
 ## Latest ordinary actual execution
 
-[Windows run 39939149207](https://github.com/zackjh66-droid/BLOXEN/actions/runs/39939149207)
-uses the runtime above, with test instrumentation source
-`90896474fa840a0a43ae005ae06cf87595415bcb`. Neither comparison process had a
+[Windows run 40002881667](https://github.com/zackjh66-droid/BLOXEN/actions/runs/40002881667)
+uses the runtime above, with post-fault observation and preserved dependency
+restoration source `6216d2f8add45abe4ce100db3eb18b57e1a24f2b`. Neither comparison process had a
 debugger attached. A separate read-only observer sampled the unchanged original.
 
 The private package compiled, signed and passed package-content hash checks.
@@ -52,12 +52,19 @@ engine, created a real D3D11 composition chain and completed loading
 a lobby were established. The game exchange was issued but was not consumed;
 Fortnite-compatible login has not been demonstrated by this execution.
 
-The loaded main image base was `140725066596352`. The fatal execute target was
-`140730459904736`, exactly image base plus `0x141775ae0` (preferred image base
-`0x140000000` plus `0x1775ae0`). Earlier bounded trace evidence located this
-same target calculation at original helper RVA `0x6097501`. This latest normal
-run confirms the same out-of-image target pattern without a debugger; it does
-not itself capture that helper's internal operands.
+The loaded main image base was `140712188575744`. The fatal execute target was
+`140717581884128`, exactly image base plus `0x141775ae0` (preferred image base
+`0x140000000` plus `0x1775ae0`). The new read-only post-fault observer verified
+the exact original helper instructions at RVA `0x6097501`, both retained stack
+target slots, and the target arithmetic. Its recorded operand was the loaded
+image base itself; its constant was `5393308384` (`0x141775ae0`). No debugger,
+context changes or exception-disposition changes were used.
+
+The retained frame contained candidate comparison index 0, left DWORD
+`2391641668`, right DWORD `2582946561`, and a right-side image location at RVA
+`20332922` (`0x136417a`). Other predecessors of this helper exist. These frame
+values do not prove which comparison branch executed or identify an integrity
+check. The producer/context error remains unresolved; the jump is not patched.
 
 The unchanged original executable, with the same verified content and CPU
 configuration, stayed alive for the full 180-second comparison and rendered
@@ -153,18 +160,38 @@ the original Windows behavior receipts. Local full-archive restoration passed;
 one-byte corruption and wrong-run leases were rejected before final outputs.
 This restores completed work without substituting or recompiling providers.
 
-The replacement ordinary integrated Windows run is `40002881667`. Its actual
-execution result must be assessed before making further claims or changing the
-live download. No new public diagnostic-only package was released.
+The replacement ordinary integrated Windows run `40002881667` completed with
+engine/Frontend execution and the same fatal transfer, as described above. Its
+post-fault observer captured the retained operands successfully. No new public
+diagnostic-only package was released.
+
+## Current graphics implementation under test
+
+Source `e046b5028ed6adc2bcfaca502bd0e02dae4fb630`, candidate 0.6.16, adds a
+native-HWND path for the exact original windowed `ALLOW_MODE_SWITCH` DXGI
+request. The actual OS factory receives the original descriptor and returns its
+actual swap chain or failure. Native buffer-count, flags, resize and present
+behavior remain native; no unsupported operation is reported as successful.
+The composition path retains its exclusive/multisample/flag checks.
+
+Private preparation now audits the three original DXGI request instructions
+instead of rewriting them. Both preparation and generated-header compilation
+reject modified operands. This removes the earlier three instruction writes;
+it does not establish that those writes caused the transfer failure. No client
+branch, HRESULT check or authentication check is removed. An extended owned
+fixture exercises genuine HWND creation, flags/count reporting, count-one resize,
+GPU readback, Present and an invalid native resize failure. Local read-only audit
+and negative-modification checks passed; Windows validation is pending in run
+`40008449820`. Native HWND/DXGI behavior on Xbox remains unverified.
 
 ## Preserved evidence and releases
 
-- Public numeric/log/screenshot evidence: artifact `12495898831`, ZIP SHA-256
-  `ec31f9826da22fc39edd40712e540e9cb8ef26fe30ec08711f82be2126a26ed1`.
-- Recipient-encrypted private signed candidate: artifact `12497000789`, ZIP
-  SHA-256 `2a201183036786b1b35028c1bcf8cbdbde5153a3b5a4bc0b0b828b16e502d9cc`.
+- Public numeric/log/screenshot evidence: artifact `12524173332`, ZIP SHA-256
+  `8a7a622fb24ac9fa8a211494578ac0cb1f7db6cd6c9c39007fb7dabfb7503124`.
+- Recipient-encrypted private signed candidate: artifact `12524198204`, ZIP
+  SHA-256 `07828ee0a3dedc561860459fef0dea165c0ad53fffa60f52a18e31d7a4615154`.
   It is retained for private investigation and is a known-failing candidate.
-- Local evidence: `integrated-windows-test/result-39939149207/` and its verified
+- Local evidence: `integrated-windows-test/result-40002881667/` and its verified
   ZIP. No plaintext proprietary game files were published as a public artifact.
 - Live website, backend, accounts, owner administration, live 0.6.5 download,
   working 0.4.4 companion and rollback releases were not replaced.
