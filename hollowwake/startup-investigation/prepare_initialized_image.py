@@ -27,7 +27,7 @@ def prepare(source,capture,destination,report):
  if pref!=int(m['preferredBase']) or len(m['sections'])!=len(p.sections):raise ValueError('Capture layout/base mismatch')
  headers=raw[:p.OPTIONAL_HEADER.SizeOfHeaders]
  if (capture/'source-headers.bin').read_bytes()!=headers:raise ValueError('Source header mismatch')
- # The original initializer changes this field independently of PE DIR64
+ # The original initialized image changes this field outside PE DIR64
  # relocations. Keep a loadable preferred-base file, but require the native
  # startup path to reproduce the measured transformation using ITS own base.
  field=p.DOS_HEADER.e_lfanew+24+24

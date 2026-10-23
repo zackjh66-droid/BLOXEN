@@ -8,7 +8,7 @@ struct ClientImageProtection {DWORD rva;SIZE_T bytes;DWORD protect;};
 using ClientImageQuery=SIZE_T(WINAPI*)(LPCVOID,PMEMORY_BASIC_INFORMATION,SIZE_T);
 using ClientImageProtect=BOOL(WINAPI*)(LPVOID,SIZE_T,DWORD,PDWORD);
 using ClientImageLogger=void(*)(const std::string&);
-// Reproduce the exact original initializer's observed ImageBase transition.
+// Reproduce the exact original initialized image's observed ImageBase state.
 // The signed on-disk image retains its preferred base for the OS loader. No
 // captured-process address, DLL flag, entry, checksum or check result is copied.
 inline HRESULT RestoreClientImageHeaderBase(HMODULE module,SIZE_T imageSize,DWORD fieldOffset,ULONGLONG preferred,ClientImageQuery query,ClientImageProtect protect,ClientImageLogger log){
@@ -64,6 +64,17 @@ inline HRESULT ApplyClientImageStartup(HMODULE module,SIZE_T imageSize,const Cli
   previousEnd=end;
  }
  if(log)log("NATIVE_IMAGE_STARTUP measured image permissions restored regions="+std::to_string(count)+"; original entry/checks retained; Xbox behavior requires execution");
+ return S_OK;
+}
+
+// Production ordering is shared with the owned converted-image lifecycle test.
+// Header metadata is initialized on the loader's non-executable header page;
+// only afterward may measured original executable-copy permissions be replayed.
+inline HRESULT InitializeClientImageState(HMODULE module,SIZE_T imageSize,DWORD fieldOffset,ULONGLONG preferred,const ClientImageProtection* regions,unsigned count,ClientImageQuery query,ClientImageProtect headerProtect,ClientImageProtect imageProtect,ClientImageLogger log){
+ auto header=RestoreClientImageHeaderBase(module,imageSize,fieldOffset,preferred,query,headerProtect,log);
+ if(FAILED(header)){if(log)log("NATIVE_STARTUP_FAILED original header ImageBase HRESULT="+std::to_string(static_cast<unsigned long>(header)));return header;}
+ auto pages=ApplyClientImageStartup(module,imageSize,regions,count,query,imageProtect,log);
+ if(FAILED(pages)){if(log)log("NATIVE_STARTUP_FAILED measured image permissions HRESULT="+std::to_string(static_cast<unsigned long>(pages)));return pages;}
  return S_OK;
 }
 
