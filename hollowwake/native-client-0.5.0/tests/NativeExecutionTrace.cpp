@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <cwchar>
 #include <cstring>
+#include <thread>
 
 namespace {
 constexpr ULONG_PTR transferRva=0x6097501,constantRva=0x144c808;
@@ -56,9 +57,46 @@ void Location(std::ofstream& output,DWORD pid,ULONG_PTR address){
   output<<",\"module\":\""<<name<<"\",\"rva\":"<<address-base;return;
  }
 }
+
+// Read only three build-specific numeric fields. No debugger, thread suspension,
+// context changes, arbitrary dumps, account data or writes are used in this mode.
+int ObserveOriginalState(HANDLE process,DWORD pid,const std::wstring& expectedPath,std::ofstream& output,unsigned seconds){
+ ULONG_PTR main=0;DWORD imageBytes=0;
+ Handle snapshot;snapshot.value=CreateToolhelp32Snapshot(TH32CS_SNAPMODULE,pid);
+ MODULEENTRY32W entry={};entry.dwSize=sizeof(entry);
+ if(snapshot.value==INVALID_HANDLE_VALUE)return 7;
+ for(BOOL next=Module32FirstW(snapshot.value,&entry);next;next=Module32NextW(snapshot.value,&entry)){
+  if(!_wcsicmp(entry.szExePath,expectedPath.c_str())){main=reinterpret_cast<ULONG_PTR>(entry.modBaseAddr);imageBytes=entry.modBaseSize;break;}
+ }
+ IMAGE_DOS_HEADER dos={};IMAGE_NT_HEADERS64 nt={};
+ if(!main||imageBytes<sizeof(nt)||!Read(process,main,dos)||dos.e_magic!=IMAGE_DOS_SIGNATURE||dos.e_lfanew<0||
+    static_cast<ULONG>(dos.e_lfanew)>imageBytes-sizeof(nt)||!Read(process,main+dos.e_lfanew,nt)||
+    nt.Signature!=IMAGE_NT_SIGNATURE||nt.FileHeader.Machine!=IMAGE_FILE_MACHINE_AMD64||
+    nt.OptionalHeader.Magic!=IMAGE_NT_OPTIONAL_HDR64_MAGIC||imageBytes<0x6097543)return 7;
+ const ULONG_PTR imageBaseField=main+dos.e_lfanew+offsetof(IMAGE_NT_HEADERS64,OptionalHeader)+offsetof(IMAGE_OPTIONAL_HEADER64,ImageBase);
+ output<<"{\"event\":\"readonly_source_observer\",\"base\":"<<main<<",\"imageBytes\":"<<imageBytes
+       <<",\"debuggerAttached\":false,\"processMemoryWritten\":false,\"threadsSuspended\":false}\n";output.flush();
+ auto started=std::chrono::steady_clock::now();auto deadline=started+std::chrono::seconds(seconds);
+ unsigned samples=0,validSamples=0;
+ do{
+  ULONGLONG header=0,constant=0,preferred=0;
+  bool h=Read(process,imageBaseField,header),c=Read(process,main+constantRva,constant),p=Read(process,main+0x159d368,preferred);
+  if(h&&c&&p)++validSamples;
+  auto elapsed=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-started).count();
+  output<<"{\"event\":\"readonly_source_state\",\"milliseconds\":"<<elapsed
+        <<",\"headerRead\":"<<(h?"true":"false")<<",\"headerImageBase\":"<<header
+        <<",\"constantRead\":"<<(c?"true":"false")<<",\"transferConstant\":"<<constant
+        <<",\"preferredRead\":"<<(p?"true":"false")<<",\"preferredField\":"<<preferred<<"}\n";output.flush();++samples;
+  if(WaitForSingleObject(process,0)==WAIT_OBJECT_0){output<<"{\"event\":\"readonly_source_exit\"}\n";break;}
+  std::this_thread::sleep_for(std::chrono::seconds(2));
+ }while(std::chrono::steady_clock::now()<deadline);
+ output<<"{\"event\":\"readonly_source_complete\",\"samples\":"<<samples<<"}\n";
+ return validSamples?0:8;
+}
 }
 int wmain(int argc,wchar_t** argv){
- bool original=argc==7&&!wcscmp(argv[6],L"--original-source");if(argc!=6&&!original)return 2;
+ bool observe=argc==7&&!wcscmp(argv[6],L"--observe-original-state");
+ bool original=observe||(argc==7&&!wcscmp(argv[6],L"--original-source"));if(argc!=6&&!original)return 2;
  wchar_t* end=nullptr;auto parsed=wcstoul(argv[1],&end,10);if(!parsed||!end||*end)return 2;DWORD pid=parsed;
  std::wstring root=argv[2],expectedPath=root+(original?L"\\FortniteGame\\Binaries\\Win64\\FortniteClient-Win64-Shipping.exe":L"\\6.21\\FortniteGame\\Binaries\\Win64\\Fortnite621.imports.private.dll");
  std::wstring wideHash=argv[3];std::string hash(wideHash.begin(),wideHash.end());if(hash.size()!=64||hash.find_first_not_of("0123456789abcdef")!=std::string::npos||!Hash(expectedPath.c_str(),hash))return 3;
@@ -69,6 +107,7 @@ int wmain(int argc,wchar_t** argv){
  if(original&&_wcsicmp(actual.c_str(),expectedPath.c_str()))return 4;
  auto seconds=wcstoul(argv[5],&end,10);if(!end||*end||seconds<10||seconds>300)return 2;
  std::ofstream output(argv[4],std::ios::binary);if(!output)return 5;
+ if(observe)return ObserveOriginalState(process.value,pid,expectedPath,output,seconds);
  if(!DebugActiveProcess(pid)){output<<"{\"event\":\"attach_failed\",\"error\":"<<GetLastError()<<"}\n";return 6;}
  DebugSetProcessKillOnExit(FALSE);output<<"{\"event\":\"attached\",\"pid\":"<<pid<<",\"guestInstructionsChanged\":false,\"xboxTested\":false}\n";output.flush();
  ULONG_PTR main=0;bool initial=true,measured=false,exited=false;unsigned exceptions=0;

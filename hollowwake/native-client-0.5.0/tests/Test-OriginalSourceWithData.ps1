@@ -45,6 +45,15 @@ try{
   $traceExe=Join-Path $env:RUNNER_TEMP 'HWNativeExecutionTrace.exe'
   if(Test-Path $traceExe){$traceLog=Join-Path $OutputDirectory 'native-original-execution-trace.log';$sourceTrace=Start-Process -FilePath $traceExe -ArgumentList @([string]$process.Id,('"'+$original+'"'),$sourcePin,('"'+$traceLog+'"'),'230','--original-source') -PassThru;$result.nativeTraceRequested=$true}
  }
+ # Ordinary-process comparison: the observer cannot attach a debugger or write
+ # game state. Keep this mutually exclusive with the explicit trace experiment.
+ if($Variant-eq 'original'-and !$AttachNativeTrace){
+  $traceExe=Join-Path $env:RUNNER_TEMP 'HWNativeExecutionTrace.exe'
+  if(!(Test-Path $traceExe)){throw 'Read-only original state observer is absent'}
+  $stateLog=Join-Path $OutputDirectory 'native-original-readonly-state.log'
+  $sourceTrace=Start-Process -FilePath $traceExe -ArgumentList @([string]$process.Id,('"'+$original+'"'),$sourcePin,('"'+$stateLog+'"'),'170','--observe-original-state') -PassThru
+  $result.readonlyStateRequested=$true
+ }
  for($tick=1;$tick-le 36;$tick++){
   Start-Sleep -Seconds 5;$process.Refresh();$rows=@()
   foreach($window in [Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))){
@@ -54,6 +63,7 @@ try{
   if($tick-in @(3,6,12,24,36)-or $process.HasExited){$b=[Windows.Automation.AutomationElement]::RootElement.Current.BoundingRectangle;$image=[Drawing.Bitmap]::new([int]$b.Width,[int]$b.Height);$g=[Drawing.Graphics]::FromImage($image);try{$g.CopyFromScreen([int]$b.Left,[int]$b.Top,0,0,$image.Size);$image.Save((Join-Path $OutputDirectory ('Windows-'+$prefix+'-comparison-'+$tick+'.png')),[Drawing.Imaging.ImageFormat]::Png)}finally{$g.Dispose();$image.Dispose()}}
   if($process.HasExited){$result.exitCode=$process.ExitCode;break}
  }
+ if($result.readonlyStateRequested){$sourceTrace.Refresh();if(!$sourceTrace.HasExited-or $sourceTrace.ExitCode-ne 0-or !(Select-String -LiteralPath $stateLog -SimpleMatch '"event":"readonly_source_complete"' -Quiet)){throw 'Read-only original state observation did not complete'};$result.readonlyStateCompleted=$true}
  if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 'Original executable changed during comparison'}
 }catch{$result.failure=$_.Exception.Message}finally{
  if($process-and !$process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
