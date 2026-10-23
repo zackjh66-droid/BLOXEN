@@ -130,5 +130,5 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  if($processObserver){$processObserver.Dispose()}
  SaveResult
 }
-if($verifiedData-and ($result.failure-or $result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -AttachNativeTrace:$AttachNativeTrace;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -Variant normalized}
+if($verifiedData-and ($result.failure-or $result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -Variant normalized}
 if($result.failure){exit 1}

@@ -151,6 +151,20 @@ int wmain(int argc,wchar_t** argv){
      if(a&&b){auto target=operand+constant;output<<",\"operand\":"<<operand<<",\"constant\":"<<constant<<",\"computedTarget\":"<<target<<",\"matchesCurrentImageDelta\":"<<(operand==main-0x140000000ULL?"true":"false");Location(output,pid,target);}
      if(Read(process.value,main+0x200,headerBase))output<<",\"runtimeHeaderImageBase\":"<<headerBase;
      if(Read(process.value,main+0x159d368,sourceBase))output<<",\"sourcePreferredBaseField\":"<<sourceBase;
+     output<<",\"threadId\":"<<event.dwThreadId<<",\"eaxLow32\":"<<static_cast<DWORD>(context.Rax)<<",\"edxLow32\":"<<static_cast<DWORD>(context.Rdx)
+           <<",\"carryFlag\":"<<((context.EFlags&1)?"true":"false")<<",\"zeroFlag\":"<<((context.EFlags&0x40)?"true":"false");
+     // The predecessor can compare two indexed DWORDs before selecting this
+     // transfer. Record its actual inputs, never replace the branch/values.
+     ULONG_PTR left=0,right=0,caller=0;LONG index=0;
+     bool frame=Read(process.value,context.Rbp+0x48,left)&&Read(process.value,context.Rbp+0x50,right)&&Read(process.value,context.Rbp+0x70,index);
+     output<<",\"comparisonFrameReadable\":"<<(frame?"true":"false");
+     if(frame){
+      output<<",\"comparisonIndex\":"<<index<<",\"leftArray\":{\"address\":"<<left;Location(output,pid,left);output<<"},\"rightArray\":{\"address\":"<<right;Location(output,pid,right);output<<'}';
+      DWORD l=0,r=0;bool values=index>=0&&index<65536&&left&&right&&left<=~ULONG_PTR(0)-static_cast<ULONG_PTR>(index)*4&&right<=~ULONG_PTR(0)-static_cast<ULONG_PTR>(index)*4&&Read(process.value,left+static_cast<ULONG_PTR>(index)*4,l)&&Read(process.value,right+static_cast<ULONG_PTR>(index)*4,r);
+      output<<",\"indexedValuesReadable\":"<<(values?"true":"false");
+      if(values)output<<",\"leftValue\":"<<l<<",\"rightValue\":"<<r<<",\"indexedValuesMatchRegisters\":"<<((l==static_cast<DWORD>(context.Rax)&&r==static_cast<DWORD>(context.Rdx))?"true":"false");
+     }
+     if(Read(process.value,context.Rbp+0x88,caller)){output<<",\"frameReturn\":{\"address\":"<<caller;Location(output,pid,caller);output<<'}';}
      output<<"}\n";measured=true;Clear(thread.value,main);Threads(pid,main,true);
     }else disposition=DBG_EXCEPTION_NOT_HANDLED;
    }else{
