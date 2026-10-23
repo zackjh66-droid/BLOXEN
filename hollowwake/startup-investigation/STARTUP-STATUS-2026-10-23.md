@@ -117,6 +117,46 @@ client. The unresolved requirement remains correct actual startup/control flow,
 not a demonstrated requirement to change servers or reacquire content. No jump, check, exception decision or API success is patched to hide
 this failure.
 
+## Follow-up tracing limits
+
+Run `39949659164`, source `b6c8f3ed841b21e0767f2fd83abb44d1c885e784`,
+compiled and exercised the actual integrated package with an explicitly attached
+Windows debugger. That process exited with `0xC0000005` at `7705811632` before
+engine/Frontend milestones were recorded. The requested helper watch produced
+no comparison event. This is inconclusive for the ordinary failure described
+above; it is not evidence that the new input values were collected. The plain,
+unchanged original comparison again stayed alive for 180 seconds.
+
+Evidence artifact `12500873758` has ZIP SHA-256
+`9516d96877152daadca2355153d226213942ba9ef47688f0bbe367352486cf98`.
+The recipient-encrypted failed candidate remains private and was not promoted.
+
+Source `6e668e842f9b3aa870a8c7f39eaa00e29359bf02` instead adds a read-only
+post-fault observer to the existing native exception logger. For the exact
+ordinary execute-fault pattern it validates the unchanged original helper bytes,
+both retained stack target slots and the target arithmetic before reading the
+former frame's bounded comparison inputs. It changes no context, instruction,
+branch, return value or exception disposition. This is investigation code, not a
+startup repair. The owned-code checks passed in run `40001569453`, but actual execution was
+skipped because the historical provider artifact was no longer available. This
+is a test-input availability failure, not a new client execution result.
+
+Source `6216d2f8add45abe4ce100db3eb18b57e1a24f2b` restores the exact preserved
+licensed providers from existing private Blob storage. The complete original
+archive is 39,172,799 bytes, SHA-256
+`233ed20ffcf8d87230c126453e6a99d36060dddb5f32ac994ec9ba6619f200dd`.
+Its six provider binaries match their original inventories; corresponding source
+and licenses remain included. A full stored-object SHA-256 read succeeded and
+anonymous access was denied. CI receives only per-run GET access, verifies the
+whole archive before extraction, validates paths and binary hashes, and retains
+the original Windows behavior receipts. Local full-archive restoration passed;
+one-byte corruption and wrong-run leases were rejected before final outputs.
+This restores completed work without substituting or recompiling providers.
+
+The replacement ordinary integrated Windows run is `40002881667`. Its actual
+execution result must be assessed before making further claims or changing the
+live download. No new public diagnostic-only package was released.
+
 ## Preserved evidence and releases
 
 - Public numeric/log/screenshot evidence: artifact `12495898831`, ZIP SHA-256
