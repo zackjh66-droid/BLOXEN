@@ -3,8 +3,17 @@ $ErrorActionPreference='Stop'
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $OutputDirectory=(Resolve-Path $OutputDirectory).Path
 $result=[ordered]@{stage='find-installed-package';windowsTest=$true;xboxTested=$false;launchButtonInvoked=$false;nativeThreadCreated=$false;originalLobbyObserved=$false;serverMenusVerified=$false;testAccount=$null;failure=$null}
-$applicationPid=0;$processObserver=$null;$executionTrace=$null;$browser=$null;$data=$null;$attemptStarted=[DateTime]::UtcNow
+$applicationPid=0;$processObserver=$null;$executionTrace=$null;$browser=$null;$data=$null;$gameData=$null;$verifiedData=$false;$attemptStarted=[DateTime]::UtcNow
 function SaveResult { $result|ConvertTo-Json -Depth 7|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'integrated-windows-result.json') }
+function Invoke-IntegratedActivation([string]$AppId){
+ for($activationAttempt=1;$activationAttempt-le 2;$activationAttempt++){
+  try{return [HwIntegratedActivation]::Launch($AppId)}catch{
+   $problem=$_.Exception;$retryable=$false;$codes=@();while($problem){$code=$problem.HResult.ToString('X8');$codes+=('0x'+$code);if($code-eq '80040905'){$retryable=$true};$problem=$problem.InnerException}
+   if(!$result.activationFailures){$result.activationFailures=@()};$result.activationFailures+=@{attempt=$activationAttempt;hresults=$codes;time=[DateTime]::UtcNow.ToString('o')};SaveResult
+   if(!$retryable-or $activationAttempt-ge 2){throw};Start-Sleep -Milliseconds 1500
+  }
+ }
+}
 function Post($path,$body){Invoke-RestMethod -Method Post -Uri ($origin+$path) -WebSession $browser -Headers @{Origin=$origin} -ContentType 'application/json' -Body ($body|ConvertTo-Json -Compress) -TimeoutSec 30}
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
@@ -13,16 +22,21 @@ function Control($id){$e=[Windows.Automation.AutomationElement]::RootElement.Fin
 function InvokeControl($id){$until=[DateTime]::UtcNow.AddSeconds(30);do{$e=Control $id;if($e-and $e.Current.IsEnabled){$e.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke();return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt $until);throw "Actual UI control unavailable: $id"}
 function Screenshot($name){$bounds=[Windows.Automation.AutomationElement]::RootElement.Current.BoundingRectangle;$bitmap=[Drawing.Bitmap]::new([int]$bounds.Width,[int]$bounds.Height);$g=[Drawing.Graphics]::FromImage($bitmap);try{$g.CopyFromScreen([int]$bounds.Left,[int]$bounds.Top,0,0,$bitmap.Size);$bitmap.Save((Join-Path $OutputDirectory ($name+'.png')),[Drawing.Imaging.ImageFormat]::Png)}finally{$g.Dispose();$bitmap.Dispose()}}
 try{
- $package=Get-AppxPackage -Name 'Hollowwake.NativeClientExperiment';if(!$package){throw 'Actual signed private package is not installed'}
- $data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\LocalState');New-Item -ItemType Directory -Force $data|Out-Null
- $result.package=$package.PackageFullName
+ $package=Get-AppxPackage -Name 'Hollowwake.NativeClientExperiment'
+ if($package){$data=Join-Path $env:LOCALAPPDATA ('Packages\'+$package.PackageFamilyName+'\LocalState');New-Item -ItemType Directory -Force $data|Out-Null;$gameData=Join-Path $data 'GameClean';$result.package=$package.PackageFullName}
+ else{$gameData=Join-Path $env:RUNNER_TEMP 'HollowwakeIndependentOriginalData'}
  $result.stage='download-complete-pinned-data';SaveResult
  $vs=& "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
  $csc=Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe';$services=Join-Path $PSScriptRoot '../App/Services';$stager=Join-Path $env:RUNNER_TEMP 'HollowwakeStageGameData.exe'
  & $csc /nologo /target:exe /langversion:latest /r:System.Net.Http.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll /r:System.Web.Extensions.dll "/out:$stager" (Join-Path $PSScriptRoot 'Stage-WindowsGameData.cs') (Join-Path $services 'ContentTransfer.cs') (Join-Path $services 'IndexedContentTransfer.cs') (Join-Path $services 'SequentialContentTransfer.cs')
  if($LASTEXITCODE-ne 0){throw 'Production transfer input stager did not compile'}
- & $stager (Join-Path $PSScriptRoot '../App/ContentPlan621.json') (Join-Path $PSScriptRoot '../App/ContentIndex621.json') (Join-Path $data 'GameClean') (Join-Path $OutputDirectory 'integrated-windows-data.json') $PrivateInputLeasePath
+ & $stager (Join-Path $PSScriptRoot '../App/ContentPlan621.json') (Join-Path $PSScriptRoot '../App/ContentIndex621.json') $gameData (Join-Path $OutputDirectory 'integrated-windows-data.json') $PrivateInputLeasePath
  if($LASTEXITCODE-ne 0){throw 'Pinned full game-data acquisition failed; no runtime result inferred'}
+ $verifiedData=$true
+ $result.stage='verify-installed-private-client';SaveResult
+ if(!$package){throw 'Signed private app is not installed; verified original-source comparison can still run independently'}
+ $installedPlan=Join-Path $package.InstallLocation 'native-package-manifest.json';$preparedPlan=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePrepared/GamePayload/native-package-manifest.json'
+ if(!(Test-Path $installedPlan)-or !(Test-Path $preparedPlan)-or (Get-FileHash $installedPlan -Algorithm SHA256).Hash-ne (Get-FileHash $preparedPlan -Algorithm SHA256).Hash){throw 'Installed app differs from the current verified private candidate; no account or app launch attempted'}
  $result.stage='create-temporary-normal-account';SaveResult
  $origin='https://hollowwake.jihnjohn10.chatgpt.site';$browser=[Microsoft.PowerShell.Commands.WebRequestSession]::new()
  $suffix=[Guid]::NewGuid().ToString('N').Substring(0,8);$username='hw_win_probe_'+$suffix;$email=$username+'@hollowwake.test';$password=[Guid]::NewGuid().ToString('N')+'!A9'+[Guid]::NewGuid().ToString('N')
@@ -35,7 +49,7 @@ using System;using System.Runtime.InteropServices;
 public class HwIntegratedActivation{public static uint Launch(string id){var m=(IHwIntegratedActivation)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")));uint p;Marshal.ThrowExceptionForHR(m.ActivateApplication(id,"",0,out p));return p;}}
 '@
  $result.stage='normal-app-activation-and-real-device-link';SaveResult
- $applicationPid=[HwIntegratedActivation]::Launch($package.PackageFamilyName+'!App');$processObserver=[Diagnostics.Process]::GetProcessById($applicationPid);$null=$processObserver.Handle;$deadline=[DateTime]::UtcNow.AddSeconds(90);$code=$null
+ $applicationPid=Invoke-IntegratedActivation ($package.PackageFamilyName+'!App');$processObserver=[Diagnostics.Process]::GetProcessById($applicationPid);$null=$processObserver.Handle;$deadline=[DateTime]::UtcNow.AddSeconds(90);$code=$null
  do{$e=Control 'CodeText';if($e){$candidate=$e.Current.Name.Replace(' ','').Replace('-','');if($candidate-match '^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$'){$code=$candidate;break}};if(!(Get-Process -Id $applicationPid -ErrorAction SilentlyContinue)){throw 'App exited before device approval'};Start-Sleep -Milliseconds 500}while([DateTime]::UtcNow-lt $deadline)
  if(!$code){throw 'Actual app did not display a current device-link code'}
  $null=Post '/api/link/verify' @{user_code=$code};$null=Post '/api/link/approve' @{user_code=$code};$code=$null
@@ -101,5 +115,5 @@ public class HwIntegratedActivation{public static uint Launch(string id){var m=(
  if($processObserver){$processObserver.Dispose()}
  SaveResult
 }
-if($data-and ($result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData (Join-Path $data 'GameClean') -OutputDirectory $OutputDirectory -Variant normalized}
+if($verifiedData-and ($result.failure-or $result.firstEngineError-or $result.stage-eq 'actual-client-process-exited')){& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory;& (Join-Path $PSScriptRoot 'Test-OriginalSourceWithData.ps1') -GameData $gameData -OutputDirectory $OutputDirectory -Variant normalized}
 if($result.failure){exit 1}

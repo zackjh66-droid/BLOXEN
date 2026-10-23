@@ -1,9 +1,12 @@
 #include "../Native/StartupImport.h"
 #include "../Native/ClientImageStartup.h"
+#include "../Native/ClientCryptoEnvironment.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdlib>
 static char* __cdecl Guest(){static char value[]="guest arguments with spaces";return value;}
+static ClientCryptoEnvironment cryptoEnvironment;
+static char* __cdecl GuestEnvironment(const char* name){return cryptoEnvironment.Lookup(name);}
 static void Stage(const char* name){printf("OWNED_STARTUP_STAGE %s\n",name);fflush(stdout);}
 static void Log(const std::string& value){puts(value.c_str());fflush(stdout);}
 static int Fail(int code,const char* operation,DWORD error=0){printf("OWNED_STARTUP_IMPORT_FAILURE code=%d operation=%s Win32=%lu\n",code,operation,error);fflush(stdout);return code;}
@@ -23,5 +26,18 @@ int main(int argc,char** argv){
  Stage("bind-declared-and-measured-copy");if(!BindWinMainCommandImport(consumer,"StartupProvider.dll",(void*)&Guest,&plan,1))return Fail(4,"bind-both-tables",GetLastError());
  if(strcmp(read(),Guest())||strcmp(copied(),Guest())||slots[0]!=(ULONG_PTR)&Guest)return Fail(4,"bound-owned-call-results");
  if(strcmp(original(),"original host arguments"))return Fail(5,"provider-state-changed");
+ Stage("bind-real-client-crt-getenv");
+ auto environment=(char*(__cdecl*)(const char*))GetProcAddress(consumer,"ReadFixtureEnvironment");
+ auto realEnvironment=QueryClientCrtImport(consumer,"api-ms-win-crt-environment-l1-1-0.dll","getenv");
+ if(!environment||!realEnvironment)return Fail(6,"actual-consumer-getenv-binding",GetLastError());
+ if(BindClientCrtImport(consumer,"api-ms-win-crt-environment-l1-1-0.dll","getenv",reinterpret_cast<void*>(1),reinterpret_cast<void*>(&GuestEnvironment))||GetLastError()!=ERROR_RETRY)return Fail(6,"reject-unexpected-original-binding",GetLastError());
+ auto prior=getenv("OPENSSL_ia32cap");bool hadPrior=prior!=nullptr;std::string saved=prior?prior:"";
+ if(_putenv_s("OPENSSL_ia32cap","")||!cryptoEnvironment.Bind(reinterpret_cast<ClientCryptoEnvironment::Getter>(realEnvironment))||!cryptoEnvironment.Enable())return Fail(6,"configure-real-provider-delegation");
+ bool bound=BindClientCrtImport(consumer,"api-ms-win-crt-environment-l1-1-0.dll","getenv",realEnvironment,reinterpret_cast<void*>(&GuestEnvironment));
+ auto selected=bound?environment("OPENSSL_ia32cap"):nullptr;
+ bool clientOnly=selected&&!strcmp(selected,":~0x20000000")&&getenv("OPENSSL_ia32cap")==nullptr;
+ bool restored=_putenv_s("OPENSSL_ia32cap",hadPrior?saved.c_str():"")==0;
+ if(!bound||!clientOnly||!restored)return Fail(6,"real-module-getenv-call-or-host-isolation",GetLastError());
+ puts("PASS actual OS-loaded consumer CRT getenv binding configured through its real IAT; unexpected binding rejected; host getenv unchanged.");
  puts("PASS actual OS-loaded provider, real current-process copied-import restoration, rejection before restoration, both real WinMain call sites rebound; original provider unchanged. No game/Xbox execution.");return 0;
 }

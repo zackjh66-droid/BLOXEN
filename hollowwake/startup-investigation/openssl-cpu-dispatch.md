@@ -12,4 +12,6 @@ Sources inspected from the upstream release tag, without executing or copying th
 - [Configuration parser](https://github.com/openssl/openssl/blob/OpenSSL_1_0_2g/crypto/cryptlib.c), SHA-256 `8ad687d2273455d6c6adafd519d542cbce8e7399f79e76ee12a5266a15a0cf50`.
 - [SHA-1 assembly generator](https://github.com/openssl/openssl/blob/OpenSSL_1_0_2g/crypto/sha/asm/sha1-x86_64.pl), SHA-256 `8b1234d8fb04d2e170de01c097cc94a9e10c4870f73d0b8391fd47357bcd3a4b`.
 
-The runtime-header replay experiment is removed from the active launch path while its timing remains unproven. The confirmed 819 copied-import restoration remains. Actual full-client execution, original UI, account login and Xbox behavior require separate results; an environment-adapter fixture does not establish them.
+The runtime-header replay experiment is removed from the active launch path while its timing remains unproven. The confirmed 819 copied-import restoration remains. The adapter binds through the actual loaded main image's declared CRT `getenv` import and matching measured compiler copies, retains that native function for delegation, and leaves the host CRT unchanged. CRT API sets are unredirected dependencies, so the general core-system proxy resolver is not used to supply this binding. The same checked import-binding mechanism continues to supply the game's WinMain command line.
+
+Actual full-client execution, original UI, account login and Xbox behavior require separate results; environment-adapter and owned-module binding fixtures do not establish them.

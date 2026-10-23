@@ -168,9 +168,6 @@ static void Thunks(const char* dll,DWORD source,DWORD target){
 }
 // Native DLL route must not reuse manual-map TLS/thread notifications.
 static void* PackagedRoute(const char* dll,const char* name){
- if(dll&&name&&(!_stricmp(dll,"api-ms-win-crt-environment-l1-1-0.dll")||!_stricmp(dll,"ucrtbase.dll"))&&!strcmp(name,"getenv")){
-  auto real=reinterpret_cast<ClientCryptoEnvironment::Getter>(Hollowwake::ResolveNativeSystemImport(dll,name));return cryptoEnvironment.Bind(real)?reinterpret_cast<void*>(&ClientCryptoGetenv):nullptr;
- }
  if(IsStartupPlatformModule(dll))return ResolveStartupPlatformImport(dll,name);
  if(auto p=ResolveDataFileImport(dll,name))return p;
  if(auto p=ResolveNetworkImport(dll,name))return p;
@@ -239,7 +236,7 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
  try{
   if(!boundCoreWindow||!gamePanel){Log("NATIVE_LOAD_BLOCKED graphics window not bound");return E_UNEXPECTED;}
   static std::atomic<bool> attempted{false};if(attempted.exchange(true))return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-  Log("ATTEMPT_BEGIN runtime=0.6.13.0 native-packaged route");
+  Log("ATTEMPT_BEGIN runtime=0.6.14.0 native-packaged route");
   {auto slash=logName.find_last_of(L"/\\");if(slash!=std::wstring::npos){std::ofstream reset(logName.substr(0,slash+1)+L"native-imports-unresolved.txt",std::ios::trunc);}}
   auto preflight=HWPreflightClient();if(FAILED(preflight))return preflight;
   // Read the same real own-user known folder requested by the original main
@@ -265,8 +262,6 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   auto deviceFamily=Windows::System::Profile::AnalyticsInfo::VersionInfo->DeviceFamily;
   if(std::wstring(deviceFamily->Data())==L"Windows.Desktop"||std::wstring(deviceFamily->Data())==L"Windows.Server"){launchCommand+=L" -AllowSoftwareRendering";Log("NATIVE_STARTUP Windows desktop/server permits the original engine software-adapter option; actual feature-level checks and hardware preference retained");}
   std::wstring gameLogin;if(!gameIdentity.Consume(GetTickCount64(),gameLogin)){Log("NATIVE_LOAD_BLOCKED a fresh linked-account launch ticket is required");return E_ACCESSDENIED;}launchCommand+=gameLogin;
-  auto realGetenv=reinterpret_cast<ClientCryptoEnvironment::Getter>(Hollowwake::ResolveNativeSystemImport("api-ms-win-crt-environment-l1-1-0.dll","getenv"));
-  if(!cryptoEnvironment.Bind(realGetenv)||!cryptoEnvironment.Enable()){Log("NATIVE_LOAD_BLOCKED original CRT getenv provider unavailable for legacy OpenSSL configuration");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}
   if(!Hollowwake::ConfigurePackagedNamespace(L"Fortnite621.imports.private.dll",launchCommand.c_str())){Log("NATIVE_LOAD_BLOCKED namespace configuration refused");return E_UNEXPECTED;}
   Log("NATIVE_STARTUP windowed D3D11 requested at actual virtual viewport; one-time game exchange ticket configured; no project session supplied");
   crashLookup=reinterpret_cast<Hollowwake::CrashModuleLookup>(Hollowwake::ResolveNativeSystemImport("kernel32.dll","GetModuleHandleExW"));
@@ -293,6 +288,11 @@ extern "C" __declspec(dllexport) int __cdecl HWAttemptPackagedClient(){
   auto initialized=ApplyClientImageStartup(module,kPreparedOriginalImageBytes,kPreparedClientProtections,kPreparedClientProtectionCount,queryImage,protectImage,Log);
   if(FAILED(initialized)){Log("NATIVE_IMAGE_STARTUP_FAILED HRESULT="+std::to_string(static_cast<unsigned long>(initialized)));return initialized;}
   auto compilerImports=RestoreClientImportCopies(module,kPreparedOriginalImageBytes,kPreparedCompilerImports,kPreparedCompilerImportCount,queryImage,&VirtualProtectFromApp,Log);if(FAILED(compilerImports))return compilerImports;
+  auto realGetenv=QueryClientCrtImport(module,"api-ms-win-crt-environment-l1-1-0.dll","getenv",kPreparedCompilerImports,kPreparedCompilerImportCount);
+  if(!realGetenv){auto error=GetLastError();Log("NATIVE_LOAD_BLOCKED actual loaded client CRT getenv binding unavailable Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error?error:ERROR_PROC_NOT_FOUND);}
+  if(!cryptoEnvironment.Bind(reinterpret_cast<ClientCryptoEnvironment::Getter>(realGetenv))||!cryptoEnvironment.Enable()){Log("NATIVE_LOAD_BLOCKED client crypto state differs from the actual loaded CRT binding");return E_UNEXPECTED;}
+  if(!BindClientCrtImport(module,"api-ms-win-crt-environment-l1-1-0.dll","getenv",realGetenv,reinterpret_cast<void*>(&ClientCryptoGetenv),kPreparedCompilerImports,kPreparedCompilerImportCount)){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED client-local getenv binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error?error:ERROR_GEN_FAILURE);}
+  Log("NATIVE_STARTUP_BOUND client-local OpenSSL getenv; original "+Hollowwake::CrashCodeLocation(reinterpret_cast<ULONG_PTR>(realGetenv),crashLookup,crashFilename)+"; host CRT environment unchanged");
   if(!BindWinMainCommandImport(module,"api-ms-win-crt-runtime-l1-1-0.dll",reinterpret_cast<void*>(&Hollowwake::PackagedWinMainTail),kPreparedCompilerImports,kPreparedCompilerImportCount)){auto error=GetLastError();Log("NATIVE_STARTUP_FAILED _get_narrow_winmain_command_line binding Win32="+std::to_string(error));return HRESULT_FROM_WIN32(error);}
   Log("NATIVE_STARTUP_BOUND image-local WinMain command import; host CRT globals unchanged");
   auto entry=reinterpret_cast<int(__cdecl*)()>(GetProcAddress(module,"StartHollowwakeClient"));if(!entry){Log("NATIVE_LOAD_BLOCKED preserved client-entry export missing");return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);}

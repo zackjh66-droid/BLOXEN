@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
   actions: read
+concurrency:
+  group: hollowwake-native-client-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     if: ${{ !contains(github.event.head_commit.message, '[startup-workbench]') }}
@@ -207,11 +210,17 @@ jobs:
           powershell -NoProfile -File hollowwake\native-client-0.5.0\Build.ps1 %HW_MESA_ARGUMENT% -OutputDirectory "%RUNNER_TEMP%\HollowwakePrivatePackage" -PrivatePreparedDirectory "%RUNNER_TEMP%\HollowwakePrivatePrepared" -PrivateAudioDirectory "%GITHUB_WORKSPACE%\artifacts\native-client-050\audio"
       - name: Attempt actual signed Fortnite client with complete verified data and real account link
         id: integrated_windows
-        if: ${{ steps.input_lease.outcome == 'success' && steps.private_source.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.input_lease.outcome == 'success' }}
         timeout-minutes: 45
         continue-on-error: true
         shell: powershell
-        run: ./hollowwake/native-client-0.5.0/tests/Test-IntegratedWindowsClient.ps1 -OutputDirectory artifacts/native-client-050/IntegratedWindows -PrivateInputLeasePath "$env:RUNNER_TEMP/hw-private-input-lease.json"
+        run: |
+          $root=Join-Path $env:RUNNER_TEMP 'HollowwakePrivatePackage'
+          $audit=Join-Path $root 'private-package-audit.json';$results=Join-Path $root 'package-results.json'
+          if(!(Test-Path $audit)-or !(Test-Path $results)){throw 'No fully hash-audited and signature-verified private candidate exists; client execution is blocked'}
+          $a=Get-Content $audit -Raw|ConvertFrom-Json;$r=Get-Content $results -Raw|ConvertFrom-Json
+          if($a.result-ne 'PASS private signed APPX contents match prepared hashes'-or $r.result-ne 'PASS compiled and development signature verified'-or !$r.gamePayloadIncluded){throw 'Private candidate verification did not pass; client execution is blocked'}
+          ./hollowwake/native-client-0.5.0/tests/Test-IntegratedWindowsClient.ps1 -OutputDirectory artifacts/native-client-050/IntegratedWindows -PrivateInputLeasePath "$env:RUNNER_TEMP/hw-private-input-lease.json"
       - name: Preserve recipient-encrypted signed candidate for private analysis
         id: private_encrypt
         if: ${{ always() && steps.public_build.outcome == 'success' }}
@@ -254,6 +263,6 @@ jobs:
         shell: powershell
         run: throw 'Requested provider candidate did not compile. Inspect per-provider outcome and logs; no compatibility success is claimed.'
       - name: Keep requested actual-client failure distinct from successful compilation
-        if: ${{ always() && contains(github.event.head_commit.message, '[integrated-windows]') && steps.integrated_windows.outcome != 'success' }}
+        if: ${{ always() && contains(github.event.head_commit.message, '[integrated-windows]') && (steps.private_source.outcome != 'success' || steps.integrated_windows.outcome != 'success') }}
         shell: powershell
         run: throw 'Actual integrated client test did not pass. Artifacts were retained; build success does not establish game startup or a lobby.'
