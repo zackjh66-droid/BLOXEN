@@ -14,6 +14,7 @@
 #include <iostream>
 #include <cstring>
 #include <filesystem>
+#include <map>
 
 namespace {
 constexpr char kClientSha[]="9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478";
@@ -25,6 +26,11 @@ constexpr char kMainImageSha[]="bf6a36ebfb80f2499f655b70b0c595ae505c8066d2add994
 constexpr ULONG_PTR kEntry=0x369e098,kDispatch=0x5fa3a5d,kGuard=0x5f8d882,kValue=0x15bc7d8,kBase=0x159d368;
 constexpr ULONG_PTR kInitializedBoundary=kEntry+9;
 bool captureRequested=false;
+ULONG_PTR vectorAddEntry=0,vectorRemoveEntry=0;
+struct VectorCall {ULONG_PTR returnAddress=0,handler=0,cookie=0;bool adding=false;};
+std::map<DWORD,VectorCall> vectorCalls;
+std::map<ULONG_PTR,ULONG_PTR> observedVectorHandlers;
+unsigned vectorEvents=0;
 struct Handle {HANDLE value=nullptr;~Handle(){if(value&&value!=INVALID_HANDLE_VALUE)CloseHandle(value);} };
 bool Hash(const wchar_t* path,std::string& result){
  BCRYPT_ALG_HANDLE alg=nullptr;BCRYPT_HASH_HANDLE hash=nullptr;
@@ -88,8 +94,50 @@ bool Watch(HANDLE thread,ULONG_PTR base,bool owned){
  if(owned)return true;CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
  if(!GetThreadContext(thread,&state))return false;
  if(state.Dr0||state.Dr1||state.Dr2||state.Dr3||(state.Dr7&255)){SetLastError(ERROR_ALREADY_EXISTS);return false;}
- state.Dr0=base+kEntry;state.Dr1=base+kDispatch;state.Dr2=base+kGuard;state.Dr3=base+kInitializedBoundary;state.Dr7=(state.Dr7&~0xffff00ffULL)|85;
+ state.Dr0=base+kEntry;state.Dr1=captureRequested&&vectorAddEntry?vectorAddEntry:base+kDispatch;state.Dr2=captureRequested&&vectorRemoveEntry?vectorRemoveEntry:base+kGuard;state.Dr3=base+kInitializedBoundary;state.Dr7=(state.Dr7&~0xffff00ffULL)|85;
  return SetThreadContext(thread,&state)!=FALSE;
+}
+// Observe the original OS calls, not a replacement handler. These execution
+// watches leave callback code, arguments, return values and exception decisions
+// unchanged. Cookies remain in memory only; public records contain own-image RVAs.
+bool ArmVectorObservation(HANDLE process,HANDLE thread,ULONG_PTR base,std::ofstream& out){
+ ULONG_PTR add=0,remove=0;
+ if(!Read(process,base+0x5d63900,add)||!Read(process,base+0x5d63908,remove)||!add||!remove)return false;
+ for(auto address:{add,remove}){MEMORY_BASIC_INFORMATION region={};if(VirtualQueryEx(process,reinterpret_cast<void*>(address),&region,sizeof(region))!=sizeof(region)||region.Type!=MEM_IMAGE||region.State!=MEM_COMMIT||!(region.Protect&0xf0)||(region.Protect&(PAGE_GUARD|PAGE_NOACCESS)))return false;}
+ CONTEXT state={};state.ContextFlags=CONTEXT_DEBUG_REGISTERS;
+ if(!GetThreadContext(thread,&state))return false;
+ state.Dr1=add;state.Dr2=remove;state.Dr7=(state.Dr7&~0x0ff0003cULL)|20;state.Dr6=0;
+ if(!SetThreadContext(thread,&state))return false;
+ vectorAddEntry=add;vectorRemoveEntry=remove;
+ out<<"{\"event\":\"original_vector_observation_armed\",\"sourceAddIatRva\":97925376,\"sourceRemoveIatRva\":97925384,\"callbacksReplaced\":false}\n";out.flush();return true;
+}
+bool ObserveVectorCall(std::ofstream& out,HANDLE process,DWORD tid,ULONG_PTR base,ULONG_PTR address){
+ auto pending=vectorCalls.find(tid);
+ bool returning=pending!=vectorCalls.end()&&pending->second.returnAddress==address;
+ if(!returning&&address!=vectorAddEntry&&address!=vectorRemoveEntry)return false;
+ if(++vectorEvents>128){Event(out,"original_vector_observation_limit",ERROR_INSUFFICIENT_BUFFER);return false;}
+ Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,tid);
+ CONTEXT state={};state.ContextFlags=CONTEXT_CONTROL|CONTEXT_INTEGER|CONTEXT_DEBUG_REGISTERS;
+ if(!thread.value||!GetThreadContext(thread.value,&state))return false;
+ if(returning){
+  auto call=pending->second;bool success=state.Rax!=0;
+  if(call.adding&&success)observedVectorHandlers[state.Rax]=call.handler;
+  if(!call.adding&&success)observedVectorHandlers.erase(call.cookie);
+  out<<"{\"event\":\"original_vector_call_return\",\"operation\":\""<<(call.adding?"add":"remove")<<"\",\"nonzeroResult\":"<<(success?"true":"false")<<",\"observedLiveHandlers\":"<<observedVectorHandlers.size()<<"}\n";
+  vectorCalls.erase(pending);state.Dr0=0;state.Dr7&=~1ULL;
+ }else{
+  ULONG_PTR returnAddress=0;if(pending!=vectorCalls.end()||!Read(process,state.Rsp,returnAddress))return false;
+  // Only the pinned original client's calls are traced. Other DLL calls still
+  // execute normally and are not interpreted as the game's initialization.
+  if(returnAddress>=base&&returnAddress-base<0x6314000){
+   bool adding=address==vectorAddEntry;
+   VectorCall call={returnAddress,adding?state.Rdx:0,adding?0:state.Rcx,adding};vectorCalls[tid]=call;
+   out<<"{\"event\":\"original_vector_call\",\"operation\":\""<<(adding?"add":"remove")<<"\",\"callerRva\":"<<returnAddress-base;
+   if(adding){bool own=state.Rdx>=base&&state.Rdx-base<0x6314000;out<<",\"first\":"<<state.Rcx<<",\"callbackInsideOriginal\":"<<(own?"true":"false");if(own)out<<",\"callbackRva\":"<<state.Rdx-base;}
+   out<<"}\n";state.Dr0=returnAddress;state.Dr7=(state.Dr7&~0xf0003ULL)|1;
+  }
+ }
+ state.EFlags|=0x10000;state.Dr6=0;bool ok=SetThreadContext(thread.value,&state)!=FALSE;out.flush();return ok;
 }
 void Snapshot(std::ofstream& out,HANDLE process,HANDLE thread,ULONG_PTR base,const char* phase){
  CONTEXT context={};context.ContextFlags=CONTEXT_CONTROL|CONTEXT_INTEGER|CONTEXT_DEBUG_REGISTERS;
@@ -237,9 +285,12 @@ int wmain(int argc,wchar_t** argv){
    }
   }else if(event.dwDebugEventCode==EXCEPTION_DEBUG_EVENT){
    auto& info=event.u.Exception;auto& record=info.ExceptionRecord;ULONG_PTR address=reinterpret_cast<ULONG_PTR>(record.ExceptionAddress);
-   if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&address==imageBase+kInitializedBoundary){
+   if(captureRequested&&record.ExceptionCode==EXCEPTION_SINGLE_STEP&&vectorAddEntry&&ObserveVectorCall(out,process.value,event.dwThreadId,imageBase,address)){
+    // The original API and its own return path run normally after observation.
+   }else if(record.ExceptionCode==EXCEPTION_SINGLE_STEP&&!owned&&address==imageBase+kInitializedBoundary){
     Handle thread;thread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SET_CONTEXT,FALSE,event.dwThreadId);if(thread.value)Snapshot(out,process.value,thread.value,imageBase,"original_initialized_boundary");
     if(captureRequested){
+     out<<"{\"event\":\"original_vector_boundary\",\"armed\":"<<(vectorAddEntry?"true":"false")<<",\"pendingCalls\":"<<vectorCalls.size()<<",\"observedLiveHandlers\":"<<observedVectorHandlers.size()<<"}\n";out.flush();
      bool captured=false;try{captured=CaptureInitializedImage(process.value,imageBase,argv[1],argv[5]);}catch(...){SetLastError(ERROR_INVALID_DATA);}
      Event(out,captured?"initialized_image_captured":"initialized_capture_failed",captured?0:GetLastError());
      TerminateJobObject(job.value,WAIT_TIMEOUT);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;
@@ -250,6 +301,7 @@ int wmain(int argc,wchar_t** argv){
     if(address==imageBase+kEntry&&!entryThread.value)entryThread.value=OpenThread(THREAD_GET_CONTEXT|THREAD_SUSPEND_RESUME,FALSE,event.dwThreadId);
     if(thread.value){Snapshot(out,process.value,thread.value,imageBase,address==imageBase+kEntry?"original_entry":address==imageBase+kGuard?"helper_entry":"dispatch_before_calculation");CONTEXT state={};state.ContextFlags=CONTEXT_CONTROL|CONTEXT_DEBUG_REGISTERS;
      if(GetThreadContext(thread.value,&state)){state.EFlags|=0x10000;state.Dr6=0;state.Dr7&=address==imageBase+kEntry?~1ULL:address==imageBase+kGuard?~16ULL:~4ULL;SetThreadContext(thread.value,&state);}}
+    if(captureRequested&&address==imageBase+kEntry&&thread.value&&!ArmVectorObservation(process.value,thread.value,imageBase,out)){Event(out,"original_vector_observation_failed",GetLastError());ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;}
     if(++hits>16){Event(out,"hardware_watch_limit",0);ContinueDebugEvent(event.dwProcessId,event.dwThreadId,DBG_CONTINUE);break;}
    }else if(record.ExceptionCode==EXCEPTION_BREAKPOINT&&initialBreakpoint){initialBreakpoint=false;
    }else{

@@ -25,6 +25,8 @@ try {
  if($LASTEXITCODE){throw 'Native initialization capture could not establish bounded execution'}
  $rows=@(Get-Content "$OutputDirectory\original-initialization-capture.jsonl"|ForEach-Object {$_|ConvertFrom-Json})
  if(!($rows|Where-Object {$_.event-eq 'initialized_image_captured'-and $_.error-eq 0})){throw 'Original first-call-return capture boundary not reached with verified initialized comparison state'}
+ if(!($rows|Where-Object {$_.event-eq 'original_vector_boundary'-and $_.armed-and $_.pendingCalls-eq 0})-or ($rows|Where-Object {$_.event-in @('original_vector_observation_failed','original_vector_observation_limit')})){throw 'Original exception registration observation is incomplete'}
+
  $receipt=Get-Content (Join-Path $CaptureDirectory 'capture.json') -Raw|ConvertFrom-Json
  if(!$receipt.captureComplete-or $receipt.originalSha256-ne $pin-or $receipt.phase-ne 'original_entry_first_call_return'-or !$receipt.comparisonEqual-or $receipt.clientChecksPatched-or $receipt.sections.Count-ne 9){throw 'Private initialization receipt incomplete or different scope'}
  if((Get-FileHash $exe -Algorithm SHA256).Hash.ToLowerInvariant()-ne $pin){throw 'Original source bytes changed during capture'}
