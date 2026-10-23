@@ -1,7 +1,7 @@
 # Hollowwake actual-client startup status — 23 October 2026
 
 Status: blocked in converted-client startup. No verified Hollowwake lobby or
-working Xbox game package is claimed. The failed private 0.6.15 candidate and the 0.6.16/0.6.17 candidates
+working Xbox game package is claimed. Private 0.6.15–0.6.18 candidates
 are not replacements for the live download.
 
 The Windows desktop used here is a temporary Microsoft-hosted GitHub Actions
@@ -10,7 +10,7 @@ the Linux cloud workspace. Neither machine is the user's PC or Xbox.
 
 ## Current implementation
 
-Source: `ed044de8f5ff52bcc03b23084cec9e5673441b6c` on
+Latest actual-tested source: `051ea6a65219a571f9ef4a15ca165338216f2f60` on
 `hollowwake/native-system-route`, repository `zackjh66-droid/BLOXEN`.
 
 - Client-local OpenSSL configuration delegates to the real already-loaded CRT
@@ -33,10 +33,11 @@ Source: `ed044de8f5ff52bcc03b23084cec9e5673441b6c` on
 
 ## Latest ordinary actual execution
 
-[Windows run 40002881667](https://github.com/zackjh66-droid/BLOXEN/actions/runs/40002881667)
-uses the runtime above, with post-fault observation and preserved dependency
-restoration source `6216d2f8add45abe4ce100db3eb18b57e1a24f2b`. Neither comparison process had a
-debugger attached. A separate read-only observer sampled the unchanged original.
+[Windows run 40020543600](https://github.com/zackjh66-droid/BLOXEN/actions/runs/40020543600)
+uses private version 0.6.18, including section-preserving import preparation,
+managed startup/focus guards, preserved
+original DXGI instructions, the real native HWND route and post-fault
+observation. Neither comparison process had a debugger attached.
 
 The private package compiled, signed and passed package-content hash checks.
 The normal account/device-link flow and actual Launch button were exercised.
@@ -47,12 +48,12 @@ The exact original executable remains SHA-256
 `9d18fb5c5c43ddc21251d5ce9e026ca01f90d42921dd741973bd5536e8949478`.
 
 The actual converted client reached its original entry thread, initialized its
-engine, created a real D3D11 composition chain and completed loading
+engine, created a real native HWND D3D11 chain and completed loading
 `/Game/Maps/Frontend`. It then exited with `0xC0000005` before visible menus or
 a lobby were established. Fortnite-compatible login has not been demonstrated by this execution.
 
-The loaded main image base was `140712188575744`. The fatal execute target was
-`140717581884128`, exactly image base plus `0x141775ae0` (preferred image base
+The loaded main image base was `140716194398208`. The fatal execute target was
+`140721587706592`, exactly image base plus `0x141775ae0` (preferred image base
 `0x140000000` plus `0x1775ae0`). The new read-only post-fault observer verified
 the exact original helper instructions at RVA `0x6097501`, both retained stack
 target slots, and the target arithmetic. Its recorded operand was the loaded
@@ -60,10 +61,17 @@ image base itself; its constant was `5393308384` (`0x141775ae0`). No debugger,
 context changes or exception-disposition changes were used.
 
 The retained frame contained candidate comparison index 0, left DWORD
-`2391641668`, right DWORD `2582946561`, and a right-side image location at RVA
+`3119817473`, right DWORD `2582946561`, and a right-side image location at RVA
 `20332922` (`0x136417a`). Other predecessors of this helper exist. These frame
 values do not prove which comparison branch executed or identify an integrity
 check. The producer/context error remains unresolved; the jump is not patched.
+
+The original unmodified swap-chain request (800×600, format 24, one buffer,
+flags 2) returned HRESULT 0 from the real native factory. Preserving the three
+original graphics instructions did not resolve the later invalid control
+transfer. Managed content verification and actual Launch completed in this run.
+Evidence artifact `12530879752` has ZIP SHA-256
+`684ef0c6ec830a69c8a6c0aa75cff31d200a0b3e57f71bf4695cf777ce78e3de`.
 
 The unchanged original executable, with the same verified content and CPU
 configuration, stayed alive for the full 180-second comparison and rendered
@@ -232,3 +240,59 @@ pending in run `40013633784`; no public diagnostic-only package is released.
 - Matchmaking remains disabled. Physical Xbox loading, lobby, graphics and
   controller behavior remain unverified. No additional Xbox retry is needed to
   establish this already-reproduced Windows failure.
+
+## Tested section-preserving import preparation
+
+Source `051ea6a65219a571f9ef4a15ca165338216f2f60` / private 0.6.18
+relocates the main image's normal import descriptors and proxy names into an
+owned appended area. It preserves original normal import-name/descriptor data
+in `.idata`, original thunk RVAs and all original delay descriptors. Previous
+normal import-name changes were in writable `.idata`, not executable `.text`.
+The actual private preparation uses this path; dependencies and rollback mode
+retain their existing route. The two original executable raw sections are
+independently compared with the pinned initialized input during preparation
+and build. No checks, branches or instruction operands are changed.
+
+Local layout validation against the real canonical client passed: 45 normal
+descriptors / 821 bindings, 19 delay descriptors / 260 bindings, preserved
+original section bytes. Deliberately changing an instruction fails the audit.
+The main image currently has no redirected delay-provider descriptors. Python
+and PowerShell syntax checks passed. The owned Windows loader lifecycle test passed (real imports, entry, thread/TLS,
+unwind and forwarded exports). The signed integrated actual-client run
+`40020543600` completed with the failure above. This layout correction did not
+resolve that transfer. The unchanged original comparison stayed alive for all
+180 seconds. The normalized standalone comparison was explicitly skipped
+because it requires native-host import rebinding and permission restoration.
+
+The latest retained comparison DWORDs are `0xb9f4a301` and `0x99f4a301`,
+a difference of `0x20000000`. Static references locate the left array at the
+former frame plus `0x68`, and the right array at original RVA `0x136417a`.
+This narrows the investigation; it does not prove that a DLL flag or any
+particular image-validation decision caused the transfer. No expected checksum,
+check result, header flag or bad jump has been patched to force continuation.
+
+## Failure report receiver correction
+
+Production logs showed current diagnostic POSTs rejected with HTTP 400. The
+live receiver's strict allowlist omitted seven structured event types already
+emitted by the launcher, including dynamic import audits and bounded crash
+stack candidates, and omitted `stack_index`. The same payload was reproduced
+as rejected by the old validator and accepted by the corrected validator.
+The correction accepts only the known event types and bounds candidate indices
+to 0–63; arbitrary fields, raw logs, credentials, unknown events and unauthenticated
+uploads remain rejected. Nine backend tests passed, including real linked-device
+authentication, account-scoped reads, signed owner access and rate limits.
+
+Sites version 49 / source `74d59551e438a1b5b93c2f2d30cbcc9806ac88c7`
+is live at https://hollowwake.jihnjohn10.chatgpt.site . Deployment
+`appgdep_6adbcbda8c548191924f4211807c85f4` succeeded, environment revision
+35 preserved. Existing client download/release hashes, accounts, website
+presentation and rollback are unchanged. Live `/api/status` returns 200 and
+anonymous diagnostic reads/uploads return 401 using the owned verification
+client. Python urllib's default user-agent receives upstream Cloudflare 1010;
+that is separate from the application validator.
+
+The private signed 0.6.18 candidate remains recipient encrypted in artifact
+`12531053951`, ZIP SHA-256
+`91d3729b0d98426ad5555369034212ce689f15a36c1c12d47f2185ee21b16e4a`.
+It was not promoted as a working game or offered for another Xbox retry.
