@@ -84,9 +84,10 @@ try{
  PinnedDownload 'https://content-cdn.neofn.dev/Microsoft.VCLibs.x64.14.00.appx' $dependencyFile '9c17b521f9d690a1f504da5108ed6eec5669eb3a8fd1331eef43e40d84e74283'
  $required=[version]'14.0.33519.0';$installed=@(Get-AppxPackage -Name 'Microsoft.VCLibs.140.00'|Where-Object{$_.Architecture-eq 'X64'-and $_.Version-ge $required})
  if(!$installed.Count){Add-AppxPackage -Path $dependencyFile}
+ $report.stage='trust-exact-reference-signer';Save
+ # Trust only the exact supplied package signer, in this disposable machine's package trust store.
+ $store=[Security.Cryptography.X509Certificates.X509Store]::new('TrustedPeople','LocalMachine');$store.Open('ReadWrite');try{$store.Add($signer);$trustThumbprint=$signer.Thumbprint}finally{$store.Close()}
  $report.stage='install-exact-reference';Save
- # Trust only the exact supplied package signer, in this disposable user's store.
- $store=[Security.Cryptography.X509Certificates.X509Store]::new('TrustedPeople','CurrentUser');$store.Open('ReadWrite');try{$store.Add($signer);$trustThumbprint=$signer.Thumbprint}finally{$store.Close()}
  Add-AppxPackage -Path $packageFile -DependencyPath $dependencyFile
  $pkg=Get-AppxPackage -Name 'Microsoft.MicrosoftEdge.Neo'
  if(!$pkg-or $pkg.Version-ne [version]'1.0.6.0'){throw 'Exact reference did not register'}
