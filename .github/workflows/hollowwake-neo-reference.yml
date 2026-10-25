@@ -1,0 +1,42 @@
+name: Hollowwake exact Neo reference runtime inspection
+on:
+  push:
+    branches: ['hollowwake/native-system-route']
+    paths: ['hollowwake/neo-runtime-inspection/**', '.github/workflows/hollowwake-neo-reference.yml']
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: hollowwake-neo-reference-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - name: Fetch only owned observer source from the triggering public commit
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($file in @('Run-NeoReference.ps1','Protect-NeoEvidence.ps1','recipient-public.pem')) {
+            $url='https://raw.githubusercontent.com/'+$env:GITHUB_REPOSITORY+'/'+$env:GITHUB_SHA+'/hollowwake/neo-runtime-inspection/'+$file
+            Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile (Join-Path $env:RUNNER_TEMP $file)
+          }
+      - name: Install exact reference and observe actual content installation
+        shell: powershell
+        run: |
+          & "$env:RUNNER_TEMP/Run-NeoReference.ps1" -OutputDirectory "$env:RUNNER_TEMP/NeoReferenceEvidence" -MaximumSeconds 1800
+      - name: Encrypt private reference screenshots
+        if: always()
+        shell: pwsh
+        run: |
+          & "$env:RUNNER_TEMP/Protect-NeoEvidence.ps1" -OutputDirectory "$env:RUNNER_TEMP/NeoReferenceEvidence" -PublicKey "$env:RUNNER_TEMP/recipient-public.pem"
+      - name: Preserve bounded metadata and encrypted evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: hollowwake-neo-reference-runtime-evidence
+          path: |
+            ${{ runner.temp }}/NeoReferenceEvidence/*.json
+            ${{ runner.temp }}/NeoReferenceEvidence/*.hwenc
+          if-no-files-found: error
+          retention-days: 7
