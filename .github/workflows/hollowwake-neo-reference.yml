@@ -11,7 +11,7 @@ concurrency:
 jobs:
   inspect:
     runs-on: windows-2022
-    timeout-minutes: 40
+    timeout-minutes: 330
     steps:
       - name: Fetch only owned observer source from the triggering public commit
         shell: powershell

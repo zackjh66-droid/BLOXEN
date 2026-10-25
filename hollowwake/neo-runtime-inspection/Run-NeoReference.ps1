@@ -1,7 +1,7 @@
 # Run only on a fresh disposable Windows runner with no repository checkout,
 # repository token, Hollowwake account, hosting key, signing key or game input.
 # The exact user-supplied reference stays an ordinary signed AppContainer app.
-param([Parameter(Mandatory=$true)][string]$OutputDirectory,[int]$MaximumSeconds=1800)
+param([Parameter(Mandatory=$true)][string]$OutputDirectory,[int]$MaximumSeconds=18000)
 $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 Add-Type -AssemblyName System.Security
@@ -18,14 +18,14 @@ function Save { $report.observedAtUtc=[DateTime]::UtcNow.ToString('o');$tmp=Join
 function CaptureReference {
  try {
   $dir=Join-Path $work 'screens';New-Item -ItemType Directory -Force $dir|Out-Null
-  if(@(Get-ChildItem $dir -Filter '*.png').Count-ge 180){return}
+  @(Get-ChildItem $dir -Filter '*.jpg'|Sort-Object LastWriteTimeUtc -Descending|Select-Object -Skip 5)|Remove-Item -Force -ErrorAction SilentlyContinue
   $windows=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.Condition]::TrueCondition)
   foreach($w in $windows){
    if($w.Current.ProcessId-ne $appPid-and $w.Current.Name-notmatch '\bNeo(?:XS|FN)?\b'){continue}
    $r=$w.Current.BoundingRectangle
    if($r.Width-lt 64-or $r.Height-lt 64-or $r.Width-gt 4096-or $r.Height-gt 4096){continue}
    $b=[Drawing.Bitmap]::new([int]$r.Width,[int]$r.Height);$g=[Drawing.Graphics]::FromImage($b)
-   try{$g.CopyFromScreen([int]$r.X,[int]$r.Y,0,0,$b.Size);$b.Save((Join-Path $dir (([DateTime]::UtcNow.ToString('HHmmssfff'))+'.png')),[Drawing.Imaging.ImageFormat]::Png)}finally{$g.Dispose();$b.Dispose()}
+   try{$g.CopyFromScreen([int]$r.X,[int]$r.Y,0,0,$b.Size);$b.Save((Join-Path $dir (([DateTime]::UtcNow.ToString('HHmmssfff'))+'.jpg')),[Drawing.Imaging.ImageFormat]::Jpeg)}finally{$g.Dispose();$b.Dispose()}
    break
   }
  }catch{}
@@ -38,6 +38,7 @@ function ApplyReferenceControl {
   $uri='https://raw.githubusercontent.com/'+$env:GITHUB_REPOSITORY+'/refs/heads/hollowwake/native-system-route/hollowwake/neo-runtime-control/current.json?run='+$env:GITHUB_RUN_ID+'&t='+[DateTime]::UtcNow.Ticks
   $c=(Invoke-WebRequest -UseBasicParsing -Uri $uri -TimeoutSec 3).Content|ConvertFrom-Json
   if([string]$c.runId-ne [string]$env:GITHUB_RUN_ID-or $c.id-notmatch '^[A-Za-z0-9_-]{1,80}$'-or $script:appliedControl.ContainsKey($c.id)){return}
+  if($c.type-eq 'finish-observation'){$script:reviewControlledStop=$true;$report.reviewedStopControlId=[string]$c.id;return}
   if($c.type-notin @('enter','click')){return}
   if(!('NeoReferenceInput'-as [type])){
    Add-Type @'
@@ -48,6 +49,7 @@ public static class NeoReferenceInput {
  [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern IntPtr FindWindow(string c,string title);
  [DllImport("user32.dll")]static extern uint GetWindowThreadProcessId(IntPtr w,out uint p);
  [DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr w);
+ [DllImport("user32.dll")]static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")]static extern bool GetClientRect(IntPtr w,out RECT r);
  [DllImport("user32.dll")]static extern bool ClientToScreen(IntPtr w,ref POINT p);
  [DllImport("user32.dll")]static extern bool SetCursorPos(int x,int y);
@@ -55,12 +57,12 @@ public static class NeoReferenceInput {
  [DllImport("user32.dll")]static extern void keybd_event(byte key,byte scan,uint flags,UIntPtr extra);
  public static bool Apply(string type,double x,double y){
   IntPtr w=FindWindow(null,"Neo");if(w==IntPtr.Zero)return false;
-  if(!SetForegroundWindow(w))return false;
-  if(type=="enter"){keybd_event(13,0,0,UIntPtr.Zero);keybd_event(13,0,2,UIntPtr.Zero);return true;}
+  if(GetForegroundWindow()!=w&&!SetForegroundWindow(w))return false;
+  if(type=="enter"){keybd_event(13,0,0,UIntPtr.Zero);System.Threading.Thread.Sleep(120);keybd_event(13,0,2,UIntPtr.Zero);return true;}
   if(type!="click"||Double.IsNaN(x)||Double.IsNaN(y)||x<0||x>1||y<0||y>1)return false;
   RECT r;POINT p=new POINT();if(!GetClientRect(w,out r)||!ClientToScreen(w,ref p)||r.R<64||r.B<64)return false;
   if(!SetCursorPos(p.X+(int)(x*(r.R-1)),p.Y+(int)(y*(r.B-1))))return false;
-  mouse_event(2,0,0,0,UIntPtr.Zero);mouse_event(4,0,0,0,UIntPtr.Zero);return true;
+  mouse_event(2,0,0,0,UIntPtr.Zero);System.Threading.Thread.Sleep(120);mouse_event(4,0,0,0,UIntPtr.Zero);return true;
  }
 }
 '@
@@ -83,7 +85,7 @@ function Snapshot($roots){
   foreach($f in Get-ChildItem -LiteralPath $root.path -Recurse -File -ErrorAction SilentlyContinue){
    $relative=$f.FullName.Substring($root.path.Length).TrimStart('\').Replace('\','/')
    if($relative-match '(^|/)(Saved|Config|Logs|Accounts?|Tokens?|EBWebView|WebView|Cache)(/|$)'){continue}
-   if($f.Extension-notin @('.pak','.sig','.dll','.exe','.part','.tmp','.zip','.rar','.bin')){continue}
+   if($f.Extension-notin @('.pak','.sig','.dll','.exe','.part','.tmp','.zip','.rar','.bin','.chunk','.chunkdb','.download','.partial')-and $f.Length-lt 1048576){continue}
    if($relative.Length-gt 240-or $relative-notmatch '^[A-Za-z0-9 _./+()\-]+$'){continue}
    $files+=@{root=$root.name;relativePath=$relative;bytes=$f.Length;lastWriteUtc=$f.LastWriteTimeUtc.ToString('o');fullPath=$f.FullName}
   }
@@ -149,7 +151,8 @@ public static class NeoReferenceActivation{
   $sid=[Security.Principal.SecurityIdentifier]::new([NeoReferenceActivation]::Sid($pkg.PackageFamilyName))
   $acl=Get-Acl $external;$rule=[Security.AccessControl.FileSystemAccessRule]::new($sid,'Modify','ContainerInherit,ObjectInherit','None','Allow');$acl.AddAccessRule($rule);Set-Acl $external $acl
  }
- $roots=@(@{name='installed-package';path=$pkg.InstallLocation},@{name='local-state';path=$local},@{name='development-files';path=$external})
+ $packageData=Join-Path $env:LOCALAPPDATA ('Packages\'+$pkg.PackageFamilyName)
+ $roots=@(@{name='installed-package';path=$pkg.InstallLocation},@{name='local-state';path=$local},@{name='temp-state';path=(Join-Path $packageData 'TempState')},@{name='local-cache';path=(Join-Path $packageData 'LocalCache')},@{name='development-files';path=$external},@{name='development-legacy-1040';path='D:\DevelopmentFiles\10.40'},@{name='system-development-neo';path='C:\DevelopmentFiles\Neo'},@{name='system-development-1040';path='C:\DevelopmentFiles\10.40'})
  $before=Snapshot $roots
  @(PublicInventory $before $true)|ConvertTo-Json -Depth 5|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'neo-installed-before.json')
  $report.stage='activate-reference';Save
@@ -189,13 +192,14 @@ public static class NeoReferenceActivation{
   $current=Snapshot $roots;$data=@($current|Where-Object{$_.root-ne 'installed-package'});$bytes=0L;foreach($f in $data){$bytes+=$f.bytes}
   if($bytes-gt $initialData){$report.downloadObserved=$true}
   if($bytes-ne $lastData){$stableSince=[DateTime]::UtcNow;$lastData=$bytes}
-  $report.storage+=@{time=[DateTime]::UtcNow.ToString('o');observedDataFiles=$data.Count;observedDataBytes=$bytes}
+  $report.storage+=@{time=[DateTime]::UtcNow.ToString('o');observedDataFiles=$data.Count;observedDataBytes=$bytes;byRoot=@($data|Group-Object root|ForEach-Object{@{root=$_.Name;files=$_.Count;bytes=($_.Group|Measure-Object bytes -Sum).Sum}})}
+  if($script:reviewControlledStop){$report.stage='observation-ended-after-live-review';Save;break}
   if($ready-and $report.downloadObserved-and ([DateTime]::UtcNow-$stableSince).TotalSeconds-ge 30){$report.downloadComplete=$true;break}
   Save
   # User is linking this disposable session; retain the activation window.
   # Wait up to MaximumSeconds for the user's normal device-link flow.
  }while([DateTime]::UtcNow-lt $deadline)
- if($report.downloadComplete){$report.stage='reference-reported-download-complete'}elseif($report.downloadObserved){$report.stage='download-observed-completeness-unverified'}
+ if($report.downloadComplete){$report.stage='reference-reported-download-complete'}elseif($script:reviewControlledStop){$report.stage='observation-ended-after-live-review'}elseif([DateTime]::UtcNow-ge $deadline){$report.stage='observation-time-limit-completeness-unverified'}elseif($report.downloadObserved){$report.stage='download-observed-completeness-unverified'}
 }catch{
  $codes=@();$e=$_.Exception;while($e){$codes+=('0x'+$e.HResult.ToString('X8'));$e=$e.InnerException}
  $report.failure=@{stage=$report.stage;exceptionType=$_.Exception.GetType().FullName;hresults=$codes;errorId=($_.FullyQualifiedErrorId-replace '[^A-Za-z0-9_.-]','_').Substring(0,[Math]::Min(180,$_.FullyQualifiedErrorId.Length))}

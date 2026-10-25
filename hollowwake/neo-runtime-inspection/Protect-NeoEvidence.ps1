@@ -1,7 +1,7 @@
 param([Parameter(Mandatory)][string]$OutputDirectory,[Parameter(Mandatory)][string]$PublicKey)
 $ErrorActionPreference='Stop'
 $dir=Join-Path $env:RUNNER_TEMP 'NeoReferencePrivate/screens'
-$files=@(Get-ChildItem $dir -Filter '*.png' -ErrorAction SilentlyContinue)
+$files=@(Get-ChildItem $dir -Filter '*.jpg' -ErrorAction SilentlyContinue|Sort-Object LastWriteTimeUtc|Select-Object -Last 2)
 if(!$files.Count){return}
 New-Item -ItemType Directory -Force $OutputDirectory|Out-Null
 $zip=Join-Path $env:RUNNER_TEMP 'neo-reference-screens.zip'
