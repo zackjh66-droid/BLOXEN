@@ -14,7 +14,7 @@ $work=Join-Path $env:RUNNER_TEMP 'NeoReferencePrivate'
 New-Item -ItemType Directory -Force $work|Out-Null
 $report=[ordered]@{scope='Exact supplied Neo reference installed and observed on disposable Windows; not an Xbox or Hollowwake game test';stage='download-pinned-package';xboxTested=$false;hollowwakeCredentialsSupplied=$false;neoCredentialsSupplied=$false;packageInstalled=$false;activated=$false;downloadObserved=$false;downloadComplete=$false;loginGateObserved=$false;actions=@();progress=@();storage=@();failure=$null}
 $appProcess=$null;$pkg=$null;$trustThumbprint=$null;$started=[DateTime]::UtcNow
-function Save { $report|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 (Join-Path $OutputDirectory 'neo-runtime-result.json') }
+function Save { $report.observedAtUtc=[DateTime]::UtcNow.ToString('o');$tmp=Join-Path $OutputDirectory 'neo-runtime-result.tmp';$report|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 $tmp;Move-Item -Force $tmp (Join-Path $OutputDirectory 'neo-runtime-result.json') }
 function CaptureReference {
  try {
   $dir=Join-Path $work 'screens';New-Item -ItemType Directory -Force $dir|Out-Null

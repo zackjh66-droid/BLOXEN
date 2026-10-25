@@ -1,0 +1,5 @@
+name: Observe exact Neo reference with live encrypted evidence
+description: Retain observer and encrypted artifact uploader in the same live action
+runs:
+  using: node24
+  main: live-observer.cjs
