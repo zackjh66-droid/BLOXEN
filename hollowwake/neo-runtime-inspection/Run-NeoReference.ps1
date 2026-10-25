@@ -91,6 +91,15 @@ function Snapshot($roots){
   }
  };return ,$files
 }
+function ReferenceStorageSummary($data){
+ $stats=@{};$total=0L;$count=0
+ foreach($f in $data){
+  $root=[string]$f.root
+  if(!$stats.ContainsKey($root)){$stats[$root]=@{root=$root;files=0;bytes=0L}}
+  $stats[$root].files++;$stats[$root].bytes+=[long]$f.bytes;$total+=[long]$f.bytes;$count++
+ }
+ return @{time=[DateTime]::UtcNow.ToString('o');observedDataFiles=$count;observedDataBytes=$total;byRoot=@($stats.Values)}
+}
 function PublicInventory($items,[bool]$hashCode){
  foreach($f in $items){$row=[ordered]@{root=$f.root;relativePath=$f.relativePath;bytes=$f.bytes;lastWriteUtc=$f.lastWriteUtc}
   if($hashCode-and $f.relativePath-match '\.(dll|exe)$'-and $f.bytes-le 536870912){try{$row.sha256=(Get-FileHash -LiteralPath $f.fullPath -Algorithm SHA256).Hash.ToLowerInvariant()}catch{$row.hashUnavailable=$true}}
@@ -161,6 +170,7 @@ public static class NeoReferenceActivation{
  $clicked=@{};$initialData=0L;$lastData=-1L;$stableSince=[DateTime]::UtcNow;$deadline=[DateTime]::UtcNow.AddSeconds($MaximumSeconds);$observedAt=[DateTime]::UtcNow
  do{
   Start-Sleep -Seconds 10
+  try {
   $appProcess.Refresh();if($appProcess.HasExited){$report.appExited=$true;$report.appExitCode=$appProcess.ExitCode;break}
   $windows=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
   ApplyReferenceControl
@@ -192,12 +202,16 @@ public static class NeoReferenceActivation{
   $current=Snapshot $roots;$data=@($current|Where-Object{$_.root-ne 'installed-package'});$bytes=0L;foreach($f in $data){$bytes+=$f.bytes}
   if($bytes-gt $initialData){$report.downloadObserved=$true}
   if($bytes-ne $lastData){$stableSince=[DateTime]::UtcNow;$lastData=$bytes}
-  $report.storage+=@{time=[DateTime]::UtcNow.ToString('o');observedDataFiles=$data.Count;observedDataBytes=$bytes;byRoot=@($data|Group-Object root|ForEach-Object{@{root=$_.Name;files=$_.Count;bytes=($_.Group|Measure-Object bytes -Sum).Sum}})}
+  $report.storage+=@(ReferenceStorageSummary $data)
   if($script:reviewControlledStop){$report.stage='observation-ended-after-live-review';Save;break}
   if($ready-and $report.downloadObserved-and ([DateTime]::UtcNow-$stableSince).TotalSeconds-ge 30){$report.downloadComplete=$true;break}
   Save
-  # User is linking this disposable session; retain the activation window.
-  # Wait up to MaximumSeconds for the user's normal device-link flow.
+  }catch{
+   if(!$report.Contains('monitorWarnings')){$report.monitorWarnings=@()}
+   if($report.monitorWarnings.Count-lt 100){$report.monitorWarnings+=@{time=[DateTime]::UtcNow.ToString('o');type=$_.Exception.GetType().FullName;hresult=('0x'+$_.Exception.HResult.ToString('X8'))}}
+   try{Save}catch{}
+   # A transient monitoring failure must not cancel the reference's installer.
+  }
  }while([DateTime]::UtcNow-lt $deadline)
  if($report.downloadComplete){$report.stage='reference-reported-download-complete'}elseif($script:reviewControlledStop){$report.stage='observation-ended-after-live-review'}elseif([DateTime]::UtcNow-ge $deadline){$report.stage='observation-time-limit-completeness-unverified'}elseif($report.downloadObserved){$report.stage='download-observed-completeness-unverified'}
 }catch{

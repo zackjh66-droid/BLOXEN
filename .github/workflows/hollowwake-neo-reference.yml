@@ -19,12 +19,16 @@ jobs:
           $ErrorActionPreference='Stop'
           $action=Join-Path $env:GITHUB_WORKSPACE '.neo-reference-action'
           New-Item -ItemType Directory -Force $action|Out-Null
-          foreach($file in @('Run-NeoReference.ps1','Protect-NeoEvidence.ps1','recipient-public.pem','action.yml','live-observer.cjs')) {
+          foreach($file in @('Run-NeoReference.ps1','Protect-NeoEvidence.ps1','recipient-public.pem','Verify-Observer.ps1','action.yml','live-observer.cjs')) {
             $url='https://raw.githubusercontent.com/'+$env:GITHUB_REPOSITORY+'/'+$env:GITHUB_SHA+'/hollowwake/neo-runtime-inspection/'+$file
             $dest=if($file-in @('action.yml','live-observer.cjs')){Join-Path $action $file}else{Join-Path $env:RUNNER_TEMP $file}
             Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $dest
           }
           & npm.cmd install --prefix $action --ignore-scripts --no-audit --no-fund '@actions/artifact@2.3.2'
           if($LASTEXITCODE-ne 0){throw 'Artifact client dependency installation failed'}
+      - name: Verify observer against Windows PowerShell before opening reference
+        shell: powershell
+        run: |
+          & "$env:RUNNER_TEMP/Verify-Observer.ps1" -ObserverScript "$env:RUNNER_TEMP/Run-NeoReference.ps1"
       - name: Retain reference session and stream encrypted observations
         uses: ./.neo-reference-action
