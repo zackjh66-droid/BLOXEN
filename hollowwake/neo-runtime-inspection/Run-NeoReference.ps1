@@ -18,7 +18,7 @@ function Save { $report|ConvertTo-Json -Depth 8|Set-Content -Encoding UTF8 (Join
 function CaptureReference {
  try {
   $dir=Join-Path $work 'screens';New-Item -ItemType Directory -Force $dir|Out-Null
-  if(@(Get-ChildItem $dir -Filter '*.png').Count-ge 10){return}
+  if(@(Get-ChildItem $dir -Filter '*.png').Count-ge 180){return}
   $windows=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.Condition]::TrueCondition)
   foreach($w in $windows){
    if($w.Current.ProcessId-ne $appPid-and $w.Current.Name-notmatch '\bNeo(?:XS|FN)?\b'){continue}
@@ -152,8 +152,8 @@ public static class NeoReferenceActivation{
   $report.storage+=@{time=[DateTime]::UtcNow.ToString('o');observedDataFiles=$data.Count;observedDataBytes=$bytes}
   if($ready-and $report.downloadObserved-and ([DateTime]::UtcNow-$stableSince).TotalSeconds-ge 30){$report.downloadComplete=$true;break}
   Save
-  if($report.loginGateObserved-and !$report.downloadObserved-and ([DateTime]::UtcNow-$observedAt).TotalSeconds-ge 60){$report.stage='reference-account-required';break}
-  if(!$report.downloadObserved-and ([DateTime]::UtcNow-$observedAt).TotalSeconds-ge 240){$report.stage='no-download-observed';break}
+  # User is linking this disposable session; retain the activation window.
+  # Wait up to MaximumSeconds for the user's normal device-link flow.
  }while([DateTime]::UtcNow-lt $deadline)
  if($report.downloadComplete){$report.stage='reference-reported-download-complete'}elseif($report.downloadObserved){$report.stage='download-observed-completeness-unverified'}
 }catch{
