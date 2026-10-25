@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 permissions: {}
 concurrency:
-  group: hollowwake-neo-reference-${{ github.ref }}
+  group: hollowwake-neo-reference-live-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   inspect:
