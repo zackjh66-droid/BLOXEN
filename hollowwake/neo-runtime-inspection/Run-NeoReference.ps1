@@ -30,6 +30,45 @@ function CaptureReference {
   }
  }catch{}
 }
+# Bounded normal desktop input for this reference window only. No game patching,
+# credential input, shell commands or arbitrary URLs are accepted by this control.
+$script:appliedControl=@{}
+function ApplyReferenceControl {
+ try {
+  $uri='https://raw.githubusercontent.com/'+$env:GITHUB_REPOSITORY+'/refs/heads/hollowwake/native-system-route/hollowwake/neo-runtime-control/current.json?run='+$env:GITHUB_RUN_ID+'&t='+[DateTime]::UtcNow.Ticks
+  $c=(Invoke-WebRequest -UseBasicParsing -Uri $uri -TimeoutSec 3).Content|ConvertFrom-Json
+  if([string]$c.runId-ne [string]$env:GITHUB_RUN_ID-or $c.id-notmatch '^[A-Za-z0-9_-]{1,80}$'-or $script:appliedControl.ContainsKey($c.id)){return}
+  if($c.type-notin @('enter','click')){return}
+  if(!('NeoReferenceInput'-as [type])){
+   Add-Type @'
+using System;using System.Runtime.InteropServices;
+public static class NeoReferenceInput {
+ [StructLayout(LayoutKind.Sequential)] public struct RECT {public int L,T,R,B;}
+ [StructLayout(LayoutKind.Sequential)] public struct POINT {public int X,Y;}
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)]static extern IntPtr FindWindow(string c,string title);
+ [DllImport("user32.dll")]static extern uint GetWindowThreadProcessId(IntPtr w,out uint p);
+ [DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr w);
+ [DllImport("user32.dll")]static extern bool GetClientRect(IntPtr w,out RECT r);
+ [DllImport("user32.dll")]static extern bool ClientToScreen(IntPtr w,ref POINT p);
+ [DllImport("user32.dll")]static extern bool SetCursorPos(int x,int y);
+ [DllImport("user32.dll")]static extern void mouse_event(uint flags,uint x,uint y,uint d,UIntPtr extra);
+ [DllImport("user32.dll")]static extern void keybd_event(byte key,byte scan,uint flags,UIntPtr extra);
+ public static bool Apply(string type,double x,double y){
+  IntPtr w=FindWindow(null,"Neo");if(w==IntPtr.Zero)return false;
+  if(!SetForegroundWindow(w))return false;
+  if(type=="enter"){keybd_event(13,0,0,UIntPtr.Zero);keybd_event(13,0,2,UIntPtr.Zero);return true;}
+  if(type!="click"||Double.IsNaN(x)||Double.IsNaN(y)||x<0||x>1||y<0||y>1)return false;
+  RECT r;POINT p=new POINT();if(!GetClientRect(w,out r)||!ClientToScreen(w,ref p)||r.R<64||r.B<64)return false;
+  if(!SetCursorPos(p.X+(int)(x*(r.R-1)),p.Y+(int)(y*(r.B-1))))return false;
+  mouse_event(2,0,0,0,UIntPtr.Zero);mouse_event(4,0,0,0,UIntPtr.Zero);return true;
+ }
+}
+'@
+  }
+  if([NeoReferenceInput]::Apply([string]$c.type,[double]$c.x,[double]$c.y)){$script:appliedControl[$c.id]=$true;$report.actions+=@{action='normal-desktop-'+$c.type;controlId=$c.id;time=[DateTime]::UtcNow.ToString('o')}}
+ }catch{}
+}
+
 function PinnedDownload($url,$target,$hash){
  & curl.exe --fail --location --silent --show-error --retry 2 --connect-timeout 30 --max-time 600 --output $target $url
  if($LASTEXITCODE-ne 0){throw 'Pinned reference HTTP acquisition failed'}
@@ -121,6 +160,7 @@ public static class NeoReferenceActivation{
   Start-Sleep -Seconds 10
   $appProcess.Refresh();if($appProcess.HasExited){$report.appExited=$true;$report.appExitCode=$appProcess.ExitCode;break}
   $windows=[Windows.Automation.AutomationElement]::RootElement.FindAll([Windows.Automation.TreeScope]::Children,[Windows.Automation.PropertyCondition]::new([Windows.Automation.AutomationElement]::ControlTypeProperty,[Windows.Automation.ControlType]::Window))
+  ApplyReferenceControl
   CaptureReference
   $buttonLabels=@();$ready=$false
   foreach($window in $windows){
