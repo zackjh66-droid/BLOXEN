@@ -1,0 +1,168 @@
+{
+  "scope": "Exact supplied Neo reference installed and observed on disposable Windows; not an Xbox or Hollowwake game test",
+  "stage": "no-download-observed",
+  "xboxTested": false,
+  "hollowwakeCredentialsSupplied": false,
+  "neoCredentialsSupplied": false,
+  "packageInstalled": true,
+  "activated": true,
+  "downloadObserved": false,
+  "downloadComplete": false,
+  "loginGateObserved": false,
+  "actions": [],
+  "progress": [],
+  "storage": [
+    {
+      "time": "2026-10-25T14:38:06.5788867Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:38:16.7806633Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:38:26.9506010Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:38:37.1369293Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:38:47.3242251Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:38:57.4833195Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:39:07.6581209Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:39:17.8432729Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:39:28.0149242Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:39:38.1857076Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:39:48.3124088Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:39:58.4223274Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:40:08.5474276Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:40:18.6544925Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:40:28.7804280Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:40:38.9046392Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:40:48.9992265Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:40:59.1189734Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:41:09.2166655Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:41:19.3554600Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:41:29.5056365Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:41:39.6196131Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:41:49.7188119Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    },
+    {
+      "time": "2026-10-25T14:41:59.8344188Z",
+      "observedDataFiles": 0,
+      "observedDataBytes": 0
+    }
+  ],
+  "failure": null,
+  "packageSha256": "9d7ead048380ffd73d15afe1c53bd03c54a4ba186a93856bff652937c2c03ef8",
+  "packageBytes": 210415579,
+  "referenceIdentity": {
+    "publisher": "CN=Ender",
+    "signatureMathVerified": true,
+    "certificateThumbprint": "99EA0A9B4F4808D5C69C68F82D0BACDB8B6D2D19",
+    "name": "Microsoft.MicrosoftEdge.Neo",
+    "version": "1.0.6.0"
+  },
+  "executable": "NeoXS\\Binaries\\Win64\\NeoXS.exe",
+  "packageFullName": "Microsoft.MicrosoftEdge.Neo_1.0.6.0_x64__65q16g0tnjser",
+  "actualGameDataFiles": 0,
+  "actualGameCodeFilesOutsidePackage": 0,
+  "installedClient": [
+    {
+      "root": "installed-package",
+      "relativePath": "NeoXS/Binaries/Win64/FortniteClient-Win64-Shipping.dll",
+      "bytes": 123868672,
+      "lastWriteUtc": "2026-10-25T14:37:50.2770338Z",
+      "sha256": "888cf95913857f6b75b6f7ee570a2a6e59c1b71c83db3b5da40f47a8c3b2223d"
+    }
+  ],
+  "elapsedSeconds": 260,
+  "visualReview": {
+    "screen": "Neo account activation: Scan to sign in; neofn.dev/activate",
+    "loginGateVisible": true,
+    "uiAutomationDidNotExposeCustomLabels": true,
+    "deviceLinkCodePublished": false,
+    "gameLoadingScreenObserved": false,
+    "gameLobbyObserved": false
+  }
+}
