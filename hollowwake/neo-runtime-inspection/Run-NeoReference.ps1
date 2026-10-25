@@ -63,7 +63,12 @@ try{
  $report.packageSha256=(Get-FileHash $packageFile -Algorithm SHA256).Hash.ToLowerInvariant();$report.packageBytes=(Get-Item $packageFile).Length
  $zip=[IO.Compression.ZipFile]::OpenRead($packageFile)
  try{
-  [xml]$manifest=[Text.Encoding]::UTF8.GetString((ReadMember $zip 'AppxManifest.xml'))
+  $report.stage='read-package-manifest';Save
+  $manifestBytes=ReadMember $zip 'AppxManifest.xml'
+  $manifestStream=[IO.MemoryStream]::new($manifestBytes,$false)
+  $manifest=[xml]::new();$manifest.XmlResolver=$null
+  try{$manifest.Load($manifestStream)}finally{$manifestStream.Dispose()}
+  $report.stage='verify-package-signature';Save
   $signature=ReadMember $zip 'AppxSignature.p7x'
   if([Text.Encoding]::ASCII.GetString($signature,0,4)-ne 'PKCX'){throw 'Unexpected Appx signature prefix'}
   $cms=[Security.Cryptography.Pkcs.SignedCms]::new();$cms.Decode([byte[]]$signature[4..($signature.Length-1)]);$cms.CheckSignature($true)
